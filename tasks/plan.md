@@ -104,7 +104,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 ### Fase 0 — Base reproducible
 
-- [ ] T01. Crear el workspace y los contratos de calidad.
+- [x] T01. Crear el workspace y los contratos de calidad.
 - [ ] T02. Levantar Supabase y servicios locales con Docker Compose.
 - [ ] T03. Establecer CI, configuración segura y telemetría mínima.
 
@@ -194,17 +194,17 @@ Cada tarea sólo se cierra si cumple sus criterios particulares y, además:
 
 ## Riesgos y mitigaciones
 
-| Riesgo | Impacto | Mitigación |
-|---|---:|---|
-| Fuga de datos entre tenants | Crítico | Contexto obligatorio, RLS, pruebas negativas y revisión de consultas en cada corte. |
-| Doble cobro o saldo inconsistente | Crítico | Libro mayor append-only, bloqueo transaccional, idempotencia y consulta autoritativa. |
-| Realtime interpretado como fuente de verdad | Alto | Eventos como invalidación; refetch al reconectar y confirmación REST para escrituras. |
-| Alcance demasiado amplio para el primer piloto | Alto | Hitos A/B, flags por módulo y revisión humana en cada checkpoint. |
-| Dependencia de proveedores | Alto | Adaptadores, webhooks verificables, reintentos y degradación explícita. |
-| Crecimiento de Storage en el VPS | Medio | Compresión, cuotas, volumen separado, alertas y copia externa. |
-| Fallo del VPS único | Alto | Copia externa, PITR, runbook de recuperación y monitor externo. |
-| Operación móvil con mala conectividad | Alto | PWA, estados de reconexión y ninguna confirmación optimista de escrituras críticas. |
-| Personal comparte credenciales | Medio | Cuentas individuales, PIN con bloqueo y auditoría visible. |
+| Riesgo                                         | Impacto | Mitigación                                                                            |
+| ---------------------------------------------- | ------: | ------------------------------------------------------------------------------------- |
+| Fuga de datos entre tenants                    | Crítico | Contexto obligatorio, RLS, pruebas negativas y revisión de consultas en cada corte.   |
+| Doble cobro o saldo inconsistente              | Crítico | Libro mayor append-only, bloqueo transaccional, idempotencia y consulta autoritativa. |
+| Realtime interpretado como fuente de verdad    |    Alto | Eventos como invalidación; refetch al reconectar y confirmación REST para escrituras. |
+| Alcance demasiado amplio para el primer piloto |    Alto | Hitos A/B, flags por módulo y revisión humana en cada checkpoint.                     |
+| Dependencia de proveedores                     |    Alto | Adaptadores, webhooks verificables, reintentos y degradación explícita.               |
+| Crecimiento de Storage en el VPS               |   Medio | Compresión, cuotas, volumen separado, alertas y copia externa.                        |
+| Fallo del VPS único                            |    Alto | Copia externa, PITR, runbook de recuperación y monitor externo.                       |
+| Operación móvil con mala conectividad          |    Alto | PWA, estados de reconexión y ninguna confirmación optimista de escrituras críticas.   |
+| Personal comparte credenciales                 |   Medio | Cuentas individuales, PIN con bloqueo y auditoría visible.                            |
 
 ## Decisiones todavía no bloqueantes
 
