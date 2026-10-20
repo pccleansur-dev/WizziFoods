@@ -13,7 +13,11 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "infra:setup": "tsx packages/infra/src/setup-supabase.ts",
+    "infra:up": "pnpm infra:setup && docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml up -d --wait",
+    "infra:down": "docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml down",
+    "infra:status": "docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml ps"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -23,6 +27,7 @@
     "eslint-config-next": "16.4.2",
     "prettier": "3.9.10",
     "turbo": "2.11.9",
+    "tsx": "4.23.15",
     "typescript": "5.9.3",
     "typescript-eslint": "8.72.0",
     "vitest": "5.0.5"
