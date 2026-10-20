@@ -1,0 +1,7 @@
+.next
+coverage
+dist
+node_modules
+customer-flow-preview.html
+prototipo-cliente.html
+pnpm-lock.yaml
