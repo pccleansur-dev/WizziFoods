@@ -1,0 +1,358 @@
+<div id="customer-flow-preview" class="viz-dotted-background">
+  <style>
+    #customer-flow-preview {
+      --cf-bg: light-dark(#f3eee7, #171917);
+      --cf-phone: light-dark(#fdfbf7, #202320);
+      --cf-surface: light-dark(#ffffff, #2a2e2a);
+      --cf-soft: light-dark(#f5eee6, #343934);
+      --cf-text: light-dark(#1f2421, #f4f2ed);
+      --cf-muted: light-dark(#6c625b, #bbb5ad);
+      --cf-border: light-dark(#e6d9cf, #464c46);
+      --cf-primary: #b44d29;
+      --cf-primary-deep: #8e3517;
+      --cf-primary-on: #ffffff;
+      --cf-green: light-dark(#176947, #80d9aa);
+      --cf-green-soft: light-dark(#e2f3ea, #163b2b);
+      --cf-amber: light-dark(#8a4c00, #ffc077);
+      --cf-amber-soft: light-dark(#fff0d7, #472e12);
+      color: var(--cf-text);
+      padding: 18px 12px 58px;
+      font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+    }
+    #customer-flow-preview * { box-sizing: border-box; }
+    #customer-flow-preview .cf-shell { max-width: 430px; margin: 0 auto; }
+    #customer-flow-preview .cf-steps {
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px;
+    }
+    #customer-flow-preview .cf-step {
+      min-height: 40px; border: 1px solid var(--cf-border); border-radius: 999px;
+      background: var(--cf-surface); color: var(--cf-muted); padding: 8px 12px;
+      font: inherit; font-size: 13px; font-weight: 500;
+    }
+    #customer-flow-preview .cf-step[aria-selected="true"] {
+      background: var(--cf-text); color: var(--cf-phone); border-color: var(--cf-text);
+    }
+    #customer-flow-preview .cf-phone {
+      background: var(--cf-phone); border: 1px solid var(--cf-border); border-radius: 30px;
+      overflow: hidden; box-shadow: 0 18px 50px color-mix(in srgb, var(--cf-text) 16%, transparent);
+      min-height: 690px;
+    }
+    #customer-flow-preview .cf-status {
+      height: 28px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 18px; color: var(--cf-muted); font-size: 11px; font-weight: 500;
+    }
+    #customer-flow-preview .cf-view { min-height: 662px; background: var(--cf-phone); }
+    #customer-flow-preview .cf-view[hidden] { display: none; }
+    #customer-flow-preview .cf-pad { padding: 18px; }
+    #customer-flow-preview .cf-brand {
+      display: flex; gap: 12px; align-items: center;
+    }
+    #customer-flow-preview .cf-logo {
+      width: 46px; height: 46px; border-radius: 14px; background: var(--cf-primary);
+      color: var(--cf-primary-on); display: grid; place-items: center;
+    }
+    #customer-flow-preview .cf-brand-copy { min-width: 0; flex: 1; }
+    #customer-flow-preview .cf-title { margin: 0; font-size: 18px; font-weight: 500; color: var(--cf-text); }
+    #customer-flow-preview .cf-sub { margin: 3px 0 0; color: var(--cf-muted); font-size: 13px; }
+    #customer-flow-preview .cf-table {
+      border-radius: 999px; padding: 7px 10px; background: var(--cf-soft); color: var(--cf-text);
+      font-size: 12px; font-weight: 500; white-space: nowrap;
+    }
+    #customer-flow-preview .cf-hero {
+      margin: 18px 0; border-radius: 22px; padding: 22px; background:
+        radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--cf-primary) 24%, transparent), transparent 38%),
+        var(--cf-soft);
+    }
+    #customer-flow-preview .cf-hero h2 { margin: 0 0 8px; font-size: 25px; line-height: 1.2; font-weight: 500; }
+    #customer-flow-preview .cf-hero p { margin: 0; color: var(--cf-muted); font-size: 14px; line-height: 1.5; }
+    #customer-flow-preview .cf-benefits { display: grid; gap: 9px; margin: 18px 0; }
+    #customer-flow-preview .cf-benefit { display: flex; gap: 10px; align-items: center; font-size: 13px; }
+    #customer-flow-preview .cf-benefit i { color: var(--cf-green); }
+    #customer-flow-preview .cf-btn {
+      width: 100%; min-height: 50px; border-radius: 14px; padding: 12px 16px;
+      border: 1px solid var(--cf-border); background: var(--cf-surface); color: var(--cf-text);
+      font: inherit; font-size: 14px; font-weight: 500; display: flex; align-items: center;
+      justify-content: center; gap: 9px;
+    }
+    #customer-flow-preview .cf-btn + .cf-btn { margin-top: 9px; }
+    #customer-flow-preview .cf-btn-primary { background: var(--cf-primary); color: var(--cf-primary-on); border-color: var(--cf-primary); }
+    #customer-flow-preview .cf-note { color: var(--cf-muted); font-size: 12px; line-height: 1.45; text-align: center; margin-top: 13px; }
+    #customer-flow-preview .cf-topbar { padding: 12px 16px 8px; display: flex; align-items: center; gap: 10px; }
+    #customer-flow-preview .cf-icon-btn {
+      width: 44px; height: 44px; border: 0; border-radius: 13px; background: var(--cf-soft); color: var(--cf-text);
+      display: grid; place-items: center; flex: none;
+    }
+    #customer-flow-preview .cf-grow { flex: 1; min-width: 0; }
+    #customer-flow-preview .cf-login-prompt {
+      margin: 6px 16px 12px; padding: 12px; border-radius: 16px; background: var(--cf-green-soft);
+      display: flex; gap: 10px; align-items: center;
+    }
+    #customer-flow-preview .cf-login-prompt i { color: var(--cf-green); }
+    #customer-flow-preview .cf-login-copy { flex: 1; min-width: 0; font-size: 12px; color: var(--cf-muted); line-height: 1.4; }
+    #customer-flow-preview .cf-login-copy strong { color: var(--cf-text); display: block; font-size: 13px; }
+    #customer-flow-preview .cf-link-btn { border: 0; background: transparent; color: var(--cf-green); font: inherit; font-size: 12px; font-weight: 500; padding: 8px; }
+    #customer-flow-preview .cf-categories { display: flex; gap: 8px; padding: 0 16px 12px; overflow: hidden; }
+    #customer-flow-preview .cf-chip {
+      padding: 9px 12px; border-radius: 999px; border: 1px solid var(--cf-border); background: var(--cf-surface);
+      color: var(--cf-muted); font-size: 12px; white-space: nowrap;
+    }
+    #customer-flow-preview .cf-chip.active { background: var(--cf-text); color: var(--cf-phone); border-color: var(--cf-text); }
+    #customer-flow-preview .cf-section-title { margin: 0; font-size: 16px; font-weight: 500; }
+    #customer-flow-preview .cf-list { padding: 0 16px 96px; display: grid; gap: 11px; }
+    #customer-flow-preview .cf-item {
+      display: grid; grid-template-columns: 84px 1fr 42px; gap: 12px; align-items: center;
+      padding: 10px; border-radius: 17px; background: var(--cf-surface); border: 1px solid var(--cf-border);
+    }
+    #customer-flow-preview .cf-photo {
+      height: 76px; border-radius: 13px; background: linear-gradient(135deg, var(--cf-amber-soft), var(--cf-soft));
+      color: var(--cf-amber); display: grid; place-items: center;
+    }
+    #customer-flow-preview .cf-item h3 { margin: 0 0 4px; font-size: 14px; font-weight: 500; }
+    #customer-flow-preview .cf-item p { margin: 0; color: var(--cf-muted); font-size: 11px; line-height: 1.35; }
+    #customer-flow-preview .cf-price { margin-top: 6px; color: var(--cf-primary-deep); font-size: 13px; font-weight: 500; }
+    #customer-flow-preview .cf-add {
+      width: 40px; height: 40px; border-radius: 12px; border: 0; background: var(--cf-primary);
+      color: var(--cf-primary-on); display: grid; place-items: center;
+    }
+    #customer-flow-preview .cf-tray {
+      position: absolute; left: 13px; right: 13px; bottom: 12px; min-height: 58px; border: 0;
+      border-radius: 18px; background: var(--cf-text); color: var(--cf-phone); padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px; font: inherit;
+      box-shadow: 0 12px 24px color-mix(in srgb, var(--cf-text) 22%, transparent);
+    }
+    #customer-flow-preview .cf-screen-relative { position: relative; min-height: 662px; }
+    #customer-flow-preview .cf-count {
+      min-width: 24px; height: 24px; border-radius: 999px; background: var(--cf-primary); color: var(--cf-primary-on);
+      display: grid; place-items: center; font-size: 11px; font-weight: 500;
+    }
+    #customer-flow-preview .cf-tray-copy { text-align: left; flex: 1; }
+    #customer-flow-preview .cf-tray-copy strong { display: block; font-size: 13px; }
+    #customer-flow-preview .cf-tray-copy span { display: block; font-size: 11px; opacity: .72; margin-top: 2px; }
+    #customer-flow-preview .cf-page-head { padding: 10px 18px 14px; display: flex; align-items: center; gap: 12px; }
+    #customer-flow-preview .cf-page-head h2 { margin: 0; font-size: 20px; font-weight: 500; }
+    #customer-flow-preview .cf-card {
+      background: var(--cf-surface); border: 1px solid var(--cf-border); border-radius: 18px; padding: 14px;
+    }
+    #customer-flow-preview .cf-stack { display: grid; gap: 11px; padding: 0 18px 18px; }
+    #customer-flow-preview .cf-order-row { display: flex; gap: 10px; align-items: flex-start; }
+    #customer-flow-preview .cf-qty { width: 28px; height: 28px; border-radius: 9px; background: var(--cf-soft); display: grid; place-items: center; font-size: 12px; }
+    #customer-flow-preview .cf-order-copy { flex: 1; }
+    #customer-flow-preview .cf-order-copy strong { display: block; font-size: 13px; }
+    #customer-flow-preview .cf-order-copy span { display: block; color: var(--cf-muted); font-size: 11px; margin-top: 3px; }
+    #customer-flow-preview .cf-money { font-size: 13px; font-weight: 500; }
+    #customer-flow-preview .cf-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--cf-border); }
+    #customer-flow-preview .cf-total strong:last-child { font-size: 18px; }
+    #customer-flow-preview .cf-field-label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+    #customer-flow-preview .cf-field {
+      width: 100%; min-height: 46px; border-radius: 12px; border: 1px solid var(--cf-border);
+      background: var(--cf-phone); color: var(--cf-text); padding: 10px 12px; font: inherit; font-size: 16px;
+    }
+    #customer-flow-preview .cf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #customer-flow-preview .cf-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    #customer-flow-preview .cf-choice {
+      min-height: 72px; border: 1px solid var(--cf-border); border-radius: 15px; background: var(--cf-phone);
+      color: var(--cf-text); padding: 11px; text-align: left; font: inherit; font-size: 12px;
+    }
+    #customer-flow-preview .cf-choice.selected { border: 2px solid var(--cf-primary); background: color-mix(in srgb, var(--cf-primary) 8%, var(--cf-phone)); }
+    #customer-flow-preview .cf-choice strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    #customer-flow-preview .cf-summary {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;
+    }
+    #customer-flow-preview .cf-stat { background: var(--cf-soft); border-radius: 14px; padding: 10px; }
+    #customer-flow-preview .cf-stat span { display: block; color: var(--cf-muted); font-size: 10px; }
+    #customer-flow-preview .cf-stat strong { display: block; margin-top: 5px; font-size: 13px; }
+    #customer-flow-preview .cf-stat.paid strong { color: var(--cf-green); }
+    #customer-flow-preview .cf-stat.pending strong { color: var(--cf-amber); }
+    #customer-flow-preview .cf-tabs { display: grid; grid-template-columns: repeat(3, 1fr); padding: 0 18px 12px; gap: 6px; }
+    #customer-flow-preview .cf-tab { border: 0; border-radius: 11px; padding: 10px 6px; background: var(--cf-soft); color: var(--cf-muted); font: inherit; font-size: 11px; }
+    #customer-flow-preview .cf-tab.active { background: var(--cf-text); color: var(--cf-phone); }
+    #customer-flow-preview .cf-status-row { display: flex; gap: 10px; align-items: center; }
+    #customer-flow-preview .cf-status-dot { width: 9px; height: 9px; border-radius: 999px; background: var(--cf-amber); flex: none; }
+    #customer-flow-preview .cf-status-dot.ready { background: var(--cf-green); }
+    #customer-flow-preview .cf-status-copy { flex: 1; }
+    #customer-flow-preview .cf-status-copy strong { display: block; font-size: 13px; }
+    #customer-flow-preview .cf-status-copy span { display: block; color: var(--cf-muted); font-size: 11px; margin-top: 3px; }
+    #customer-flow-preview .cf-badge { padding: 6px 8px; border-radius: 999px; background: var(--cf-amber-soft); color: var(--cf-amber); font-size: 10px; }
+    @media (max-width: 360px) {
+      #customer-flow-preview { padding-inline: 4px; }
+      #customer-flow-preview .cf-phone { border-radius: 22px; }
+      #customer-flow-preview .cf-item { grid-template-columns: 70px 1fr 40px; }
+      #customer-flow-preview .cf-photo { height: 68px; }
+      #customer-flow-preview .cf-two, #customer-flow-preview .cf-choice-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <div class="cf-shell">
+    <div class="cf-steps" role="tablist" aria-label="Pantallas del recorrido">
+      <button class="cf-step cursor-interaction" type="button" role="tab" aria-selected="true" data-cf-target="entry">Entrada</button>
+      <button class="cf-step cursor-interaction" type="button" role="tab" aria-selected="false" data-cf-target="menu">Carta</button>
+      <button class="cf-step cursor-interaction" type="button" role="tab" aria-selected="false" data-cf-target="order">Mi pedido</button>
+      <button class="cf-step cursor-interaction" type="button" role="tab" aria-selected="false" data-cf-target="pay">Pagar</button>
+      <button class="cf-step cursor-interaction" type="button" role="tab" aria-selected="false" data-cf-target="table">Mesa / Cuenta</button>
+    </div>
+
+    <div class="cf-phone">
+      <div class="cf-status"><span>12:45</span><span>Wi-Fi · 82%</span></div>
+
+      <section class="cf-view" data-cf-view="entry" aria-label="Entrada desde código QR">
+        <div class="cf-pad">
+          <div class="cf-brand">
+            <div class="cf-logo"><i data-lucide="utensils" aria-hidden="true"></i></div>
+            <div class="cf-brand-copy">
+              <h1 class="cf-title">Casa Jacarandá</h1>
+              <p class="cf-sub">Cocina argentina contemporánea</p>
+            </div>
+            <span class="cf-table">Mesa 12</span>
+          </div>
+
+          <div class="cf-hero">
+            <h2>Bienvenidos a la mesa</h2>
+            <p>Podés ver la carta, pedir y pagar sin crear una cuenta.</p>
+          </div>
+
+          <div class="cf-benefits">
+            <div class="cf-benefit"><i data-lucide="history" aria-hidden="true"></i><span>Recordá tus pedidos anteriores</span></div>
+            <div class="cf-benefit"><i data-lucide="gift" aria-hidden="true"></i><span>Sumá visitas y recibí beneficios</span></div>
+            <div class="cf-benefit"><i data-lucide="party-popper" aria-hidden="true"></i><span>Enterate de promociones y eventos si aceptás recibirlos</span></div>
+          </div>
+
+          <button class="cf-btn cf-btn-primary cursor-interaction" type="button" data-cf-go="menu">Continuar sin cuenta</button>
+          <button class="cf-btn cursor-interaction" type="button"><i data-lucide="circle-user-round" aria-hidden="true"></i>Continuar con Google</button>
+          <p class="cf-note">Registrarte es opcional. Nunca compartimos tu correo con el restaurante para marketing sin tu consentimiento.</p>
+        </div>
+      </section>
+
+      <section class="cf-view cf-screen-relative" data-cf-view="menu" aria-label="Carta digital" hidden>
+        <div class="cf-topbar">
+          <div class="cf-logo"><i data-lucide="utensils" aria-hidden="true"></i></div>
+          <div class="cf-grow"><h2 class="cf-title">Casa Jacarandá</h2><p class="cf-sub">Mesa 12 · Disponible</p></div>
+          <button class="cf-icon-btn cursor-interaction" type="button" aria-label="Buscar"><i data-lucide="search" aria-hidden="true"></i></button>
+        </div>
+        <div class="cf-login-prompt">
+          <i data-lucide="gift" aria-hidden="true"></i>
+          <div class="cf-login-copy"><strong>Esta visita puede acercarte a un premio</strong>Ingresá para guardar tu historial.</div>
+          <button class="cf-link-btn cursor-interaction" type="button">Ingresar</button>
+        </div>
+        <div class="cf-categories" aria-label="Categorías">
+          <span class="cf-chip active">Recomendados</span><span class="cf-chip">Entradas</span><span class="cf-chip">Principales</span><span class="cf-chip">Bebidas</span>
+        </div>
+        <div class="cf-list">
+          <h2 class="cf-section-title">Elegidos de la casa</h2>
+          <article class="cf-item">
+            <div class="cf-photo"><i data-lucide="beef" aria-hidden="true"></i></div>
+            <div><h3>Milanesa Jacarandá</h3><p>Con papas rústicas y huevo a baja temperatura.</p><div class="cf-price">$18.500</div></div>
+            <button class="cf-add cursor-interaction" type="button" aria-label="Agregar Milanesa Jacarandá"><i data-lucide="plus" aria-hidden="true"></i></button>
+          </article>
+          <article class="cf-item">
+            <div class="cf-photo"><i data-lucide="salad" aria-hidden="true"></i></div>
+            <div><h3>Burrata de estación</h3><p>Tomates, hojas frescas y aceite de albahaca.</p><div class="cf-price">$14.200</div></div>
+            <button class="cf-add cursor-interaction" type="button" aria-label="Agregar Burrata de estación"><i data-lucide="plus" aria-hidden="true"></i></button>
+          </article>
+          <article class="cf-item">
+            <div class="cf-photo"><i data-lucide="wine" aria-hidden="true"></i></div>
+            <div><h3>Malbec por copa</h3><p>Selección de la casa, 180 ml.</p><div class="cf-price">$6.800</div></div>
+            <button class="cf-add cursor-interaction" type="button" aria-label="Agregar Malbec por copa"><i data-lucide="plus" aria-hidden="true"></i></button>
+          </article>
+        </div>
+        <button class="cf-tray cursor-interaction" type="button" data-cf-go="order">
+          <i data-lucide="concierge-bell" aria-hidden="true"></i><span class="cf-count">2</span>
+          <span class="cf-tray-copy"><strong>Mi pedido</strong><span>Borrador privado · sólo lo ves vos</span></span><strong>$25.300</strong>
+        </button>
+      </section>
+
+      <section class="cf-view" data-cf-view="order" aria-label="Borrador privado del pedido" hidden>
+        <div class="cf-page-head"><button class="cf-icon-btn cursor-interaction" type="button" data-cf-go="menu" aria-label="Volver a la carta"><i data-lucide="arrow-left" aria-hidden="true"></i></button><div><h2>Mi pedido</h2><p class="cf-sub">Borrador privado · Mesa 12</p></div></div>
+        <div class="cf-stack">
+          <div class="cf-card">
+            <div class="cf-order-row"><span class="cf-qty">1</span><div class="cf-order-copy"><strong>Milanesa Jacarandá</strong><span>Sin modificaciones</span></div><span class="cf-money">$18.500</span></div>
+            <div class="cf-order-row" style="margin-top:12px"><span class="cf-qty">1</span><div class="cf-order-copy"><strong>Malbec por copa</strong><span>Sector: Barra</span></div><span class="cf-money">$6.800</span></div>
+            <div class="cf-total"><strong>Total</strong><strong>$25.300</strong></div>
+          </div>
+          <div class="cf-card">
+            <div class="cf-two">
+              <label><span class="cf-field-label">Tu nombre</span><input class="cf-field" value="Lucía" aria-label="Tu nombre" /></label>
+              <label><span class="cf-field-label">Silla (opcional)</span><input class="cf-field" value="4" inputmode="numeric" aria-label="Silla opcional" /></label>
+            </div>
+          </div>
+          <div class="cf-choice-grid" aria-label="Destino del pedido">
+            <button class="cf-choice selected cursor-interaction" type="button"><strong>Cargar a la mesa</strong>Confirmar ahora y pagar después.</button>
+            <button class="cf-choice cursor-interaction" type="button"><strong>Pagar mi pedido</strong>Pagar únicamente esta selección.</button>
+          </div>
+          <button class="cf-btn cf-btn-primary cursor-interaction" type="button" data-cf-go="pay">Continuar</button>
+          <button class="cf-btn cursor-interaction" type="button" data-cf-go="menu">Seguir agregando</button>
+        </div>
+      </section>
+
+      <section class="cf-view" data-cf-view="pay" aria-label="Selección de pago" hidden>
+        <div class="cf-page-head"><button class="cf-icon-btn cursor-interaction" type="button" data-cf-go="order" aria-label="Volver a mi pedido"><i data-lucide="arrow-left" aria-hidden="true"></i></button><div><h2>¿Cómo querés pagar?</h2><p class="cf-sub">Tu selección · $25.300</p></div></div>
+        <div class="cf-stack">
+          <div class="cf-card">
+            <span class="cf-field-label">Alcance del pago</span>
+            <div class="cf-choice-grid">
+              <button class="cf-choice selected cursor-interaction" type="button"><strong>Mi pedido</strong>2 productos de Lucía.</button>
+              <button class="cf-choice cursor-interaction" type="button"><strong>Otro monto</strong>Parte igual o importe personalizado.</button>
+            </div>
+          </div>
+          <div class="cf-card">
+            <span class="cf-field-label">Medio de pago</span>
+            <div class="cf-choice-grid">
+              <button class="cf-choice selected cursor-interaction" type="button"><strong>Mercado Pago</strong>Confirmación automática.</button>
+              <button class="cf-choice cursor-interaction" type="button"><strong>Efectivo</strong>Llamar al mozo para cobrar.</button>
+              <button class="cf-choice cursor-interaction" type="button"><strong>Débito</strong>Pago presencial con terminal.</button>
+              <button class="cf-choice cursor-interaction" type="button"><strong>Crédito</strong>Pago presencial con terminal.</button>
+            </div>
+          </div>
+          <div class="cf-card">
+            <span class="cf-field-label">Propina</span>
+            <div class="cf-choice-grid">
+              <button class="cf-choice selected cursor-interaction" type="button"><strong>10%</strong>$2.530</button>
+              <button class="cf-choice cursor-interaction" type="button"><strong>Otra</strong>Elegir importe.</button>
+            </div>
+          </div>
+          <button class="cf-btn cf-btn-primary cursor-interaction" type="button" data-cf-go="table">Pagar $27.830</button>
+          <p class="cf-note">El pedido se confirma cuando el pago queda acreditado. No se cobrará dos veces aunque otra persona pague al mismo tiempo.</p>
+        </div>
+      </section>
+
+      <section class="cf-view" data-cf-view="table" aria-label="Sesión y cuenta de la mesa" hidden>
+        <div class="cf-page-head"><div class="cf-grow"><h2>Mesa 12</h2><p class="cf-sub">Sesión abierta · 4 personas</p></div><span class="cf-table">En servicio</span></div>
+        <div class="cf-tabs" role="tablist" aria-label="Secciones de la mesa"><button class="cf-tab cursor-interaction" type="button" data-cf-go="menu">Carta</button><button class="cf-tab cursor-interaction" type="button" data-cf-go="order">Mi pedido</button><button class="cf-tab active cursor-interaction" type="button">Mesa / Cuenta</button></div>
+        <div class="cf-stack">
+          <div class="cf-summary">
+            <div class="cf-stat"><span>Consumido</span><strong>$86.400</strong></div>
+            <div class="cf-stat paid"><span>Pagado</span><strong>$27.830</strong></div>
+            <div class="cf-stat pending"><span>Pendiente</span><strong>$58.570</strong></div>
+          </div>
+          <div class="cf-card">
+            <div class="cf-status-row"><span class="cf-status-dot"></span><div class="cf-status-copy"><strong>Milanesa Jacarandá</strong><span>Lucía · Cocina</span></div><span class="cf-badge">En preparación</span></div>
+            <div class="cf-status-row" style="margin-top:14px"><span class="cf-status-dot ready"></span><div class="cf-status-copy"><strong>Malbec por copa</strong><span>Lucía · Barra</span></div><span class="cf-badge" style="background:var(--cf-green-soft);color:var(--cf-green)">Listo</span></div>
+          </div>
+          <div class="cf-card">
+            <div class="cf-order-row"><div class="cf-order-copy"><strong>Pago de Lucía</strong><span>Mercado Pago · acreditado</span></div><span class="cf-money" style="color:var(--cf-green)">$27.830</span></div>
+          </div>
+          <button class="cf-btn cf-btn-primary cursor-interaction" type="button" data-cf-go="pay">Pagar parte de la cuenta</button>
+          <button class="cf-btn cursor-interaction" type="button"><i data-lucide="bell" aria-hidden="true"></i>Llamar al mozo</button>
+          <p class="cf-note">Mientras la mesa permanezca abierta podés seguir consultando la carta, tus pedidos y los movimientos de la cuenta.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('customer-flow-preview');
+      const views = [...root.querySelectorAll('[data-cf-view]')];
+      const steps = [...root.querySelectorAll('[data-cf-target]')];
+      function show(name) {
+        views.forEach((view) => { view.hidden = view.dataset.cfView !== name; });
+        steps.forEach((step) => step.setAttribute('aria-selected', String(step.dataset.cfTarget === name)));
+        root.querySelector('.cf-phone').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      root.addEventListener('click', (event) => {
+        const control = event.target.closest('[data-cf-target], [data-cf-go]');
+        if (!control) return;
+        show(control.dataset.cfTarget || control.dataset.cfGo);
+      });
+    })();
+  </script>
+</div>
