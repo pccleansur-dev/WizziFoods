@@ -1,0 +1,20 @@
+{
+  "name": "@platform/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint src",
+    "start": "node dist/main.js",
+    "test": "vitest run src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@platform/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  }
+}
