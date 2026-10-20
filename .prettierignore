@@ -1,6 +1,7 @@
 .next
 coverage
 dist
+infra/supabase/**
 node_modules
 customer-flow-preview.html
 prototipo-cliente.html
