@@ -1,6 +1,8 @@
 # Tareas de implementación
 
-Estado: propuesta pendiente de aprobación. Las rutas son provisionales hasta completar T01; cada tarea debe conservar un alcance de una sesión enfocada y dividirse si supera aproximadamente cinco archivos funcionales.
+Estado: aprobada y en ejecución. Cada tarea debe conservar un alcance de una
+sesión enfocada y dividirse si supera aproximadamente cinco archivos
+funcionales.
 
 ## Fase 0 — Base reproducible
 
@@ -25,20 +27,20 @@ Estado: propuesta pendiente de aprobación. Las rutas son provisionales hasta co
 
 **Tamaño:** M.
 
-### T02. Levantar Supabase y servicios locales
+### T02. Levantar Supabase y servicios locales — completada
 
 **Descripción:** Incorporar una composición local reproducible con Supabase, volúmenes persistentes y perfiles preparados para nube/local.
 
 **Criterios de aceptación:**
 
-- [ ] Un comando levanta PostgreSQL, Auth, Storage y Realtime con datos persistentes.
-- [ ] La configuración distingue secretos de desarrollo y producción.
-- [ ] Reiniciar contenedores no elimina base de datos ni archivos.
+- [x] Un comando levanta PostgreSQL, Auth, Storage y Realtime con datos persistentes.
+- [x] La configuración distingue secretos de desarrollo y producción.
+- [x] Reiniciar contenedores no elimina base de datos ni archivos.
 
 **Verificación:**
 
-- [ ] Ejecutar smoke test de base, Auth, Storage y Realtime.
-- [ ] Reiniciar la composición y comprobar persistencia.
+- [x] Ejecutar smoke test de base, Auth, Storage y Realtime.
+- [x] Reiniciar la composición y comprobar persistencia.
 
 **Dependencias:** T01.
 

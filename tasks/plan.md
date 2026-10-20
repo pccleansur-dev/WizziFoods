@@ -105,7 +105,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 0 — Base reproducible
 
 - [x] T01. Crear el workspace y los contratos de calidad.
-- [ ] T02. Levantar Supabase y servicios locales con Docker Compose.
+- [x] T02. Levantar Supabase y servicios locales con Docker Compose.
 - [ ] T03. Establecer CI, configuración segura y telemetría mínima.
 
 ### Fase 1 — Seguridad y aislamiento
