@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 
+import { readWorkerConfig } from "@platform/config";
 import { createServiceStatus, type ServiceStatus } from "@platform/contracts";
 
 export function getWorkerStatus(): ServiceStatus {
@@ -7,8 +8,9 @@ export function getWorkerStatus(): ServiceStatus {
 }
 
 function startWorker(): void {
+  const config = readWorkerConfig(process.env);
   console.info(JSON.stringify(getWorkerStatus()));
-  setInterval(() => undefined, 60_000);
+  setInterval(() => undefined, config.heartbeatMs);
 }
 
 const entryPoint = process.argv[1];

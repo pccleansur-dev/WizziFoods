@@ -1,8 +1,22 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
 import type { NextConfig } from "next";
+import { readWebConfig } from "@platform/config";
+
+const localEnvironmentPath = resolve(import.meta.dirname, "../../.env");
+if (existsSync(localEnvironmentPath)) {
+  process.loadEnvFile(localEnvironmentPath);
+}
+
+const runtimeConfig = readWebConfig(process.env);
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_API_URL: runtimeConfig.apiUrl
+  },
   output: "standalone",
-  transpilePackages: ["@platform/contracts"]
+  transpilePackages: ["@platform/config", "@platform/contracts"]
 };
 
 export default nextConfig;

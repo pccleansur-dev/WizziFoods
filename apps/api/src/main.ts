@@ -5,19 +5,17 @@ import {
   FastifyAdapter,
   type NestFastifyApplication
 } from "@nestjs/platform-fastify";
+import { readApiConfig } from "@platform/config";
 
 import { AppModule } from "./app.module.js";
 
-const defaultPort = 3001;
-
 async function bootstrap(): Promise<void> {
+  const config = readApiConfig(process.env);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter()
   );
-  const port = Number(process.env.API_PORT ?? defaultPort);
-
-  await app.listen(port, "0.0.0.0");
+  await app.listen(config.port, "0.0.0.0");
 }
 
 await bootstrap();
