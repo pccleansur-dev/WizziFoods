@@ -71,3 +71,381 @@ dd {
   margin: 0.2rem 0 0;
   font-weight: 700;
 }
+
+.access-shell {
+  display: grid;
+  min-height: 100vh;
+  padding: 0;
+  place-items: stretch;
+}
+
+.access-context,
+.access-card {
+  width: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.access-context {
+  display: flex;
+  min-height: 22rem;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2rem;
+  background: #253b32;
+  color: #fffdf8;
+}
+
+.platform-wordmark {
+  width: fit-content;
+  color: inherit;
+  font-size: 1.125rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.access-context .eyebrow {
+  color: #d8c6a8;
+}
+
+.access-context h1 {
+  max-width: 10ch;
+  font-size: clamp(2.75rem, 12vw, 5rem);
+}
+
+.access-lead {
+  margin: 1.5rem 0 0;
+  color: #e7e1d7;
+  font-size: 1.0625rem;
+}
+
+.access-support {
+  margin: 2rem 0 0;
+  color: #c8d3cd;
+  font-size: 0.875rem;
+}
+
+.access-card {
+  align-self: center;
+  padding: 2rem;
+  background: #fffdf8;
+}
+
+.access-card__heading h2 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.03em;
+}
+
+.access-card__heading p:last-child {
+  margin: 0.75rem 0 0;
+  color: #625b51;
+}
+
+.access-step {
+  margin: 0 0 0.5rem;
+  color: #80613d;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.access-form-stack,
+.field-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.access-form-stack {
+  margin-top: 2rem;
+}
+
+.field-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.field-group label {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.field-group input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid #bcb5a9;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #221f1a;
+  font: inherit;
+}
+
+.field-group input:focus-visible,
+.button:focus-visible,
+.recovery-panel summary:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 2px;
+}
+
+.button {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.button--primary {
+  background: #253b32;
+  color: #ffffff;
+}
+
+.button--google,
+.button--secondary {
+  width: 100%;
+  border-color: #bcb5a9;
+  background: #ffffff;
+  color: #221f1a;
+}
+
+.google-mark {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid #d8d2c7;
+  border-radius: 50%;
+  color: #345b4b;
+  font-size: 0.8125rem;
+}
+
+.access-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #746d62;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.access-divider::before,
+.access-divider::after {
+  height: 1px;
+  flex: 1;
+  background: #ded9d0;
+  content: "";
+}
+
+.form-message {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  border-left: 3px solid currentColor;
+  font-size: 0.875rem;
+}
+
+.form-message--error {
+  color: #8c2f23;
+  background: #fff1ee;
+}
+
+.form-message--success {
+  color: #315d49;
+  background: #edf6f1;
+}
+
+.recovery-panel {
+  border-top: 1px solid #ded9d0;
+  padding-top: 1rem;
+}
+
+.recovery-panel summary {
+  color: #5f482f;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.recovery-form {
+  margin-top: 1rem;
+}
+
+.access-help {
+  margin: 2rem 0 0;
+  color: #746d62;
+  font-size: 0.8125rem;
+}
+
+@media (min-width: 56rem) {
+  .access-shell {
+    grid-template-columns: minmax(24rem, 1fr) minmax(30rem, 1fr);
+  }
+
+  .access-context {
+    min-height: 100vh;
+    padding: clamp(3rem, 6vw, 6rem);
+  }
+
+  .access-card {
+    width: min(100%, 34rem);
+    padding: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
+
+.mfa-shell {
+  display: grid;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: #eeeae2;
+  place-items: center;
+}
+
+.mfa-card {
+  width: min(100%, 35rem);
+  padding: clamp(1.5rem, 6vw, 3rem);
+  border: 1px solid #d8d2c7;
+  border-radius: 0.75rem;
+  background: #fffdf8;
+  box-shadow: 0 1rem 3rem rgb(63 50 32 / 8%);
+}
+
+.mfa-card h1 {
+  font-size: clamp(2.25rem, 8vw, 3.5rem);
+}
+
+.mfa-card > p:not(.access-step) {
+  color: #625b51;
+}
+
+.mfa-card .field-stack,
+.mfa-card > form,
+.enrollment-content {
+  margin-top: 1.5rem;
+}
+
+.mfa-steps {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+  padding-left: 1.25rem;
+  color: #49443d;
+}
+
+.enrollment-content {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.totp-qr {
+  width: min(100%, 14rem);
+  height: auto;
+  justify-self: center;
+  border: 0.75rem solid #ffffff;
+}
+
+.manual-secret {
+  padding: 0.875rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.5rem;
+  background: #f7f4ee;
+  overflow-wrap: anywhere;
+}
+
+.manual-secret summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.manual-secret code {
+  font-size: 0.8125rem;
+}
+
+.panel-shell {
+  min-height: 100vh;
+  padding: clamp(1.25rem, 4vw, 3rem);
+  background: #f5f3ee;
+}
+
+.panel-header {
+  display: flex;
+  max-width: 72rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 auto;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #d8d2c7;
+}
+
+.panel-header .platform-wordmark {
+  color: #253b32;
+}
+
+.panel-header .button {
+  min-height: 2.5rem;
+}
+
+.panel-content {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+  padding: clamp(3rem, 10vw, 7rem) 0;
+}
+
+.panel-content h1 {
+  max-width: 14ch;
+}
+
+.panel-lead {
+  max-width: 46rem;
+  color: #625b51;
+  font-size: 1.125rem;
+}
+
+.panel-next-action,
+.panel-module-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 3rem;
+}
+
+.panel-next-action,
+.panel-module-list > div {
+  padding: 1.25rem;
+  border-top: 1px solid #cfc8bc;
+}
+
+.panel-next-action span,
+.panel-module-list span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #746d62;
+  font-size: 0.8125rem;
+}
+
+@media (min-width: 42rem) {
+  .panel-module-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

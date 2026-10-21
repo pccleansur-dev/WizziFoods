@@ -130,7 +130,7 @@ export function createSupabaseEnvironment(
     AUTH_AUDIT_LOG_DISABLE_POSTGRES: "false",
     DASHBOARD_PASSWORD: `a${randomBytes(16).toString("hex")}`,
     DISABLE_SIGNUP: "true",
-    ENABLE_EMAIL_SIGNUP: "false",
+    ENABLE_EMAIL_SIGNUP: "true",
     ENABLE_PHONE_SIGNUP: "false",
     FUNCTIONS_VERIFY_JWT: "true",
     GOOGLE_CLIENT_ID: "",

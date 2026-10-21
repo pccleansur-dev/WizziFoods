@@ -34,7 +34,10 @@ describe("TenantContextController", () => {
       controller.getAccess({ adminIdentity: identity })
     ).resolves.toEqual({
       data: {
-        identity,
+        identity: {
+          assuranceLevel: "aal2",
+          userId: identity.userId
+        },
         access: {
           tenantContexts: [tenantContext],
           type: "tenant_admin"

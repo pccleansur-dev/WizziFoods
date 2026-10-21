@@ -6,17 +6,20 @@ import {
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export function proxy(request: NextRequest) {
+import { refreshAuthSession } from "./auth/supabase-proxy";
+
+export async function proxy(request: NextRequest) {
   const requestId = resolveRequestId(
     request.headers.get("x-request-id") ?? undefined
   );
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-request-id", requestId);
 
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: { headers: requestHeaders }
   });
   response.headers.set("x-request-id", requestId);
+  response = await refreshAuthSession(request, response);
 
   const telemetry = getTelemetry("web");
   if (telemetry) {

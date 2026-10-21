@@ -87,11 +87,11 @@ describe("createSupabaseEnvironment", () => {
     expect(servicePayload.role).toBe("service_role");
   });
 
-  it("uses secure defaults before authentication flows are implemented", () => {
+  it("uses secure defaults for invitation-only authentication", () => {
     const environment = createSupabaseEnvironment(template, 1_800_000_000_000);
 
     expect(readValue(environment, "DISABLE_SIGNUP")).toBe("true");
-    expect(readValue(environment, "ENABLE_EMAIL_SIGNUP")).toBe("false");
+    expect(readValue(environment, "ENABLE_EMAIL_SIGNUP")).toBe("true");
     expect(readValue(environment, "ENABLE_PHONE_SIGNUP")).toBe("false");
     expect(readValue(environment, "FUNCTIONS_VERIFY_JWT")).toBe("true");
     expect(readValue(environment, "AUTH_AUDIT_LOG_DISABLE_POSTGRES")).toBe(

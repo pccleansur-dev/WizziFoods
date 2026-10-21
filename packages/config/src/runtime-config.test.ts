@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   readApiConfig,
+  readWebAuthConfig,
   readWebConfig,
   readWorkerConfig
 } from "./runtime-config.js";
@@ -69,6 +70,30 @@ describe("runtime configuration", () => {
         WEB_METRICS_PORT: "9466"
       })
     ).toThrow("NEXT_PUBLIC_API_URL must be an absolute HTTP(S) URL");
+  });
+
+  it("parses the public web authentication boundary", () => {
+    expect(
+      readWebAuthConfig({
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_example",
+        NEXT_PUBLIC_SUPABASE_URL: "http://localhost:18000"
+      })
+    ).toEqual({
+      appUrl: "http://localhost:3000",
+      supabasePublishableKey: "sb_publishable_example",
+      supabaseUrl: "http://localhost:18000"
+    });
+  });
+
+  it("rejects a secret Supabase key at the public web boundary", () => {
+    expect(() =>
+      readWebAuthConfig({
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_secret_do-not-expose",
+        NEXT_PUBLIC_SUPABASE_URL: "http://localhost:18000"
+      })
+    ).toThrow("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be publishable");
   });
 
   it("parses the worker heartbeat interval", () => {

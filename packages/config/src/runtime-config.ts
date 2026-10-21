@@ -20,6 +20,12 @@ export type WebRuntimeConfig = BaseRuntimeConfig & {
   metricsPort: number;
 };
 
+export type WebAuthConfig = {
+  appUrl: string;
+  supabasePublishableKey: string;
+  supabaseUrl: string;
+};
+
 export type WorkerRuntimeConfig = BaseRuntimeConfig & {
   heartbeatMs: number;
   metricsPort: number;
@@ -184,6 +190,43 @@ export function readWebConfig(source: EnvironmentSource): WebRuntimeConfig {
       apiUrl: apiUrl.toString().replace(/\/$/, ""),
       metricsPort
     };
+  });
+}
+
+export function readWebAuthConfig(source: EnvironmentSource): WebAuthConfig {
+  return withServiceContext("web authentication", () => {
+    assertRequired(source, [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL"
+    ]);
+    const appUrl = readUrl(
+      source,
+      "NEXT_PUBLIC_APP_URL",
+      ["http:", "https:"],
+      "an absolute HTTP(S) URL"
+    );
+    const supabaseUrl = readUrl(
+      source,
+      "NEXT_PUBLIC_SUPABASE_URL",
+      ["http:", "https:"],
+      "an absolute HTTP(S) URL"
+    );
+    const supabasePublishableKey = required(
+      source,
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+    );
+
+    if (
+      !supabasePublishableKey.startsWith("sb_publishable_") ||
+      supabasePublishableKey.length > 256
+    ) {
+      throw new Error(
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be publishable"
+      );
+    }
+
+    return { appUrl, supabasePublishableKey, supabaseUrl };
   });
 }
 

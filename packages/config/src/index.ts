@@ -1,5 +1,6 @@
 export {
   readApiConfig,
+  readWebAuthConfig,
   readWebConfig,
   readWorkerConfig,
   type ApiRuntimeConfig,
@@ -7,5 +8,6 @@ export {
   type BaseRuntimeConfig,
   type LogLevel,
   type WebRuntimeConfig,
+  type WebAuthConfig,
   type WorkerRuntimeConfig
 } from "./runtime-config.js";

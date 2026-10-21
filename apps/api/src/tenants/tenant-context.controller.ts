@@ -21,6 +21,14 @@ export class TenantContextController {
       identity.sessionId
     );
 
-    return { data: { access, identity } };
+    return {
+      data: {
+        access,
+        identity: {
+          assuranceLevel: identity.assuranceLevel,
+          userId: identity.userId
+        }
+      }
+    };
   }
 }
