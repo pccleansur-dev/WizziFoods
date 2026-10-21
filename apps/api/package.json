@@ -20,6 +20,7 @@
     "@platform/database": "workspace:*",
     "@platform/observability": "workspace:*",
     "fastify": "5.12.7",
+    "jose": "6.2.13",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   },
