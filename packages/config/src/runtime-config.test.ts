@@ -14,21 +14,32 @@ const baseEnvironment = {
 describe("runtime configuration", () => {
   it("fails with all missing API variables named", () => {
     expect(() => readApiConfig({})).toThrow(
-      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required"
+      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required"
     );
   });
 
   it("parses validated API values", () => {
-    expect(readApiConfig({ ...baseEnvironment, API_PORT: "3001" })).toEqual({
+    expect(
+      readApiConfig({
+        ...baseEnvironment,
+        API_METRICS_PORT: "9464",
+        API_PORT: "3001"
+      })
+    ).toEqual({
       environment: "test",
       logLevel: "info",
+      metricsPort: 9464,
       port: 3001
     });
   });
 
   it("rejects unsafe or malformed API ports", () => {
     expect(() =>
-      readApiConfig({ ...baseEnvironment, API_PORT: "70000" })
+      readApiConfig({
+        ...baseEnvironment,
+        API_METRICS_PORT: "9464",
+        API_PORT: "70000"
+      })
     ).toThrow("API_PORT must be an integer between 1 and 65535");
   });
 
@@ -36,7 +47,8 @@ describe("runtime configuration", () => {
     expect(() =>
       readWebConfig({
         ...baseEnvironment,
-        NEXT_PUBLIC_API_URL: "javascript:alert(1)"
+        NEXT_PUBLIC_API_URL: "javascript:alert(1)",
+        WEB_METRICS_PORT: "9466"
       })
     ).toThrow("NEXT_PUBLIC_API_URL must be an absolute HTTP(S) URL");
   });
@@ -45,12 +57,14 @@ describe("runtime configuration", () => {
     expect(
       readWorkerConfig({
         ...baseEnvironment,
+        WORKER_METRICS_PORT: "9465",
         WORKER_HEARTBEAT_MS: "60000"
       })
     ).toEqual({
       environment: "test",
       heartbeatMs: 60_000,
-      logLevel: "info"
+      logLevel: "info",
+      metricsPort: 9465
     });
   });
 });

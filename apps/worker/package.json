@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@platform/config": "workspace:*",
-    "@platform/contracts": "workspace:*"
+    "@platform/contracts": "workspace:*",
+    "@platform/observability": "workspace:*"
   },
   "devDependencies": {
     "tsx": "4.23.15"

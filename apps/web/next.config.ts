@@ -15,8 +15,11 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: runtimeConfig.apiUrl
   },
-  output: "standalone",
-  transpilePackages: ["@platform/config", "@platform/contracts"]
+  transpilePackages: [
+    "@platform/config",
+    "@platform/contracts",
+    "@platform/observability"
+  ]
 };
 
 export default nextConfig;

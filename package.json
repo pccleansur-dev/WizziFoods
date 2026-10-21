@@ -14,10 +14,12 @@
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "ci:check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm security:secrets",
     "infra:setup": "tsx packages/infra/src/setup-supabase.ts",
     "infra:up": "pnpm infra:setup && docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml up -d --wait",
     "infra:down": "docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml down",
-    "infra:status": "docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml ps"
+    "infra:status": "docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml ps",
+    "security:secrets": "tsx packages/infra/src/secret-scan.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

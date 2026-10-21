@@ -48,20 +48,20 @@ funcionales.
 
 **Tamaño:** M.
 
-### T03. Establecer CI, configuración y telemetría mínima
+### T03. Establecer CI, configuración y telemetría mínima — completada
 
 **Descripción:** Crear la puerta automática de calidad y la base de logs, métricas y trazas con correlación.
 
 **Criterios de aceptación:**
 
-- [ ] CI bloquea si fallan tipos, lint, pruebas, build o detección de secretos.
-- [ ] Web, API y worker producen identificadores de correlación y telemetría sin datos sensibles.
-- [ ] La configuración falla al inicio cuando falta una variable obligatoria.
+- [x] CI bloquea si fallan tipos, lint, pruebas, build o detección de secretos.
+- [x] Web, API y worker producen identificadores de correlación y telemetría sin datos sensibles.
+- [x] La configuración falla al inicio cuando falta una variable obligatoria.
 
 **Verificación:**
 
-- [ ] Ejecutar el pipeline localmente y provocar un fallo controlado.
-- [ ] Seguir una solicitud de humo por logs y traza.
+- [x] Ejecutar el pipeline localmente y provocar un fallo controlado.
+- [x] Seguir una solicitud de humo por logs y traza.
 
 **Dependencias:** T01, T02.
 

@@ -9,15 +9,18 @@ export type BaseRuntimeConfig = {
 };
 
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
+  metricsPort: number;
   port: number;
 };
 
 export type WebRuntimeConfig = BaseRuntimeConfig & {
   apiUrl: string;
+  metricsPort: number;
 };
 
 export type WorkerRuntimeConfig = BaseRuntimeConfig & {
   heartbeatMs: number;
+  metricsPort: number;
 };
 
 function required(source: EnvironmentSource, key: string): string {
@@ -101,17 +104,28 @@ function withServiceContext<T>(service: string, read: () => T): T {
 
 export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
   return withServiceContext("api", () => {
-    assertRequired(source, ["APP_ENV", "LOG_LEVEL", "API_PORT"]);
+    assertRequired(source, [
+      "APP_ENV",
+      "LOG_LEVEL",
+      "API_PORT",
+      "API_METRICS_PORT"
+    ]);
     const base = readBaseConfig(source);
     const port = readInteger(source, "API_PORT", 1, 65_535);
+    const metricsPort = readInteger(source, "API_METRICS_PORT", 1, 65_535);
 
-    return { ...base, port };
+    return { ...base, metricsPort, port };
   });
 }
 
 export function readWebConfig(source: EnvironmentSource): WebRuntimeConfig {
   return withServiceContext("web", () => {
-    assertRequired(source, ["APP_ENV", "LOG_LEVEL", "NEXT_PUBLIC_API_URL"]);
+    assertRequired(source, [
+      "APP_ENV",
+      "LOG_LEVEL",
+      "NEXT_PUBLIC_API_URL",
+      "WEB_METRICS_PORT"
+    ]);
     const base = readBaseConfig(source);
     const rawUrl = required(source, "NEXT_PUBLIC_API_URL");
     let apiUrl: URL;
@@ -126,7 +140,13 @@ export function readWebConfig(source: EnvironmentSource): WebRuntimeConfig {
       throw new Error("NEXT_PUBLIC_API_URL must be an absolute HTTP(S) URL");
     }
 
-    return { ...base, apiUrl: apiUrl.toString().replace(/\/$/, "") };
+    const metricsPort = readInteger(source, "WEB_METRICS_PORT", 1, 65_535);
+
+    return {
+      ...base,
+      apiUrl: apiUrl.toString().replace(/\/$/, ""),
+      metricsPort
+    };
   });
 }
 
@@ -134,7 +154,12 @@ export function readWorkerConfig(
   source: EnvironmentSource
 ): WorkerRuntimeConfig {
   return withServiceContext("worker", () => {
-    assertRequired(source, ["APP_ENV", "LOG_LEVEL", "WORKER_HEARTBEAT_MS"]);
+    assertRequired(source, [
+      "APP_ENV",
+      "LOG_LEVEL",
+      "WORKER_HEARTBEAT_MS",
+      "WORKER_METRICS_PORT"
+    ]);
     const base = readBaseConfig(source);
     const heartbeatMs = readInteger(
       source,
@@ -142,7 +167,8 @@ export function readWorkerConfig(
       1_000,
       3_600_000
     );
+    const metricsPort = readInteger(source, "WORKER_METRICS_PORT", 1, 65_535);
 
-    return { ...base, heartbeatMs };
+    return { ...base, heartbeatMs, metricsPort };
   });
 }

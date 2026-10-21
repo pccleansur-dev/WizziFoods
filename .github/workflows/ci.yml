@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_ENV: test
+      LOG_LEVEL: warn
+      API_PORT: 3001
+      API_METRICS_PORT: 9464
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      WORKER_HEARTBEAT_MS: 60000
+      WORKER_METRICS_PORT: 9465
+      WEB_METRICS_PORT: 9466
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies from lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Check types
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build applications and packages
+        run: pnpm build
+
+      - name: Detect committed secrets
+        run: pnpm security:secrets
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
