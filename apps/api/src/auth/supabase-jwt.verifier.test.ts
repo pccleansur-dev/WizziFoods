@@ -18,14 +18,21 @@ describe("SupabaseJwtVerifier", () => {
     );
   });
 
-  async function tokenFor(tokenIssuer: string): Promise<string> {
-    return new SignJWT({ aal: "aal2", role: "authenticated" })
+  async function tokenFor(
+    tokenIssuer: string,
+    expiration: string | number | Date = "5m"
+  ): Promise<string> {
+    return new SignJWT({
+      aal: "aal2",
+      role: "authenticated",
+      session_id: "70000000-0000-4000-8000-000000000007"
+    })
       .setProtectedHeader({ alg: "ES256", kid: "test" })
       .setSubject("10000000-0000-4000-8000-000000000001")
       .setAudience("authenticated")
       .setIssuer(tokenIssuer)
       .setIssuedAt()
-      .setExpirationTime("5m")
+      .setExpirationTime(expiration)
       .sign(privateKey);
   }
 
@@ -36,6 +43,7 @@ describe("SupabaseJwtVerifier", () => {
       aal: "aal2",
       aud: "authenticated",
       role: "authenticated",
+      sessionId: "70000000-0000-4000-8000-000000000007",
       sub: "10000000-0000-4000-8000-000000000001"
     });
   });
@@ -44,5 +52,9 @@ describe("SupabaseJwtVerifier", () => {
     await expect(
       verifier.verify(await tokenFor("https://attacker.example/auth/v1"))
     ).rejects.toThrow();
+  });
+
+  it("rejects an expired Supabase user token", async () => {
+    await expect(verifier.verify(await tokenFor(issuer, 1))).rejects.toThrow();
   });
 });

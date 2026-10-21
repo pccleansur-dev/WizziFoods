@@ -22,6 +22,8 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   const userId = "30000000-0000-4000-8000-000000000003";
   const superadminUserId = "60000000-0000-4000-8000-000000000006";
   const tenantId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  const sessionId = "70000000-0000-4000-8000-000000000007";
+  const superadminSessionId = "80000000-0000-4000-8000-000000000008";
   const admin = postgres(databaseAdminUrl ?? "", { prepare: false });
   let app: NestFastifyApplication;
   let keyId: string;
@@ -39,6 +41,12 @@ describeWithLocalStack("administrative API with local Supabase", () => {
     await admin`delete from public.tenants where id = ${tenantId}`;
     await admin`delete from auth.users where id in (${userId}, ${superadminUserId})`;
     await admin`insert into auth.users (id) values (${userId}), (${superadminUserId})`;
+    await admin`
+      insert into auth.sessions (id, user_id, aal, created_at, updated_at)
+      values
+        (${sessionId}, ${userId}, 'aal2', now(), now()),
+        (${superadminSessionId}, ${superadminUserId}, 'aal2', now(), now())
+    `;
     await admin`
       insert into public.tenants (id, slug, name, status)
       values (${tenantId}, 'api-auth-test', 'API Auth Test', 'active')
@@ -82,7 +90,14 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   ): Promise<string> {
     const privateKey = await importJWK(privateJwk, "ES256");
 
-    return new SignJWT({ aal, role: "authenticated" })
+    const subjectSessionId =
+      subject === superadminUserId ? superadminSessionId : sessionId;
+
+    return new SignJWT({
+      aal,
+      role: "authenticated",
+      session_id: subjectSessionId
+    })
       .setProtectedHeader({ alg: "ES256", kid: keyId })
       .setSubject(subject)
       .setAudience("authenticated")
@@ -150,6 +165,28 @@ describeWithLocalStack("administrative API with local Supabase", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().data.access).toEqual({
       type: "platform_superadmin"
+    });
+  });
+
+  it("rejects an access token immediately after its session is revoked", async () => {
+    const token = await createToken("aal2");
+    await admin`delete from auth.sessions where id = ${sessionId}`;
+
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: { authorization: `Bearer ${token}` },
+        method: "GET",
+        url: "/v1/me/access"
+      });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({
+      error: {
+        code: "SESSION_REVOKED",
+        message: "La sesión fue cerrada o revocada. Volvé a ingresar."
+      }
     });
   });
 });

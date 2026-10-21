@@ -4,6 +4,7 @@ export type VerifiedJwtClaims = {
   aal: "aal1" | "aal2" | undefined;
   aud: string | string[] | undefined;
   role: string | undefined;
+  sessionId: string | undefined;
   sub: string | undefined;
 };
 
@@ -13,6 +14,7 @@ export interface JwtVerifier {
 
 export type AdminIdentity = {
   assuranceLevel: "aal2";
+  sessionId: string;
   userId: string;
 };
 
@@ -47,6 +49,8 @@ export class AdminAuthService {
     if (
       !claims.sub ||
       !userIdPattern.test(claims.sub) ||
+      !claims.sessionId ||
+      !userIdPattern.test(claims.sessionId) ||
       claims.role !== "authenticated" ||
       !hasAuthenticatedAudience
     ) {
@@ -62,6 +66,10 @@ export class AdminAuthService {
       });
     }
 
-    return { assuranceLevel: "aal2", userId: claims.sub };
+    return {
+      assuranceLevel: "aal2",
+      sessionId: claims.sessionId,
+      userId: claims.sub
+    };
   }
 }

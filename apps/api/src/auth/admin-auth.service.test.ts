@@ -15,6 +15,7 @@ const validClaims: VerifiedJwtClaims = {
   aal: "aal2",
   aud: "authenticated",
   role: "authenticated",
+  sessionId: "70000000-0000-4000-8000-000000000007",
   sub: "10000000-0000-4000-8000-000000000001"
 };
 
@@ -24,6 +25,7 @@ describe("AdminAuthService", () => {
 
     await expect(service.authenticate("signed-token")).resolves.toEqual({
       assuranceLevel: "aal2",
+      sessionId: validClaims.sessionId,
       userId: validClaims.sub
     });
   });

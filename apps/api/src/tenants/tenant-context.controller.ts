@@ -17,7 +17,8 @@ export class TenantContextController {
   ) {
     const identity = request.adminIdentity;
     const access = await this.tenantContextService.getForAuthenticatedIdentity(
-      identity.userId
+      identity.userId,
+      identity.sessionId
     );
 
     return { data: { access, identity } };

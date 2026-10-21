@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import type {
   IdentityAccess,
   IdentityAccessRepository
@@ -10,7 +10,24 @@ export class TenantContextService {
     private readonly identityAccessRepository: IdentityAccessRepository
   ) {}
 
-  getForAuthenticatedIdentity(userId: string): Promise<IdentityAccess> {
-    return this.identityAccessRepository.resolveForIdentity(userId);
+  async getForAuthenticatedIdentity(
+    userId: string,
+    sessionId: string
+  ): Promise<IdentityAccess> {
+    const access = await this.identityAccessRepository.resolveForIdentity(
+      userId,
+      sessionId
+    );
+
+    if (!access) {
+      throw new UnauthorizedException({
+        error: {
+          code: "SESSION_REVOKED",
+          message: "La sesión fue cerrada o revocada. Volvé a ingresar."
+        }
+      });
+    }
+
+    return access;
   }
 }

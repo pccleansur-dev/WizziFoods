@@ -25,6 +25,13 @@ MINIO_ROOT_PASSWORD=placeholder
 POOLER_TENANT_ID=placeholder
 OPENAI_API_KEY=placeholder
 DISABLE_SIGNUP=false
+AUTH_AUDIT_LOG_DISABLE_POSTGRES=true
+MFA_TOTP_ENROLL_ENABLED=false
+MFA_TOTP_VERIFY_ENABLED=false
+MFA_MAX_ENROLLED_FACTORS=10
+GOOGLE_ENABLED=true
+GOOGLE_CLIENT_ID=placeholder
+GOOGLE_SECRET=placeholder
 ENABLE_EMAIL_SIGNUP=true
 ENABLE_PHONE_SIGNUP=true
 FUNCTIONS_VERIFY_JWT=false
@@ -87,6 +94,15 @@ describe("createSupabaseEnvironment", () => {
     expect(readValue(environment, "ENABLE_EMAIL_SIGNUP")).toBe("false");
     expect(readValue(environment, "ENABLE_PHONE_SIGNUP")).toBe("false");
     expect(readValue(environment, "FUNCTIONS_VERIFY_JWT")).toBe("true");
+    expect(readValue(environment, "AUTH_AUDIT_LOG_DISABLE_POSTGRES")).toBe(
+      "false"
+    );
+    expect(readValue(environment, "MFA_TOTP_ENROLL_ENABLED")).toBe("true");
+    expect(readValue(environment, "MFA_TOTP_VERIFY_ENABLED")).toBe("true");
+    expect(readValue(environment, "MFA_MAX_ENROLLED_FACTORS")).toBe("3");
+    expect(readValue(environment, "GOOGLE_ENABLED")).toBe("false");
+    expect(readValue(environment, "GOOGLE_CLIENT_ID")).toBe("");
+    expect(readValue(environment, "GOOGLE_SECRET")).toBe("");
     expect(readValue(environment, "OPENAI_API_KEY")).toBe("");
   });
 });

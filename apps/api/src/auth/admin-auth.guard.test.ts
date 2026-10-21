@@ -22,6 +22,7 @@ describe("AdminAuthGuard", () => {
   it("attaches the verified identity to the request", async () => {
     const identity = {
       assuranceLevel: "aal2" as const,
+      sessionId: "70000000-0000-4000-8000-000000000007",
       userId: "10000000-0000-4000-8000-000000000001"
     };
     const guard = new AdminAuthGuard(
@@ -30,6 +31,7 @@ describe("AdminAuthGuard", () => {
           aal: "aal2",
           aud: "authenticated",
           role: "authenticated",
+          sessionId: identity.sessionId,
           sub: identity.userId
         })
       })

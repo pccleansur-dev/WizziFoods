@@ -10,8 +10,22 @@ describe("TenantContextService", () => {
 
     await expect(
       service.getForAuthenticatedIdentity(
-        "10000000-0000-4000-8000-000000000001"
+        "10000000-0000-4000-8000-000000000001",
+        "70000000-0000-4000-8000-000000000007"
       )
     ).resolves.toEqual({ type: "platform_superadmin" });
+  });
+
+  it("rejects a revoked administrative session", async () => {
+    const service = new TenantContextService({
+      resolveForIdentity: async () => null
+    });
+
+    await expect(
+      service.getForAuthenticatedIdentity(
+        "10000000-0000-4000-8000-000000000001",
+        "70000000-0000-4000-8000-000000000007"
+      )
+    ).rejects.toMatchObject({ status: 401 });
   });
 });

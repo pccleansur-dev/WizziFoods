@@ -33,7 +33,10 @@ export type IdentityAccess =
   | { type: "unassigned" };
 
 export interface IdentityAccessRepository {
-  resolveForIdentity(userId: string): Promise<IdentityAccess>;
+  resolveForIdentity(
+    userId: string,
+    sessionId: string
+  ): Promise<IdentityAccess | null>;
 }
 
 export type TenantDatabase = {
@@ -45,9 +48,9 @@ export type TenantDatabase = {
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
-function assertUserId(userId: string): void {
-  if (!uuidPattern.test(userId)) {
-    throw new Error("userId must be a UUID");
+function assertUuid(value: string, label: string): void {
+  if (!uuidPattern.test(value)) {
+    throw new Error(`${label} must be a UUID`);
   }
 }
 
@@ -103,11 +106,23 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
   return {
     close: async () => client.end(),
     identityAccessRepository: {
-      async resolveForIdentity(userId: string): Promise<IdentityAccess> {
-        assertUserId(userId);
+      async resolveForIdentity(
+        userId: string,
+        sessionId: string
+      ): Promise<IdentityAccess | null> {
+        assertUuid(userId, "userId");
+        assertUuid(sessionId, "sessionId");
 
         return database.transaction(async (transaction) => {
           await assumeAuthenticatedIdentity(transaction, userId);
+          const activeSession = await transaction.execute<{ active: boolean }>(
+            sql`select private.is_auth_session_active(${sessionId}::uuid, ${userId}::uuid) as active`
+          );
+
+          if (!activeSession[0]?.active) {
+            return null;
+          }
+
           const [platformAssignment] = await transaction
             .select({ userId: platformSuperadmins.userId })
             .from(platformSuperadmins)
@@ -127,7 +142,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     },
     tenantRepository: {
       async findForIdentity(userId: string): Promise<TenantContext[]> {
-        assertUserId(userId);
+        assertUuid(userId, "userId");
 
         return database.transaction(async (transaction) => {
           await assumeAuthenticatedIdentity(transaction, userId);

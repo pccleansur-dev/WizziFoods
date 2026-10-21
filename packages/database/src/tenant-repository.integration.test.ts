@@ -12,12 +12,20 @@ describeWithDatabase("tenant repository with PostgreSQL RLS", () => {
   const userB = "20000000-0000-4000-8000-000000000002";
   const tenantA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const tenantB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const sessionA = "70000000-0000-4000-8000-000000000007";
+  const sessionB = "80000000-0000-4000-8000-000000000008";
   const admin = postgres(databaseAdminUrl ?? "", { prepare: false });
   const database = createTenantDatabase(databaseUrl ?? "");
 
   beforeAll(async () => {
     await admin.begin(async (transaction) => {
       await transaction`insert into auth.users (id) values (${userA}), (${userB})`;
+      await transaction`
+        insert into auth.sessions (id, user_id, aal, created_at, updated_at)
+        values
+          (${sessionA}, ${userA}, 'aal2', now(), now()),
+          (${sessionB}, ${userB}, 'aal2', now(), now())
+      `;
       await transaction`
         insert into public.tenants (id, slug, name)
         values
@@ -60,18 +68,26 @@ describeWithDatabase("tenant repository with PostgreSQL RLS", () => {
 
   it("resolves a platform superadmin without silently entering its tenant", async () => {
     await expect(
-      database.identityAccessRepository.resolveForIdentity(userA)
+      database.identityAccessRepository.resolveForIdentity(userA, sessionA)
     ).resolves.toEqual({ type: "platform_superadmin" });
   });
 
   it("resolves a tenant administrator with only its own tenant", async () => {
     await expect(
-      database.identityAccessRepository.resolveForIdentity(userB)
+      database.identityAccessRepository.resolveForIdentity(userB, sessionB)
     ).resolves.toMatchObject({
       tenantContexts: [
         { tenant: { id: tenantB, slug: "repository-tenant-b" } }
       ],
       type: "tenant_admin"
     });
+  });
+
+  it("does not resolve access after session revocation", async () => {
+    await admin`delete from auth.sessions where id = ${sessionB}`;
+
+    await expect(
+      database.identityAccessRepository.resolveForIdentity(userB, sessionB)
+    ).resolves.toBeNull();
   });
 });

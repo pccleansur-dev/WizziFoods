@@ -9,6 +9,7 @@ describe("TenantContextController", () => {
   it("returns context derived from the verified request identity", async () => {
     const identity: AdminIdentity = {
       assuranceLevel: "aal2",
+      sessionId: "70000000-0000-4000-8000-000000000007",
       userId: "10000000-0000-4000-8000-000000000001"
     };
     const tenantContext: TenantContext = {

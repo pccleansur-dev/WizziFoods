@@ -30,6 +30,8 @@ export class SupabaseJwtVerifier implements JwtVerifier {
           : undefined,
       aud: payload.aud,
       role: typeof payload.role === "string" ? payload.role : undefined,
+      sessionId:
+        typeof payload.session_id === "string" ? payload.session_id : undefined,
       sub: payload.sub
     };
   }
