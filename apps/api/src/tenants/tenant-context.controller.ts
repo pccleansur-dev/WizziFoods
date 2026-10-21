@@ -6,21 +6,20 @@ import {
 } from "../auth/admin-auth.guard.js";
 import { TenantContextService } from "./tenant-context.service.js";
 
-@Controller("v1/me/tenant-context")
+@Controller("v1/me/access")
 @UseGuards(AdminAuthGuard)
 export class TenantContextController {
   constructor(private readonly tenantContextService: TenantContextService) {}
 
   @Get()
-  async getTenantContext(
+  async getAccess(
     @Req() request: Pick<AdminAuthenticatedRequest, "adminIdentity">
   ) {
     const identity = request.adminIdentity;
-    const tenantContexts =
-      await this.tenantContextService.getForAuthenticatedIdentity(
-        identity.userId
-      );
+    const access = await this.tenantContextService.getForAuthenticatedIdentity(
+      identity.userId
+    );
 
-    return { data: { identity, tenantContexts } };
+    return { data: { access, identity } };
   }
 }

@@ -76,3 +76,10 @@ export const tenantMemberships = pgTable(
     index("tenant_memberships_user_id_idx").on(table.userId)
   ]
 );
+
+export const platformSuperadmins = pgTable("platform_superadmins", {
+  userId: uuid("user_id").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});

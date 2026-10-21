@@ -1,11 +1,16 @@
 import { Injectable } from "@nestjs/common";
-import type { TenantContext, TenantRepository } from "@platform/database";
+import type {
+  IdentityAccess,
+  IdentityAccessRepository
+} from "@platform/database";
 
 @Injectable()
 export class TenantContextService {
-  constructor(private readonly tenantRepository: TenantRepository) {}
+  constructor(
+    private readonly identityAccessRepository: IdentityAccessRepository
+  ) {}
 
-  getForAuthenticatedIdentity(userId: string): Promise<TenantContext[]> {
-    return this.tenantRepository.findForIdentity(userId);
+  getForAuthenticatedIdentity(userId: string): Promise<IdentityAccess> {
+    return this.identityAccessRepository.resolveForIdentity(userId);
   }
 }

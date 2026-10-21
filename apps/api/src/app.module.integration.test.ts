@@ -34,7 +34,12 @@ describe("administrative API authentication boundary", () => {
         })
       })
       .overrideProvider(TenantContextService)
-      .useValue({ getForAuthenticatedIdentity: async () => [] })
+      .useValue({
+        getForAuthenticatedIdentity: async () => ({
+          tenantContexts: [],
+          type: "tenant_admin"
+        })
+      })
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(
@@ -61,7 +66,7 @@ describe("administrative API authentication boundary", () => {
   it("rejects tenant context requests without a bearer token", async () => {
     const response = await app.getHttpAdapter().getInstance().inject({
       method: "GET",
-      url: "/v1/me/tenant-context"
+      url: "/v1/me/access"
     });
 
     expect(response.statusCode).toBe(401);
@@ -74,7 +79,7 @@ describe("administrative API authentication boundary", () => {
       .inject({
         headers: { authorization: "Bearer signed-token" },
         method: "GET",
-        url: "/v1/me/tenant-context"
+        url: "/v1/me/access"
       });
 
     expect(response.statusCode).toBe(200);
@@ -84,7 +89,7 @@ describe("administrative API authentication boundary", () => {
           assuranceLevel: "aal2",
           userId: "10000000-0000-4000-8000-000000000001"
         },
-        tenantContexts: []
+        access: { tenantContexts: [], type: "tenant_admin" }
       }
     });
   });

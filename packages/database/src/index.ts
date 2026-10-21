@@ -1,5 +1,7 @@
 export {
   createTenantDatabase,
+  type IdentityAccess,
+  type IdentityAccessRepository,
   type TenantContext,
   type TenantDatabase,
   type TenantRepository

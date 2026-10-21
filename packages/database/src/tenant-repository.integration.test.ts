@@ -28,6 +28,9 @@ describeWithDatabase("tenant repository with PostgreSQL RLS", () => {
         insert into public.tenant_memberships (tenant_id, user_id, role)
         values (${tenantA}, ${userA}, 'admin'), (${tenantB}, ${userB}, 'admin')
       `;
+      await transaction`
+        insert into public.platform_superadmins (user_id) values (${userA})
+      `;
     });
   });
 
@@ -53,5 +56,22 @@ describeWithDatabase("tenant repository with PostgreSQL RLS", () => {
     const contexts = await database.tenantRepository.findForIdentity(userB);
 
     expect(contexts.map(({ tenant }) => tenant.id)).toEqual([tenantB]);
+  });
+
+  it("resolves a platform superadmin without silently entering its tenant", async () => {
+    await expect(
+      database.identityAccessRepository.resolveForIdentity(userA)
+    ).resolves.toEqual({ type: "platform_superadmin" });
+  });
+
+  it("resolves a tenant administrator with only its own tenant", async () => {
+    await expect(
+      database.identityAccessRepository.resolveForIdentity(userB)
+    ).resolves.toMatchObject({
+      tenantContexts: [
+        { tenant: { id: tenantB, slug: "repository-tenant-b" } }
+      ],
+      type: "tenant_admin"
+    });
   });
 });

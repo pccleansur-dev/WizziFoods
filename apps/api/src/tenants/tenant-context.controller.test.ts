@@ -22,16 +22,22 @@ describe("TenantContextController", () => {
       }
     };
     const service = new TenantContextService({
-      findForIdentity: async () => [tenantContext]
+      resolveForIdentity: async () => ({
+        tenantContexts: [tenantContext],
+        type: "tenant_admin"
+      })
     });
     const controller = new TenantContextController(service);
 
     await expect(
-      controller.getTenantContext({ adminIdentity: identity })
+      controller.getAccess({ adminIdentity: identity })
     ).resolves.toEqual({
       data: {
         identity,
-        tenantContexts: [tenantContext]
+        access: {
+          tenantContexts: [tenantContext],
+          type: "tenant_admin"
+        }
       }
     });
   });

@@ -43,7 +43,7 @@ export class AppModule {
           inject: [TENANT_DATABASE],
           provide: TenantContextService,
           useFactory: (database: TenantDatabase) =>
-            new TenantContextService(database.tenantRepository)
+            new TenantContextService(database.identityAccessRepository)
         },
         {
           provide: AdminAuthService,

@@ -20,6 +20,7 @@ const describeWithLocalStack = hasLocalStack ? describe : describe.skip;
 
 describeWithLocalStack("administrative API with local Supabase", () => {
   const userId = "30000000-0000-4000-8000-000000000003";
+  const superadminUserId = "60000000-0000-4000-8000-000000000006";
   const tenantId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
   const admin = postgres(databaseAdminUrl ?? "", { prepare: false });
   let app: NestFastifyApplication;
@@ -36,8 +37,8 @@ describeWithLocalStack("administrative API with local Supabase", () => {
     }
     keyId = privateJwk.kid;
     await admin`delete from public.tenants where id = ${tenantId}`;
-    await admin`delete from auth.users where id = ${userId}`;
-    await admin`insert into auth.users (id) values (${userId})`;
+    await admin`delete from auth.users where id in (${userId}, ${superadminUserId})`;
+    await admin`insert into auth.users (id) values (${userId}), (${superadminUserId})`;
     await admin`
       insert into public.tenants (id, slug, name, status)
       values (${tenantId}, 'api-auth-test', 'API Auth Test', 'active')
@@ -45,6 +46,10 @@ describeWithLocalStack("administrative API with local Supabase", () => {
     await admin`
       insert into public.tenant_memberships (tenant_id, user_id, role)
       values (${tenantId}, ${userId}, 'admin')
+    `;
+    await admin`
+      insert into public.platform_superadmins (user_id)
+      values (${superadminUserId})
     `;
 
     const config: ApiRuntimeConfig = {
@@ -67,16 +72,19 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   afterAll(async () => {
     await app.close();
     await admin`delete from public.tenants where id = ${tenantId}`;
-    await admin`delete from auth.users where id = ${userId}`;
+    await admin`delete from auth.users where id in (${userId}, ${superadminUserId})`;
     await admin.end();
   });
 
-  async function createToken(aal: "aal1" | "aal2"): Promise<string> {
+  async function createToken(
+    aal: "aal1" | "aal2",
+    subject = userId
+  ): Promise<string> {
     const privateKey = await importJWK(privateJwk, "ES256");
 
     return new SignJWT({ aal, role: "authenticated" })
       .setProtectedHeader({ alg: "ES256", kid: keyId })
-      .setSubject(userId)
+      .setSubject(subject)
       .setAudience("authenticated")
       .setIssuer(`${supabaseUrl}/auth/v1`)
       .setIssuedAt()
@@ -91,15 +99,21 @@ describeWithLocalStack("administrative API with local Supabase", () => {
       .inject({
         headers: { authorization: `Bearer ${await createToken("aal2")}` },
         method: "GET",
-        url: "/v1/me/tenant-context"
+        url: "/v1/me/access"
       });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().data.tenantContexts).toEqual([
-      expect.objectContaining({
-        tenant: expect.objectContaining({ id: tenantId, slug: "api-auth-test" })
-      })
-    ]);
+    expect(response.json().data.access).toMatchObject({
+      tenantContexts: [
+        expect.objectContaining({
+          tenant: expect.objectContaining({
+            id: tenantId,
+            slug: "api-auth-test"
+          })
+        })
+      ],
+      type: "tenant_admin"
+    });
   });
 
   it("requires the administrator to complete MFA", async () => {
@@ -109,7 +123,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
       .inject({
         headers: { authorization: `Bearer ${await createToken("aal1")}` },
         method: "GET",
-        url: "/v1/me/tenant-context"
+        url: "/v1/me/access"
       });
 
     expect(response.statusCode).toBe(403);
@@ -118,6 +132,24 @@ describeWithLocalStack("administrative API with local Supabase", () => {
         code: "MFA_REQUIRED",
         message: "Se requiere el segundo factor para continuar."
       }
+    });
+  });
+
+  it("identifies a platform superadmin without a tenant context", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: {
+          authorization: `Bearer ${await createToken("aal2", superadminUserId)}`
+        },
+        method: "GET",
+        url: "/v1/me/access"
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.access).toEqual({
+      type: "platform_superadmin"
     });
   });
 });
