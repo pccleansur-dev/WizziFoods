@@ -72,7 +72,7 @@ funcionales.
 ### Checkpoint 0
 
 - [ ] Clon limpio → instalación → entorno local → build funciona según README.
-- [ ] CI pasa y el equipo aprueba comenzar dominio y seguridad.
+- [x] CI pasa y el equipo aprueba comenzar dominio y seguridad.
 
 ## Fase 1 — Seguridad y aislamiento
 
@@ -82,14 +82,16 @@ funcionales.
 
 **Criterios de aceptación:**
 
-- [ ] Cada tenant tiene una ubicación inicial aunque la UI limite a una sola.
-- [ ] Toda fila de dominio del corte lleva contexto tenant y RLS aplicable.
-- [ ] Una identidad del tenant A no puede leer ni modificar datos del B.
+- [x] Cada tenant tiene una ubicación inicial aunque la UI limite a una sola.
+- [x] Toda fila de dominio del corte lleva contexto tenant y RLS aplicable.
+- [x] Una identidad del tenant A no puede leer ni modificar datos del B.
 
 **Verificación:**
 
-- [ ] Migración desde base vacía y rollback ensayado en entorno descartable.
-- [ ] Pruebas pgTAP positivas y negativas de RLS.
+- [x] Migración desde base vacía y rollback ensayado en entorno descartable.
+- [x] Pruebas pgTAP positivas y negativas de RLS.
+
+**Resultado:** esquema, RLS y repositorio entregados. La API resuelve el tenant desde la identidad autenticada y no recibe `tenant_id` del cliente. La exposición HTTP queda deliberadamente junto a T05, cuando exista un JWT verificado del cual obtener esa identidad.
 
 **Dependencias:** T02, T03.
 

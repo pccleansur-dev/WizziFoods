@@ -106,11 +106,11 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 - [x] T01. Crear el workspace y los contratos de calidad.
 - [x] T02. Levantar Supabase y servicios locales con Docker Compose.
-- [ ] T03. Establecer CI, configuración segura y telemetría mínima.
+- [x] T03. Establecer CI, configuración segura y telemetría mínima.
 
 ### Fase 1 — Seguridad y aislamiento
 
-- [ ] T04. Crear un tenant aislado con `location` inicial y RLS negativa.
+- [x] T04. Crear un tenant aislado con `location` inicial y RLS negativa.
 - [ ] T05. Autenticar Superadmin y Administrador con segundo factor.
 - [ ] T06. Autenticar personal mediante usuario y PIN con roles fijos.
 
