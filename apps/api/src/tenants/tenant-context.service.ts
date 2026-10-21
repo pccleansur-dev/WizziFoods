@@ -1,5 +1,7 @@
+import { Injectable } from "@nestjs/common";
 import type { TenantContext, TenantRepository } from "@platform/database";
 
+@Injectable()
 export class TenantContextService {
   constructor(private readonly tenantRepository: TenantRepository) {}
 

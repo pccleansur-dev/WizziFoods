@@ -9,8 +9,10 @@ export type BaseRuntimeConfig = {
 };
 
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
+  databaseUrl: string;
   metricsPort: number;
   port: number;
+  supabaseUrl: string;
 };
 
 export type WebRuntimeConfig = BaseRuntimeConfig & {
@@ -91,6 +93,27 @@ function readInteger(
   return value;
 }
 
+function readUrl(
+  source: EnvironmentSource,
+  key: string,
+  protocols: string[],
+  description: string
+): string {
+  let url: URL;
+
+  try {
+    url = new URL(required(source, key));
+  } catch {
+    throw new Error(`${key} must be ${description}`);
+  }
+
+  if (!protocols.includes(url.protocol)) {
+    throw new Error(`${key} must be ${description}`);
+  }
+
+  return url.toString().replace(/\/$/u, "");
+}
+
 function withServiceContext<T>(service: string, read: () => T): T {
   try {
     return read();
@@ -108,13 +131,27 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       "APP_ENV",
       "LOG_LEVEL",
       "API_PORT",
-      "API_METRICS_PORT"
+      "API_METRICS_PORT",
+      "DATABASE_URL",
+      "SUPABASE_URL"
     ]);
     const base = readBaseConfig(source);
     const port = readInteger(source, "API_PORT", 1, 65_535);
     const metricsPort = readInteger(source, "API_METRICS_PORT", 1, 65_535);
+    const databaseUrl = readUrl(
+      source,
+      "DATABASE_URL",
+      ["postgres:", "postgresql:"],
+      "an absolute PostgreSQL URL"
+    );
+    const supabaseUrl = readUrl(
+      source,
+      "SUPABASE_URL",
+      ["http:", "https:"],
+      "an absolute HTTP(S) URL"
+    );
 
-    return { ...base, metricsPort, port };
+    return { ...base, databaseUrl, metricsPort, port, supabaseUrl };
   });
 }
 

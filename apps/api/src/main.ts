@@ -39,10 +39,11 @@ async function bootstrap(): Promise<void> {
     logger: false
   });
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
+    AppModule.register(config),
     adapter,
     { logger: false }
   );
+  app.enableShutdownHooks();
   const server = adapter.getInstance();
 
   server.addHook("onRequest", (request, reply, done) => {
