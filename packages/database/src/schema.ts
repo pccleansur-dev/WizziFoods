@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  foreignKey,
   index,
   pgTable,
   primaryKey,
@@ -56,6 +57,46 @@ export const locations = pgTable(
       .on(table.tenantId)
       .where(sql`${table.isPrimary}`),
     index("locations_tenant_id_idx").on(table.tenantId)
+  ]
+);
+
+export const staffMembers = pgTable(
+  "staff_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    locationId: uuid("location_id").notNull(),
+    username: text("username").notNull(),
+    displayName: text("display_name").notNull(),
+    role: text("role")
+      .$type<"manager" | "waiter" | "kitchen" | "bar">()
+      .notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.tenantId, table.locationId],
+      foreignColumns: [locations.tenantId, locations.id],
+      name: "staff_members_tenant_id_location_id_fkey"
+    }).onDelete("restrict"),
+    unique("staff_members_tenant_id_id_key").on(table.tenantId, table.id),
+    unique("staff_members_tenant_id_username_key").on(
+      table.tenantId,
+      table.username
+    ),
+    index("staff_members_tenant_location_idx").on(
+      table.tenantId,
+      table.locationId
+    )
   ]
 );
 

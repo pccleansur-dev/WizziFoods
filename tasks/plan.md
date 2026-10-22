@@ -111,7 +111,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 1 — Seguridad y aislamiento
 
 - [x] T04. Crear un tenant aislado con `location` inicial y RLS negativa.
-- [ ] T05. Autenticar Superadmin y Administrador con segundo factor.
+- [x] T05. Autenticar Superadmin y Administrador con segundo factor.
 - [ ] T06. Autenticar personal mediante usuario y PIN con roles fijos.
 
 ### Fase 2 — Administración de la plataforma
