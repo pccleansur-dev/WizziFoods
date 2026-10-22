@@ -1,4 +1,7 @@
+import { randomUUID } from "node:crypto";
+
 import type { AdministrativeAccess } from "../../auth/admin-access";
+import { TenantProvisioningForm } from "./tenant-provisioning-form";
 
 export function PanelContent({
   administrativeAccess
@@ -9,16 +12,31 @@ export function PanelContent({
 
   if (access.type === "platform_superadmin") {
     return (
-      <div className="panel-content">
-        <p className="eyebrow">Superadmin</p>
-        <h1>Administración de la plataforma</h1>
-        <p className="panel-lead">
-          Desde acá se aprovisionan negocios y se controla el estado general,
-          sin entrar silenciosamente a la operación de cada restaurante.
-        </p>
-        <div className="panel-next-action">
-          <span>Próxima etapa</span>
-          <strong>Crear y entregar negocios</strong>
+      <div className="panel-content panel-content--superadmin">
+        <div className="provisioning-workspace">
+          <div className="provisioning-intro">
+            <p className="eyebrow">Superadmin</p>
+            <h1>Crear y entregar negocios</h1>
+            <p className="panel-lead">
+              Creá el espacio aislado del cliente y enviá el acceso inicial a su
+              administrador. El negocio queda en borrador hasta completar su
+              configuración.
+            </p>
+            <ol className="provisioning-summary">
+              <li>Se crea el negocio con su ubicación principal.</li>
+              <li>El administrador recibe un enlace de un solo uso.</li>
+              <li>
+                Al ingresar, continúa con el asistente de personalización.
+              </li>
+            </ol>
+          </div>
+          <div className="provisioning-card">
+            <div>
+              <p className="eyebrow">Alta inicial</p>
+              <h2>Datos para la invitación</h2>
+            </div>
+            <TenantProvisioningForm idempotencyKey={randomUUID()} />
+          </div>
         </div>
       </div>
     );

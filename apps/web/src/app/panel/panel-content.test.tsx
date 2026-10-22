@@ -19,8 +19,9 @@ describe("PanelContent", () => {
       />
     );
 
-    expect(markup).toContain("Administración de la plataforma");
     expect(markup).toContain("Crear y entregar negocios");
+    expect(markup).toContain("Nombre del negocio");
+    expect(markup).toContain("Correo del administrador");
     expect(markup).not.toContain("Gestionar carta");
   });
 
