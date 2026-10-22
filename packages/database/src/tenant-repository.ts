@@ -28,6 +28,10 @@ import {
   createTenantProvisioningRepository,
   type TenantProvisioningRepository
 } from "./tenant-provisioning-repository.js";
+import {
+  createTenantSuspensionRepository,
+  type TenantSuspensionRepository
+} from "./tenant-suspension-repository.js";
 
 export type TenantContext = {
   location: {
@@ -68,6 +72,7 @@ export type TenantDatabase = {
   tenantDomainRepository: TenantDomainRepository;
   tenantProvisioningRepository: TenantProvisioningRepository;
   tenantRepository: TenantRepository;
+  tenantSuspensionRepository: TenantSuspensionRepository;
 };
 
 const uuidPattern =
@@ -170,6 +175,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     supportAccessRepository: createSupportAccessRepository(client),
     tenantDomainRepository: createTenantDomainRepository(client),
     tenantProvisioningRepository: createTenantProvisioningRepository(client),
+    tenantSuspensionRepository: createTenantSuspensionRepository(client),
     tenantRepository: {
       async findForIdentity(userId: string): Promise<TenantContext[]> {
         assertUuid(userId, "userId");

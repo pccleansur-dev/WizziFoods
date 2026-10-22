@@ -30,6 +30,8 @@ import { TenantHostService } from "./tenants/tenant-host.service.js";
 import { createTenantAdminInvitationGateway } from "./tenant-provisioning/tenant-admin-invitation.gateway.js";
 import { TenantProvisioningController } from "./tenant-provisioning/tenant-provisioning.controller.js";
 import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
+import { TenantSuspensionController } from "./tenant-suspension/tenant-suspension.controller.js";
+import { TenantSuspensionService } from "./tenant-suspension/tenant-suspension.service.js";
 
 const TENANT_DATABASE = Symbol("TENANT_DATABASE");
 
@@ -56,7 +58,8 @@ export class AppModule {
         TenantAdminScopeController,
         TenantContextController,
         TenantHostController,
-        TenantProvisioningController
+        TenantProvisioningController,
+        TenantSuspensionController
       ],
       module: AppModule,
       providers: [
@@ -116,6 +119,15 @@ export class AppModule {
               ),
               config.adminInviteRedirectUrl,
               config.platformBaseDomain
+            )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: TenantSuspensionService,
+          useFactory: (database: TenantDatabase) =>
+            new TenantSuspensionService(
+              database.identityAccessRepository,
+              database.tenantSuspensionRepository
             )
         },
         AdminAuthGuard,

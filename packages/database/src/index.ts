@@ -33,3 +33,8 @@ export {
   type TenantProvisioningRecord,
   type TenantProvisioningRepository
 } from "./tenant-provisioning-repository.js";
+export {
+  type RequestTenantSuspensionInput,
+  type TenantSuspensionRecord,
+  type TenantSuspensionRepository
+} from "./tenant-suspension-repository.js";

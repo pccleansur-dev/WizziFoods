@@ -15,6 +15,7 @@ import { TenantAdminScopeService } from "./tenants/tenant-admin-scope.service.js
 import { TenantContextService } from "./tenants/tenant-context.service.js";
 import { TenantHostService } from "./tenants/tenant-host.service.js";
 import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
+import { TenantSuspensionService } from "./tenant-suspension/tenant-suspension.service.js";
 
 describe("API authentication boundaries", () => {
   let app: INestApplication;
@@ -152,6 +153,20 @@ describe("API authentication boundaries", () => {
             name: request.name,
             slug: request.slug
           }
+        })
+      })
+      .overrideProvider(TenantSuspensionService)
+      .useValue({
+        request: async (
+          identity: { userId: string },
+          tenantId: string,
+          request: unknown,
+          correlationId: string
+        ) => ({
+          correlationId,
+          identityUserId: identity.userId,
+          request,
+          tenantId
         })
       })
       .compile();
@@ -352,6 +367,37 @@ describe("API authentication boundaries", () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({
       error: { code: "INVALID_TENANT_PROVISIONING" }
+    });
+  });
+
+  it("requests a normalized platform tenant suspension", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: {
+          authorization: "Bearer signed-token",
+          "x-request-id": "suspension-commercial-001"
+        },
+        method: "POST",
+        payload: {
+          mode: "commercial",
+          reason: " Subscription period ended "
+        },
+        url: "/v1/platform/tenants/74000000-0000-4000-8000-000000000074/suspension"
+      });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      data: {
+        correlationId: expect.any(String),
+        identityUserId: "10000000-0000-4000-8000-000000000001",
+        request: {
+          mode: "commercial",
+          reason: "Subscription period ended"
+        },
+        tenantId: "74000000-0000-4000-8000-000000000074"
+      }
     });
   });
 
