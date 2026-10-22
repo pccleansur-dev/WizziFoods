@@ -1,6 +1,7 @@
 import {
   type CanActivate,
   type ExecutionContext,
+  Inject,
   Injectable
 } from "@nestjs/common";
 import type { FastifyRequest } from "fastify";
@@ -18,7 +19,9 @@ type PendingAdminRequest = FastifyRequest & {
 
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
-  constructor(private readonly authService: AdminAuthService) {}
+  constructor(
+    @Inject(AdminAuthService) private readonly authService: AdminAuthService
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<PendingAdminRequest>();

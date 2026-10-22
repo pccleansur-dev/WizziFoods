@@ -1,0 +1,15 @@
+services:
+  mail:
+    container_name: supabase-mail
+    image: inbucket/inbucket:3.0.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9000:9000"
+
+  auth:
+    depends_on:
+      mail:
+        condition: service_started
+    environment:
+      GOTRUE_SMTP_USER: ""
+      GOTRUE_SMTP_PASS: ""

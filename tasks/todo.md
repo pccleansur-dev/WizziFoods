@@ -99,20 +99,26 @@ funcionales.
 
 **Tamaño:** M.
 
-### T05. Autenticar Superadmin y Administrador
+### T05. Autenticar Superadmin y Administrador — completada
 
 **Descripción:** Implementar identidades reforzadas y separación de alcance para quienes administran plataforma o negocio.
 
 **Criterios de aceptación:**
 
-- [ ] Superadmin y Administrador ingresan con credenciales reforzadas y MFA.
-- [ ] Un Administrador sólo obtiene el tenant asignado; Superadmin no entra silenciosamente a su operación.
-- [ ] Recuperación y revocación de sesiones quedan auditadas.
+- [x] Superadmin y Administrador ingresan con credenciales reforzadas y MFA.
+- [x] Un Administrador sólo obtiene el tenant asignado; Superadmin no entra silenciosamente a su operación.
+- [x] Recuperación y revocación de sesiones quedan auditadas.
 
 **Verificación:**
 
-- [ ] Pruebas de login, MFA, expiración, revocación y acceso cruzado denegado.
-- [ ] Recorrido manual en navegador para ambos perfiles.
+- [x] Pruebas de login, MFA, expiración, revocación y acceso cruzado denegado.
+- [x] Recorrido manual en navegador para ambos perfiles.
+
+**Resultado:** acceso administrativo con Supabase Auth, MFA TOTP obligatorio y
+alcances separados. La API valida firma, emisor, audiencia, expiración, nivel de
+seguridad y vigencia de la sesión antes de resolver permisos. El entorno local
+incluye correo aislado para probar recuperación sin enviar mensajes reales; se
+verificaron los eventos de recuperación y revocación en la auditoría de Auth.
 
 **Dependencias:** T04.
 

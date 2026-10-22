@@ -25,7 +25,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   const sessionId = "70000000-0000-4000-8000-000000000007";
   const superadminSessionId = "80000000-0000-4000-8000-000000000008";
   const admin = postgres(databaseAdminUrl ?? "", { prepare: false });
-  let app: NestFastifyApplication;
+  let app: NestFastifyApplication | undefined;
   let keyId: string;
   let privateJwk: JWK;
 
@@ -78,7 +78,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
     await admin`delete from public.tenants where id = ${tenantId}`;
     await admin`delete from auth.users where id in (${userId}, ${superadminUserId})`;
     await admin.end();
@@ -108,7 +108,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   }
 
   it("returns only the authenticated administrator tenant", async () => {
-    const response = await app
+    const response = await app!
       .getHttpAdapter()
       .getInstance()
       .inject({
@@ -132,7 +132,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   });
 
   it("requires the administrator to complete MFA", async () => {
-    const response = await app
+    const response = await app!
       .getHttpAdapter()
       .getInstance()
       .inject({
@@ -151,7 +151,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
   });
 
   it("identifies a platform superadmin without a tenant context", async () => {
-    const response = await app
+    const response = await app!
       .getHttpAdapter()
       .getInstance()
       .inject({
@@ -172,7 +172,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
     const token = await createToken("aal2");
     await admin`delete from auth.sessions where id = ${sessionId}`;
 
-    const response = await app
+    const response = await app!
       .getHttpAdapter()
       .getInstance()
       .inject({

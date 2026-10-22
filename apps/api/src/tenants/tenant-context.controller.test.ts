@@ -1,4 +1,5 @@
 import type { TenantContext } from "@platform/database";
+import { SELF_DECLARED_DEPS_METADATA } from "@nestjs/common/constants.js";
 import { describe, expect, it } from "vitest";
 
 import type { AdminIdentity } from "../auth/admin-auth.service.js";
@@ -6,6 +7,12 @@ import { TenantContextController } from "./tenant-context.controller.js";
 import { TenantContextService } from "./tenant-context.service.js";
 
 describe("TenantContextController", () => {
+  it("declares its tenant service dependency explicitly", () => {
+    expect(
+      Reflect.getMetadata(SELF_DECLARED_DEPS_METADATA, TenantContextController)
+    ).toEqual([{ index: 0, param: TenantContextService }]);
+  });
+
   it("returns context derived from the verified request identity", async () => {
     const identity: AdminIdentity = {
       assuranceLevel: "aal2",

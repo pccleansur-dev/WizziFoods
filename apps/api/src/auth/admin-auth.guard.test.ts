@@ -1,5 +1,6 @@
 import type { ExecutionContext } from "@nestjs/common";
 import { UnauthorizedException } from "@nestjs/common";
+import { SELF_DECLARED_DEPS_METADATA } from "@nestjs/common/constants.js";
 import { describe, expect, it } from "vitest";
 
 import { AdminAuthService } from "./admin-auth.service.js";
@@ -19,6 +20,12 @@ function contextFor(authorization?: string): {
 }
 
 describe("AdminAuthGuard", () => {
+  it("declares its authentication dependency explicitly", () => {
+    expect(
+      Reflect.getMetadata(SELF_DECLARED_DEPS_METADATA, AdminAuthGuard)
+    ).toEqual([{ index: 0, param: AdminAuthService }]);
+  });
+
   it("attaches the verified identity to the request", async () => {
     const identity = {
       assuranceLevel: "aal2" as const,

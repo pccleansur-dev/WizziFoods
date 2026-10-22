@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, Inject, Req, UseGuards } from "@nestjs/common";
 
 import {
   AdminAuthGuard,
@@ -9,7 +9,10 @@ import { TenantContextService } from "./tenant-context.service.js";
 @Controller("v1/me/access")
 @UseGuards(AdminAuthGuard)
 export class TenantContextController {
-  constructor(private readonly tenantContextService: TenantContextService) {}
+  constructor(
+    @Inject(TenantContextService)
+    private readonly tenantContextService: TenantContextService
+  ) {}
 
   @Get()
   async getAccess(

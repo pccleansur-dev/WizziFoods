@@ -70,6 +70,13 @@ pnpm dev
 - Web: `http://localhost:3000`.
 - API: `http://localhost:3001`.
 - Endpoint de salud: `http://localhost:3001/health`.
+- Correos locales de Auth: `http://localhost:9000` (Inbucket; no entrega
+  mensajes fuera de la máquina).
+
+El arranque local agrega un capturador SMTP aislado para probar invitaciones y
+recuperación de contraseña sin enviar correos reales. Producción no usa este
+servicio: allí `SMTP_HOST`, credenciales y remitente deben apuntar al proveedor
+de correo configurado en Coolify.
 
 ## Controles antes de integrar cambios
 
