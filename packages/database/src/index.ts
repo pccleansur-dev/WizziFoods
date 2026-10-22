@@ -6,6 +6,7 @@ export {
   type TenantDatabase,
   type TenantRepository
 } from "./tenant-repository.js";
+export { type TenantDomainRepository } from "./tenant-domain-repository.js";
 export {
   type StaffAuthenticationInput,
   type StaffAuthenticationResult,

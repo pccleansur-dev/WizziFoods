@@ -13,6 +13,10 @@ import {
   type StaffAuthRepository
 } from "./staff-auth-repository.js";
 import {
+  createTenantDomainRepository,
+  type TenantDomainRepository
+} from "./tenant-domain-repository.js";
+import {
   createTenantProvisioningRepository,
   type TenantProvisioningRepository
 } from "./tenant-provisioning-repository.js";
@@ -51,6 +55,7 @@ export type TenantDatabase = {
   close(): Promise<void>;
   identityAccessRepository: IdentityAccessRepository;
   staffAuthRepository: StaffAuthRepository;
+  tenantDomainRepository: TenantDomainRepository;
   tenantProvisioningRepository: TenantProvisioningRepository;
   tenantRepository: TenantRepository;
 };
@@ -151,6 +156,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
       }
     },
     staffAuthRepository: createStaffAuthRepository(client),
+    tenantDomainRepository: createTenantDomainRepository(client),
     tenantProvisioningRepository: createTenantProvisioningRepository(client),
     tenantRepository: {
       async findForIdentity(userId: string): Promise<TenantContext[]> {

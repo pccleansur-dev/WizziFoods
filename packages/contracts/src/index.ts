@@ -28,3 +28,7 @@ export {
   type TenantProvisioningStatus,
   type TenantProvisioningView
 } from "./tenant-provisioning.js";
+export {
+  parseTenantHostname,
+  type TenantHostContext
+} from "./tenant-domain.js";

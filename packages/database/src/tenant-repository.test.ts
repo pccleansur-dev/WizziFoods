@@ -29,4 +29,18 @@ describe("createTenantDatabase", () => {
 
     await database.close();
   });
+
+  it("rejects a non-canonical hostname before opening a query", async () => {
+    const database = createTenantDatabase(
+      "postgresql://unused:unused@127.0.0.1:1/unused"
+    );
+
+    await expect(
+      database.tenantDomainRepository.resolveByHostname(
+        "Tenant-A.Plataforma.Test:3001"
+      )
+    ).rejects.toThrow("hostname must be canonical");
+
+    await database.close();
+  });
 });

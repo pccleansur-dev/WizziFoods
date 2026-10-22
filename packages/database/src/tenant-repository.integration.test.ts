@@ -27,10 +27,10 @@ describeWithDatabase("tenant repository with PostgreSQL RLS", () => {
           (${sessionB}, ${userB}, 'aal2', now(), now())
       `;
       await transaction`
-        insert into public.tenants (id, slug, name)
+        insert into public.tenants (id, slug, name, status)
         values
-          (${tenantA}, 'repository-tenant-a', 'Repository Tenant A'),
-          (${tenantB}, 'repository-tenant-b', 'Repository Tenant B')
+          (${tenantA}, 'repository-tenant-a', 'Repository Tenant A', 'active'),
+          (${tenantB}, 'repository-tenant-b', 'Repository Tenant B', 'active')
       `;
       await transaction`
         insert into public.tenant_memberships (tenant_id, user_id, role)
@@ -38,6 +38,17 @@ describeWithDatabase("tenant repository with PostgreSQL RLS", () => {
       `;
       await transaction`
         insert into public.platform_superadmins (user_id) values (${userA})
+      `;
+      await transaction`
+        insert into public.tenant_domains (
+          tenant_id,
+          hostname,
+          kind,
+          status,
+          is_primary
+        ) values
+          (${tenantA}, 'repository-a.plataforma.test', 'platform_subdomain', 'active', true),
+          (${tenantB}, 'repository-b.plataforma.test', 'platform_subdomain', 'active', true)
       `;
     });
   });
@@ -88,6 +99,23 @@ describeWithDatabase("tenant repository with PostgreSQL RLS", () => {
 
     await expect(
       database.identityAccessRepository.resolveForIdentity(userB, sessionB)
+    ).resolves.toBeNull();
+  });
+
+  it("resolves only the active tenant assigned to an exact hostname", async () => {
+    await expect(
+      database.tenantDomainRepository.resolveByHostname(
+        "repository-a.plataforma.test"
+      )
+    ).resolves.toMatchObject({
+      domain: { hostname: "repository-a.plataforma.test" },
+      tenant: { id: tenantA, slug: "repository-tenant-a" }
+    });
+
+    await expect(
+      database.tenantDomainRepository.resolveByHostname(
+        "repository-a.plataforma.test.attacker.test"
+      )
     ).resolves.toBeNull();
   });
 });
