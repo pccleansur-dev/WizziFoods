@@ -21,6 +21,13 @@ export {
   type StaffSessionRecord
 } from "./staff-auth-repository.js";
 export {
+  type GrantSupportAccessInput,
+  type RevokeSupportAccessInput,
+  type SupportAccessGrant,
+  type SupportAccessRepository,
+  type SupportAccessStatus
+} from "./support-access-repository.js";
+export {
   type BeginTenantProvisioningInput,
   type CompleteTenantProvisioningInput,
   type TenantProvisioningRecord,

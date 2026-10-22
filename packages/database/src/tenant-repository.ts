@@ -17,6 +17,10 @@ import {
   type StaffAuthRepository
 } from "./staff-auth-repository.js";
 import {
+  createSupportAccessRepository,
+  type SupportAccessRepository
+} from "./support-access-repository.js";
+import {
   createTenantDomainRepository,
   type TenantDomainRepository
 } from "./tenant-domain-repository.js";
@@ -60,6 +64,7 @@ export type TenantDatabase = {
   close(): Promise<void>;
   identityAccessRepository: IdentityAccessRepository;
   staffAuthRepository: StaffAuthRepository;
+  supportAccessRepository: SupportAccessRepository;
   tenantDomainRepository: TenantDomainRepository;
   tenantProvisioningRepository: TenantProvisioningRepository;
   tenantRepository: TenantRepository;
@@ -162,6 +167,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
       }
     },
     staffAuthRepository: createStaffAuthRepository(client),
+    supportAccessRepository: createSupportAccessRepository(client),
     tenantDomainRepository: createTenantDomainRepository(client),
     tenantProvisioningRepository: createTenantProvisioningRepository(client),
     tenantRepository: {
