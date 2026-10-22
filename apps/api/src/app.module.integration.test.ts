@@ -11,18 +11,21 @@ import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { AppModule } from "./app.module.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
+import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
 
 describe("API authentication boundaries", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     const config: ApiRuntimeConfig = {
+      adminInviteRedirectUrl: "https://app.example.test/auth/callback",
       databaseUrl: "postgresql://unused:unused@127.0.0.1:1/unused",
       environment: "test",
       logLevel: "error",
       metricsPort: 9464,
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
+      supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "https://auth.example.test"
     };
     const moduleRef = await Test.createTestingModule({
@@ -54,6 +57,29 @@ describe("API authentication boundaries", () => {
           tenantSlug
         }),
         signOut: async () => undefined
+      })
+      .overrideProvider(TenantProvisioningService)
+      .useValue({
+        create: async (
+          identity: { userId: string },
+          idempotencyKey: string,
+          request: { adminEmail: string; name: string; slug: string }
+        ) => ({
+          adminEmail: request.adminEmail,
+          idempotencyKey,
+          identityUserId: identity.userId,
+          location: {
+            id: "72000000-0000-4000-8000-000000000072",
+            name: "Principal"
+          },
+          requestId: "73000000-0000-4000-8000-000000000073",
+          status: "invited",
+          tenant: {
+            id: "74000000-0000-4000-8000-000000000074",
+            name: request.name,
+            slug: request.slug
+          }
+        })
       })
       .compile();
 
@@ -145,5 +171,56 @@ describe("API authentication boundaries", () => {
 
     expect(login.statusCode).toBe(400);
     expect(currentSession.statusCode).toBe(401);
+  });
+
+  it("creates a normalized tenant provisioning request", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: {
+          authorization: "Bearer signed-token",
+          "idempotency-key": "request-1"
+        },
+        method: "POST",
+        payload: {
+          adminEmail: " OWNER@Example.com ",
+          name: " Café Norte ",
+          slug: "Cafe-Norte"
+        },
+        url: "/v1/platform/tenants"
+      });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      data: {
+        adminEmail: "owner@example.com",
+        idempotencyKey: "request-1",
+        identityUserId: "10000000-0000-4000-8000-000000000001",
+        status: "invited",
+        tenant: { name: "Café Norte", slug: "cafe-norte" }
+      }
+    });
+  });
+
+  it("rejects a tenant request without its idempotency key", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: { authorization: "Bearer signed-token" },
+        method: "POST",
+        payload: {
+          adminEmail: "owner@example.com",
+          name: "Café Norte",
+          slug: "cafe-norte"
+        },
+        url: "/v1/platform/tenants"
+      });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      error: { code: "INVALID_TENANT_PROVISIONING" }
+    });
   });
 });

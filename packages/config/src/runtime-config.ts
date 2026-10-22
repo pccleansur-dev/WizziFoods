@@ -9,10 +9,12 @@ export type BaseRuntimeConfig = {
 };
 
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
+  adminInviteRedirectUrl: string;
   databaseUrl: string;
   metricsPort: number;
   port: number;
   staffPinPepper: string;
+  supabaseSecretKey: string;
   supabaseUrl: string;
 };
 
@@ -141,6 +143,8 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       "API_METRICS_PORT",
       "DATABASE_URL",
       "SUPABASE_URL",
+      "SUPABASE_SECRET_KEY",
+      "ADMIN_INVITE_REDIRECT_URL",
       "STAFF_PIN_PEPPER"
     ]);
     const base = readBaseConfig(source);
@@ -158,6 +162,16 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       ["http:", "https:"],
       "an absolute HTTP(S) URL"
     );
+    const adminInviteRedirectUrl = readUrl(
+      source,
+      "ADMIN_INVITE_REDIRECT_URL",
+      ["http:", "https:"],
+      "an absolute HTTP(S) URL"
+    );
+    const supabaseSecretKey = required(source, "SUPABASE_SECRET_KEY");
+    if (!supabaseSecretKey.startsWith("sb_secret_")) {
+      throw new Error("SUPABASE_SECRET_KEY must be a server secret key");
+    }
     const staffPinPepper = required(source, "STAFF_PIN_PEPPER");
     if (staffPinPepper.length < 32) {
       throw new Error("STAFF_PIN_PEPPER must have at least 32 characters");
@@ -165,10 +179,12 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
 
     return {
       ...base,
+      adminInviteRedirectUrl,
       databaseUrl,
       metricsPort,
       port,
       staffPinPepper,
+      supabaseSecretKey,
       supabaseUrl
     };
   });

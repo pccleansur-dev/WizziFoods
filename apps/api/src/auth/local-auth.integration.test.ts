@@ -61,12 +61,14 @@ describeWithLocalStack("administrative API with local Supabase", () => {
     `;
 
     const config: ApiRuntimeConfig = {
+      adminInviteRedirectUrl: "https://app.example.test/auth/callback",
       databaseUrl: databaseUrl ?? "",
       environment: "test",
       logLevel: "error",
       metricsPort: 9464,
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
+      supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: supabaseUrl ?? ""
     };
     app = await NestFactory.create<NestFastifyApplication>(

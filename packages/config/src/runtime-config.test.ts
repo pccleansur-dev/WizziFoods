@@ -11,11 +11,16 @@ const baseEnvironment = {
   APP_ENV: "test",
   LOG_LEVEL: "info"
 };
+const apiInvitationEnvironment = {
+  ADMIN_INVITE_REDIRECT_URL:
+    "https://app.example.test/auth/callback?next=/acceso/continuar",
+  SUPABASE_SECRET_KEY: "sb_secret_server-only-example"
+};
 
 describe("runtime configuration", () => {
   it("fails with all missing API variables named", () => {
     expect(() => readApiConfig({})).toThrow(
-      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_URL is required; STAFF_PIN_PEPPER is required"
+      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_URL is required; SUPABASE_SECRET_KEY is required; ADMIN_INVITE_REDIRECT_URL is required; STAFF_PIN_PEPPER is required"
     );
   });
 
@@ -23,6 +28,7 @@ describe("runtime configuration", () => {
     expect(
       readApiConfig({
         ...baseEnvironment,
+        ...apiInvitationEnvironment,
         API_METRICS_PORT: "9464",
         API_PORT: "3001",
         DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
@@ -31,11 +37,14 @@ describe("runtime configuration", () => {
       })
     ).toEqual({
       environment: "test",
+      adminInviteRedirectUrl:
+        "https://app.example.test/auth/callback?next=/acceso/continuar",
       databaseUrl: "postgresql://authenticator:secret@db:5432/postgres",
       logLevel: "info",
       metricsPort: 9464,
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
+      supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000"
     });
   });
@@ -44,6 +53,7 @@ describe("runtime configuration", () => {
     expect(() =>
       readApiConfig({
         ...baseEnvironment,
+        ...apiInvitationEnvironment,
         API_METRICS_PORT: "9464",
         API_PORT: "70000",
         DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
@@ -57,6 +67,7 @@ describe("runtime configuration", () => {
     expect(() =>
       readApiConfig({
         ...baseEnvironment,
+        ...apiInvitationEnvironment,
         API_METRICS_PORT: "9464",
         API_PORT: "3001",
         DATABASE_URL: "https://db.example.test",
@@ -70,6 +81,7 @@ describe("runtime configuration", () => {
     expect(() =>
       readApiConfig({
         ...baseEnvironment,
+        ...apiInvitationEnvironment,
         API_METRICS_PORT: "9464",
         API_PORT: "3001",
         DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",

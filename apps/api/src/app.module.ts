@@ -19,6 +19,9 @@ import {
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { TenantContextController } from "./tenants/tenant-context.controller.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
+import { createTenantAdminInvitationGateway } from "./tenant-provisioning/tenant-admin-invitation.gateway.js";
+import { TenantProvisioningController } from "./tenant-provisioning/tenant-provisioning.controller.js";
+import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
 
 const TENANT_DATABASE = Symbol("TENANT_DATABASE");
 
@@ -41,7 +44,8 @@ export class AppModule {
         AppController,
         StaffAuthController,
         StaffSessionController,
-        TenantContextController
+        TenantContextController,
+        TenantProvisioningController
       ],
       module: AppModule,
       providers: [
@@ -69,6 +73,20 @@ export class AppModule {
             new StaffAuthService(
               database.staffAuthRepository,
               config.staffPinPepper
+            )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: TenantProvisioningService,
+          useFactory: (database: TenantDatabase) =>
+            new TenantProvisioningService(
+              database.identityAccessRepository,
+              database.tenantProvisioningRepository,
+              createTenantAdminInvitationGateway(
+                config.supabaseUrl,
+                config.supabaseSecretKey
+              ),
+              config.adminInviteRedirectUrl
             )
         },
         AdminAuthGuard,
