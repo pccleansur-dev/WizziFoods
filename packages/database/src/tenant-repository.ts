@@ -3,6 +3,10 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import {
+  createAuditRepository,
+  type AuditRepository
+} from "./audit-repository.js";
+import {
   locations,
   platformSuperadmins,
   tenantMemberships,
@@ -52,6 +56,7 @@ export interface IdentityAccessRepository {
 }
 
 export type TenantDatabase = {
+  auditRepository: AuditRepository;
   close(): Promise<void>;
   identityAccessRepository: IdentityAccessRepository;
   staffAuthRepository: StaffAuthRepository;
@@ -119,6 +124,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
   }
 
   return {
+    auditRepository: createAuditRepository(client),
     close: async () => client.end(),
     identityAccessRepository: {
       async resolveForIdentity(

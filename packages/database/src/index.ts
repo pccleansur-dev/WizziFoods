@@ -1,4 +1,9 @@
 export {
+  type AppendAuditEventInput,
+  type AuditActorType,
+  type AuditRepository
+} from "./audit-repository.js";
+export {
   createTenantDatabase,
   type IdentityAccess,
   type IdentityAccessRepository,
