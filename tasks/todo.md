@@ -236,6 +236,11 @@ cabeceras falsificadas e intentos de alcance cruzado.
 
 **Archivos probables:** módulo audit, módulo support-access, políticas suspension, vistas Superadmin.
 
+**Avance:** historial append-only y autorización temporal de soporte entregados
+en base y API. El tenant se deriva del host y la identidad, el plazo está
+limitado a cuatro horas, y alta, vencimiento y revocación tienen pruebas
+negativas. Quedan la visualización en panel y la suspensión gradual/inmediata.
+
 **Tamaño:** M.
 
 ### Checkpoint 2
