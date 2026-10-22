@@ -9,6 +9,31 @@ export type TenantSuspensionRecord = {
   tenantStatus: "active" | "suspended";
 };
 
+export type PlatformTenantSummary = {
+  id: string;
+  name: string;
+  primaryHostname: string | null;
+  slug: string;
+  status: "active" | "draft" | "suspended";
+  suspension: {
+    mode: TenantSuspensionMode;
+    phase: "commercial_draining" | "suspended";
+    requestedAt: string;
+  } | null;
+};
+
+export type PlatformAuditEvent = {
+  action: string;
+  actorId: string;
+  actorType: string;
+  correlationId: string;
+  id: string;
+  occurredAt: string;
+  reason: string;
+  tenantId: string;
+  tenantName: string;
+};
+
 export type RequestTenantSuspensionInput = {
   actorUserId: string;
   correlationId: string;
@@ -18,8 +43,36 @@ export type RequestTenantSuspensionInput = {
 };
 
 export interface TenantSuspensionRepository {
+  listAuditEvents(
+    requesterId: string,
+    limit: number
+  ): Promise<PlatformAuditEvent[]>;
+  listTenants(requesterId: string): Promise<PlatformTenantSummary[]>;
   request(input: RequestTenantSuspensionInput): Promise<TenantSuspensionRecord>;
 }
+
+type PlatformTenantRow = {
+  name: string;
+  primary_hostname: string | null;
+  slug: string;
+  status: "active" | "draft" | "suspended";
+  suspension_mode: TenantSuspensionMode | null;
+  suspension_phase: "commercial_draining" | "suspended" | null;
+  suspension_requested_at: Date | null;
+  tenant_id: string;
+};
+
+type PlatformAuditEventRow = {
+  action: string;
+  actor_id: string;
+  actor_type: string;
+  correlation_id: string;
+  event_id: string;
+  occurred_at: Date;
+  reason: string;
+  tenant_id: string;
+  tenant_name: string;
+};
 
 type TenantSuspensionRow = {
   completed_at: Date | null;
@@ -65,6 +118,56 @@ export function createTenantSuspensionRepository(
   client: Sql
 ): TenantSuspensionRepository {
   return {
+    async listAuditEvents(requesterId, limit) {
+      assertUuid(requesterId, "requesterId");
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        throw new Error("limit must be between 1 and 100");
+      }
+      const rows = await client<PlatformAuditEventRow[]>`
+        select *
+        from private.list_platform_audit_events(
+          ${requesterId}::uuid,
+          ${limit}
+        )
+      `;
+      return rows.map((row) => ({
+        action: row.action,
+        actorId: row.actor_id,
+        actorType: row.actor_type,
+        correlationId: row.correlation_id,
+        id: String(row.event_id),
+        occurredAt: row.occurred_at.toISOString(),
+        reason: row.reason,
+        tenantId: row.tenant_id,
+        tenantName: row.tenant_name
+      }));
+    },
+
+    async listTenants(requesterId) {
+      assertUuid(requesterId, "requesterId");
+      const rows = await client<PlatformTenantRow[]>`
+        select *
+        from private.list_platform_tenants(${requesterId}::uuid)
+      `;
+      return rows.map((row) => ({
+        id: row.tenant_id,
+        name: row.name,
+        primaryHostname: row.primary_hostname,
+        slug: row.slug,
+        status: row.status,
+        suspension:
+          row.suspension_mode &&
+          row.suspension_phase &&
+          row.suspension_requested_at
+            ? {
+                mode: row.suspension_mode,
+                phase: row.suspension_phase,
+                requestedAt: row.suspension_requested_at.toISOString()
+              }
+            : null
+      }));
+    },
+
     async request(untrustedInput) {
       assertUuid(untrustedInput.tenantId, "tenantId");
       assertUuid(untrustedInput.actorUserId, "actorUserId");

@@ -157,6 +157,19 @@ describe("API authentication boundaries", () => {
       })
       .overrideProvider(TenantSuspensionService)
       .useValue({
+        overview: async () => ({
+          auditEvents: [],
+          tenants: [
+            {
+              id: "74000000-0000-4000-8000-000000000074",
+              name: "Café Norte",
+              primaryHostname: "cafe-norte.plataforma.test",
+              slug: "cafe-norte",
+              status: "active",
+              suspension: null
+            }
+          ]
+        }),
         request: async (
           identity: { userId: string },
           tenantId: string,
@@ -397,6 +410,31 @@ describe("API authentication boundaries", () => {
           reason: "Subscription period ended"
         },
         tenantId: "74000000-0000-4000-8000-000000000074"
+      }
+    });
+  });
+
+  it("lists the platform operations overview", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: { authorization: "Bearer signed-token" },
+        method: "GET",
+        url: "/v1/platform/operations"
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      data: {
+        auditEvents: [],
+        tenants: [
+          {
+            id: "74000000-0000-4000-8000-000000000074",
+            name: "Café Norte",
+            status: "active"
+          }
+        ]
       }
     });
   });

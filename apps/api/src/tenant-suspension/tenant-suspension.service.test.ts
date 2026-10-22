@@ -23,7 +23,11 @@ describe("TenantSuspensionService", () => {
     }));
     const service = new TenantSuspensionService(
       { resolveForIdentity: async () => ({ type: "platform_superadmin" }) },
-      { request: suspend }
+      {
+        listAuditEvents: async () => [],
+        listTenants: async () => [],
+        request: suspend
+      }
     );
 
     await expect(
@@ -50,7 +54,11 @@ describe("TenantSuspensionService", () => {
           type: "tenant_admin"
         })
       },
-      { request: vi.fn() }
+      {
+        listAuditEvents: async () => [],
+        listTenants: async () => [],
+        request: vi.fn()
+      }
     );
 
     await expect(
@@ -66,7 +74,11 @@ describe("TenantSuspensionService", () => {
   it("rejects a revoked platform session", async () => {
     const service = new TenantSuspensionService(
       { resolveForIdentity: async () => null },
-      { request: vi.fn() }
+      {
+        listAuditEvents: async () => [],
+        listTenants: async () => [],
+        request: vi.fn()
+      }
     );
 
     await expect(
@@ -77,5 +89,21 @@ describe("TenantSuspensionService", () => {
         "suspension-commercial-001"
       )
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("loads a bounded platform overview", async () => {
+    const listTenants = vi.fn(async () => []);
+    const listAuditEvents = vi.fn(async () => []);
+    const service = new TenantSuspensionService(
+      { resolveForIdentity: async () => ({ type: "platform_superadmin" }) },
+      { listAuditEvents, listTenants, request: vi.fn() }
+    );
+
+    await expect(service.overview(identity)).resolves.toEqual({
+      auditEvents: [],
+      tenants: []
+    });
+    expect(listTenants).toHaveBeenCalledWith(identity.userId);
+    expect(listAuditEvents).toHaveBeenCalledWith(identity.userId, 50);
   });
 });

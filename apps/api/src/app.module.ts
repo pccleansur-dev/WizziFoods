@@ -30,6 +30,7 @@ import { TenantHostService } from "./tenants/tenant-host.service.js";
 import { createTenantAdminInvitationGateway } from "./tenant-provisioning/tenant-admin-invitation.gateway.js";
 import { TenantProvisioningController } from "./tenant-provisioning/tenant-provisioning.controller.js";
 import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
+import { PlatformOperationsController } from "./tenant-suspension/platform-operations.controller.js";
 import { TenantSuspensionController } from "./tenant-suspension/tenant-suspension.controller.js";
 import { TenantSuspensionService } from "./tenant-suspension/tenant-suspension.service.js";
 
@@ -55,6 +56,7 @@ export class AppModule {
         StaffAuthController,
         StaffSessionController,
         SupportAccessController,
+        PlatformOperationsController,
         TenantAdminScopeController,
         TenantContextController,
         TenantHostController,

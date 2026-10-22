@@ -38,4 +38,12 @@ describe("tenant suspension repository", () => {
       repository.request({ ...validRequest, reason: " x " })
     ).rejects.toThrow("reason must contain between 3 and 500 characters");
   });
+
+  it("rejects an excessive audit page before querying", async () => {
+    const repository = createTenantSuspensionRepository(unreachableClient);
+
+    await expect(
+      repository.listAuditEvents(validRequest.actorUserId, 101)
+    ).rejects.toThrow("limit must be between 1 and 100");
+  });
 });

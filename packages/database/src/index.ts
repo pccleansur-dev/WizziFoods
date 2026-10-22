@@ -34,6 +34,8 @@ export {
   type TenantProvisioningRepository
 } from "./tenant-provisioning-repository.js";
 export {
+  type PlatformAuditEvent,
+  type PlatformTenantSummary,
   type RequestTenantSuspensionInput,
   type TenantSuspensionRecord,
   type TenantSuspensionRepository
