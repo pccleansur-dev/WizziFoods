@@ -24,6 +24,7 @@ export type TenantProvisioningRecord = TenantProvisioningView & {
 };
 
 export interface TenantProvisioningRepository {
+  activateForIdentity(userId: string): Promise<boolean>;
   begin(input: BeginTenantProvisioningInput): Promise<TenantProvisioningRecord>;
   complete(
     input: CompleteTenantProvisioningInput
@@ -72,6 +73,14 @@ export function createTenantProvisioningRepository(
   client: Sql
 ): TenantProvisioningRepository {
   return {
+    async activateForIdentity(userId) {
+      assertUuid(userId, "userId");
+      const [row] = await client<{ activated: boolean }[]>`
+        select private.activate_tenant_provisioning(${userId}::uuid) as activated
+      `;
+      return row?.activated ?? false;
+    },
+
     async begin(input) {
       assertUuid(input.actorUserId, "actorUserId");
       if (

@@ -7,6 +7,14 @@ const unreachableClient = (() => {
 }) as never;
 
 describe("tenant provisioning repository", () => {
+  it("rejects malformed activation identities before querying", async () => {
+    const repository = createTenantProvisioningRepository(unreachableClient);
+
+    await expect(
+      repository.activateForIdentity("identity-from-client")
+    ).rejects.toThrow("userId must be a UUID");
+  });
+
   it("rejects a malformed actor before querying the database", async () => {
     const repository = createTenantProvisioningRepository(unreachableClient);
 

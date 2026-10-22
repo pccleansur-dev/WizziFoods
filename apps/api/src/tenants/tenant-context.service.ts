@@ -1,13 +1,15 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import type {
   IdentityAccess,
-  IdentityAccessRepository
+  IdentityAccessRepository,
+  TenantProvisioningRepository
 } from "@platform/database";
 
 @Injectable()
 export class TenantContextService {
   constructor(
-    private readonly identityAccessRepository: IdentityAccessRepository
+    private readonly identityAccessRepository: IdentityAccessRepository,
+    private readonly tenantProvisioningRepository: TenantProvisioningRepository
   ) {}
 
   async getForAuthenticatedIdentity(
@@ -26,6 +28,10 @@ export class TenantContextService {
           message: "La sesión fue cerrada o revocada. Volvé a ingresar."
         }
       });
+    }
+
+    if (access.type === "tenant_admin") {
+      await this.tenantProvisioningRepository.activateForIdentity(userId);
     }
 
     return access;

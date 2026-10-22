@@ -38,7 +38,11 @@ describe("TenantProvisioningService", () => {
     }));
     const service = new TenantProvisioningService(
       { resolveForIdentity: async () => ({ type: "platform_superadmin" }) },
-      { begin: async () => pending, complete },
+      {
+        activateForIdentity: async () => false,
+        begin: async () => pending,
+        complete
+      },
       { invite },
       "https://app.example.test/auth/callback"
     );
@@ -65,6 +69,7 @@ describe("TenantProvisioningService", () => {
     const service = new TenantProvisioningService(
       { resolveForIdentity: async () => ({ type: "platform_superadmin" }) },
       {
+        activateForIdentity: async () => false,
         begin: async () => ({
           ...pending,
           authUserId: "75000000-0000-4000-8000-000000000075",
@@ -92,7 +97,11 @@ describe("TenantProvisioningService", () => {
           type: "tenant_admin"
         })
       },
-      { begin: async () => pending, complete: async () => pending },
+      {
+        activateForIdentity: async () => false,
+        begin: async () => pending,
+        complete: async () => pending
+      },
       { invite: async () => ({ userId: identity.userId }) },
       "https://app.example.test/auth/callback"
     );
@@ -107,7 +116,11 @@ describe("TenantProvisioningService", () => {
   it("rejects a revoked superadministrator session", async () => {
     const service = new TenantProvisioningService(
       { resolveForIdentity: async () => null },
-      { begin: async () => pending, complete: async () => pending },
+      {
+        activateForIdentity: async () => false,
+        begin: async () => pending,
+        complete: async () => pending
+      },
       { invite: async () => ({ userId: identity.userId }) },
       "https://app.example.test/auth/callback"
     );

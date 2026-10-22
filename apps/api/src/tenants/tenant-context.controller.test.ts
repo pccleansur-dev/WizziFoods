@@ -29,12 +29,23 @@ describe("TenantContextController", () => {
         status: "active"
       }
     };
-    const service = new TenantContextService({
-      resolveForIdentity: async () => ({
-        tenantContexts: [tenantContext],
-        type: "tenant_admin"
-      })
-    });
+    const service = new TenantContextService(
+      {
+        resolveForIdentity: async () => ({
+          tenantContexts: [tenantContext],
+          type: "tenant_admin"
+        })
+      },
+      {
+        activateForIdentity: async () => true,
+        begin: async () => {
+          throw new Error("not used");
+        },
+        complete: async () => {
+          throw new Error("not used");
+        }
+      }
+    );
     const controller = new TenantContextController(service);
 
     await expect(
