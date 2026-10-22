@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: runtimeConfig.apiUrl
   },
+  experimental: {
+    cpus: 1
+  },
   transpilePackages: [
     "@platform/config",
     "@platform/contracts",
