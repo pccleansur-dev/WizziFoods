@@ -32,3 +32,12 @@ export {
   parseTenantHostname,
   type TenantHostContext
 } from "./tenant-domain.js";
+export {
+  assertMatchingTenantScope,
+  parseTenantJobEnvelope,
+  parseTenantScope,
+  tenantRealtimeChannel,
+  tenantStoragePrefix,
+  type TenantJobEnvelope,
+  type TenantScope
+} from "./tenant-scope.js";
