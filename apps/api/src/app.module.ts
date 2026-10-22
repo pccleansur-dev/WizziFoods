@@ -19,6 +19,9 @@ import {
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { TenantContextController } from "./tenants/tenant-context.controller.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
+import { TenantAdminScopeController } from "./tenants/tenant-admin-scope.controller.js";
+import { TenantAdminScopeGuard } from "./tenants/tenant-admin-scope.guard.js";
+import { TenantAdminScopeService } from "./tenants/tenant-admin-scope.service.js";
 import { TenantHostController } from "./tenants/tenant-host.controller.js";
 import { TenantHostGuard } from "./tenants/tenant-host.guard.js";
 import { TenantHostService } from "./tenants/tenant-host.service.js";
@@ -47,6 +50,7 @@ export class AppModule {
         AppController,
         StaffAuthController,
         StaffSessionController,
+        TenantAdminScopeController,
         TenantContextController,
         TenantHostController,
         TenantProvisioningController
@@ -57,6 +61,8 @@ export class AppModule {
           provide: TENANT_DATABASE,
           useFactory: () => createTenantDatabase(config.databaseUrl)
         },
+        TenantAdminScopeGuard,
+        TenantAdminScopeService,
         {
           inject: [TENANT_DATABASE],
           provide: TenantContextService,

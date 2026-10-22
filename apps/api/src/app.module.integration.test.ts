@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { AppModule } from "./app.module.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
+import { TenantAdminScopeService } from "./tenants/tenant-admin-scope.service.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
 import { TenantHostService } from "./tenants/tenant-host.service.js";
 import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
@@ -37,6 +38,7 @@ describe("API authentication boundaries", () => {
       .useValue({
         authenticate: async () => ({
           assuranceLevel: "aal2",
+          sessionId: "76000000-0000-4000-8000-000000000076",
           userId: "10000000-0000-4000-8000-000000000001"
         })
       })
@@ -62,6 +64,25 @@ describe("API authentication boundaries", () => {
             id: "74000000-0000-4000-8000-000000000074",
             name: "Café Norte",
             slug: "cafe-norte"
+          }
+        })
+      })
+      .overrideProvider(TenantAdminScopeService)
+      .useValue({
+        resolve: async (
+          identity: { assuranceLevel: "aal2"; userId: string },
+          hostContext: {
+            domain: { hostname: string; id: string };
+            location: { id: string; name: string };
+            tenant: { id: string; name: string; slug: string };
+          }
+        ) => ({
+          ...hostContext,
+          identity,
+          role: "admin",
+          scope: {
+            locationId: hostContext.location.id,
+            tenantId: hostContext.tenant.id
           }
         })
       })
@@ -144,6 +165,41 @@ describe("API authentication boundaries", () => {
         domain: { hostname: "cafe-norte.plataforma.test" },
         location: { name: "Principal" },
         tenant: { name: "Café Norte", slug: "cafe-norte" }
+      }
+    });
+  });
+
+  it("binds an authenticated tenant route to identity and Host", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: {
+          authorization: "Bearer signed-token",
+          host: "cafe-norte.plataforma.test:3001"
+        },
+        method: "GET",
+        url: "/v1/tenant/context?tenant_id=attacker"
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: {
+        domain: { hostname: "cafe-norte.plataforma.test" },
+        location: {
+          id: "72000000-0000-4000-8000-000000000072",
+          name: "Principal"
+        },
+        role: "admin",
+        scope: {
+          locationId: "72000000-0000-4000-8000-000000000072",
+          tenantId: "74000000-0000-4000-8000-000000000074"
+        },
+        tenant: {
+          id: "74000000-0000-4000-8000-000000000074",
+          name: "Café Norte",
+          slug: "cafe-norte"
+        }
       }
     });
   });
