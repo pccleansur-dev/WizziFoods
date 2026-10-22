@@ -41,3 +41,11 @@ export {
   type TenantJobEnvelope,
   type TenantScope
 } from "./tenant-scope.js";
+export {
+  evaluateTenantSuspension,
+  settleCommercialSuspension,
+  type EvaluateTenantSuspensionInput,
+  type TenantSuspensionDecision,
+  type TenantSuspensionMode,
+  type TenantSuspensionState
+} from "./tenant-suspension.js";
