@@ -66,6 +66,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
       environment: "test",
       logLevel: "error",
       metricsPort: 9464,
+      platformBaseDomain: "plataforma.test",
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",

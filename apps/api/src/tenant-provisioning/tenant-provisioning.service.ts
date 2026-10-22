@@ -22,7 +22,8 @@ export class TenantProvisioningService {
     private readonly identityAccessRepository: IdentityAccessRepository,
     private readonly provisioningRepository: TenantProvisioningRepository,
     private readonly invitationGateway: TenantAdminInvitationGateway,
-    private readonly invitationRedirectUrl: string
+    private readonly invitationRedirectUrl: string,
+    private readonly platformBaseDomain: string
   ) {}
 
   async create(
@@ -54,6 +55,7 @@ export class TenantProvisioningService {
     let provisioning = await this.provisioningRepository.begin({
       actorUserId: identity.userId,
       idempotencyKey,
+      platformHostname: `${request.slug}.${this.platformBaseDomain}`,
       request
     });
     if (provisioning.status === "pending_invitation") {
@@ -75,6 +77,7 @@ export class TenantProvisioningService {
   private toView(record: TenantProvisioningRecord): TenantProvisioningView {
     return {
       adminEmail: record.adminEmail,
+      domain: record.domain,
       location: record.location,
       requestId: record.requestId,
       status: record.status,

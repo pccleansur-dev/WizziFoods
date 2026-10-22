@@ -99,7 +99,8 @@ export class AppModule {
                 config.supabaseUrl,
                 config.supabaseSecretKey
               ),
-              config.adminInviteRedirectUrl
+              config.adminInviteRedirectUrl,
+              config.platformBaseDomain
             )
         },
         AdminAuthGuard,

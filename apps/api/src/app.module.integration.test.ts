@@ -24,6 +24,7 @@ describe("API authentication boundaries", () => {
       environment: "test",
       logLevel: "error",
       metricsPort: 9464,
+      platformBaseDomain: "plataforma.test",
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
@@ -85,6 +86,7 @@ describe("API authentication boundaries", () => {
           request: { adminEmail: string; name: string; slug: string }
         ) => ({
           adminEmail: request.adminEmail,
+          domain: { hostname: `${request.slug}.plataforma.test` },
           idempotencyKey,
           identityUserId: identity.userId,
           location: {

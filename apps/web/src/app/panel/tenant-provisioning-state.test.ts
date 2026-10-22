@@ -9,12 +9,14 @@ describe("tenant provisioning response", () => {
         data: {
           adminEmail: "owner@example.com",
           authUserId: "must-not-be-used",
+          domain: { hostname: "cafe-norte.plataforma.test" },
           status: "invited",
           tenant: { name: "Café Norte", slug: "cafe-norte" }
         }
       })
     ).toEqual({
       adminEmail: "owner@example.com",
+      domain: { hostname: "cafe-norte.plataforma.test" },
       status: "invited",
       tenant: { name: "Café Norte", slug: "cafe-norte" }
     });

@@ -5,11 +5,13 @@ import type {
   TenantProvisioningStatus,
   TenantProvisioningView
 } from "@platform/contracts";
+import { parseTenantHostname } from "@platform/contracts";
 import type { Sql } from "postgres";
 
 export type BeginTenantProvisioningInput = {
   actorUserId: string;
   idempotencyKey: string;
+  platformHostname: string;
   request: CreateTenantProvisioningRequest;
 };
 
@@ -39,6 +41,7 @@ type ProvisioningRow = {
   provisioning_status: TenantProvisioningStatus;
   request_id: string;
   tenant_id: string;
+  tenant_hostname: string;
   tenant_name: string;
   tenant_slug: string;
 };
@@ -58,6 +61,7 @@ function mapRow(row: ProvisioningRow): TenantProvisioningRecord {
   return {
     adminEmail: row.admin_email,
     authUserId: row.auth_user_id,
+    domain: { hostname: row.tenant_hostname },
     location: { id: row.location_id, name: row.location_name },
     requestId: row.request_id,
     status: row.provisioning_status,
@@ -91,6 +95,11 @@ export function createTenantProvisioningRepository(
           "idempotencyKey must contain between 1 and 255 characters"
         );
       }
+      if (
+        parseTenantHostname(input.platformHostname) !== input.platformHostname
+      ) {
+        throw new Error("platformHostname must be canonical");
+      }
 
       const request = {
         adminEmail: input.request.adminEmail.trim().toLowerCase(),
@@ -102,13 +111,14 @@ export function createTenantProvisioningRepository(
       );
       const [row] = await client<ProvisioningRow[]>`
         select *
-        from private.begin_tenant_provisioning(
+        from private.begin_tenant_provisioning_with_domain(
           ${input.actorUserId}::uuid,
           ${hash(input.idempotencyKey)},
           ${requestFingerprint},
           ${request.slug},
           ${request.name},
-          ${request.adminEmail}
+          ${request.adminEmail},
+          ${input.platformHostname}
         )
       `;
 
@@ -123,7 +133,7 @@ export function createTenantProvisioningRepository(
 
       const [row] = await client<ProvisioningRow[]>`
         select *
-        from private.complete_tenant_provisioning(
+        from private.complete_tenant_provisioning_with_domain(
           ${input.actorUserId}::uuid,
           ${input.requestId}::uuid,
           ${input.authUserId}::uuid

@@ -126,7 +126,8 @@ describeWithLocalStack("tenant provisioning with local Supabase", () => {
         supabaseUrl ?? "",
         supabaseSecretKey ?? ""
       ),
-      "http://localhost:3000/auth/callback?next=/acceso/continuar"
+      "http://localhost:3000/auth/callback?next=/acceso/continuar",
+      "plataforma.test"
     );
     const identity = {
       assuranceLevel: "aal2" as const,
@@ -153,6 +154,7 @@ describeWithLocalStack("tenant provisioning with local Supabase", () => {
     expect(created).toEqual(retried);
     expect(created).toMatchObject({
       adminEmail,
+      domain: { hostname: `${tenantSlug}.plataforma.test` },
       status: "invited",
       tenant: { name: request.name, slug: tenantSlug }
     });
@@ -169,10 +171,20 @@ describeWithLocalStack("tenant provisioning with local Supabase", () => {
     invitedUserId = provisioning.auth_user_id;
 
     const [counts] = await admin<
-      { locations: number; memberships: number; tenants: number }[]
+      {
+        domains: number;
+        locations: number;
+        memberships: number;
+        tenants: number;
+      }[]
     >`
       select
         (select count(*)::integer from public.tenants where slug = ${tenantSlug}) as tenants,
+        (
+          select count(*)::integer from public.tenant_domains
+          where tenant_id = ${provisioning.tenant_id}
+            and hostname = ${`${tenantSlug}.plataforma.test`}
+        ) as domains,
         (
           select count(*)::integer from public.locations
           where tenant_id = ${provisioning.tenant_id}
@@ -183,7 +195,12 @@ describeWithLocalStack("tenant provisioning with local Supabase", () => {
             and user_id = ${invitedUserId}
         ) as memberships
     `;
-    expect(counts).toEqual({ locations: 1, memberships: 1, tenants: 1 });
+    expect(counts).toEqual({
+      domains: 1,
+      locations: 1,
+      memberships: 1,
+      tenants: 1
+    });
 
     const messageResponse = await fetch(
       `${localMailUrl}/api/v1/mailbox/t07-owner/latest`,

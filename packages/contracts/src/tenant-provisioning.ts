@@ -9,6 +9,7 @@ export type TenantProvisioningStatus =
 
 export type TenantProvisioningView = {
   adminEmail: string;
+  domain: { hostname: string };
   location: { id: string; name: string };
   requestId: string;
   status: TenantProvisioningStatus;

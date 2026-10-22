@@ -14,13 +14,14 @@ const baseEnvironment = {
 const apiInvitationEnvironment = {
   ADMIN_INVITE_REDIRECT_URL:
     "https://app.example.test/auth/callback?next=/acceso/continuar",
+  PLATFORM_BASE_DOMAIN: "plataforma.example.test",
   SUPABASE_SECRET_KEY: "sb_secret_server-only-example"
 };
 
 describe("runtime configuration", () => {
   it("fails with all missing API variables named", () => {
     expect(() => readApiConfig({})).toThrow(
-      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_URL is required; SUPABASE_SECRET_KEY is required; ADMIN_INVITE_REDIRECT_URL is required; STAFF_PIN_PEPPER is required"
+      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_URL is required; SUPABASE_SECRET_KEY is required; ADMIN_INVITE_REDIRECT_URL is required; PLATFORM_BASE_DOMAIN is required; STAFF_PIN_PEPPER is required"
     );
   });
 
@@ -42,6 +43,7 @@ describe("runtime configuration", () => {
       databaseUrl: "postgresql://authenticator:secret@db:5432/postgres",
       logLevel: "info",
       metricsPort: 9464,
+      platformBaseDomain: "plataforma.example.test",
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
@@ -61,6 +63,21 @@ describe("runtime configuration", () => {
         SUPABASE_URL: "http://supabase.local:8000"
       })
     ).toThrow("API_PORT must be an integer between 1 and 65535");
+  });
+
+  it("rejects a platform base domain with a scheme, port or uppercase", () => {
+    expect(() =>
+      readApiConfig({
+        ...baseEnvironment,
+        ...apiInvitationEnvironment,
+        API_METRICS_PORT: "9464",
+        API_PORT: "3001",
+        DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+        PLATFORM_BASE_DOMAIN: "https://Plataforma.Example.Test:443",
+        STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+        SUPABASE_URL: "http://supabase.local:8000"
+      })
+    ).toThrow("PLATFORM_BASE_DOMAIN must be a canonical DNS hostname");
   });
 
   it("rejects non-PostgreSQL database URLs", () => {

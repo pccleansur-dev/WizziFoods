@@ -6,6 +6,7 @@ export type TenantProvisioningActionState = {
 
 export type ProvisionedTenant = {
   adminEmail: string;
+  domain: { hostname: string };
   status: "invited" | "activated";
   tenant: { name: string; slug: string };
 };
@@ -21,10 +22,13 @@ export function parseProvisionedTenant(
 ): ProvisionedTenant | null {
   const root = record(value);
   const data = record(root?.data);
+  const domain = record(data?.domain);
   const tenant = record(data?.tenant);
   if (
     typeof data?.adminEmail !== "string" ||
     data.adminEmail.length === 0 ||
+    typeof domain?.hostname !== "string" ||
+    domain.hostname.length === 0 ||
     (data.status !== "invited" && data.status !== "activated") ||
     typeof tenant?.name !== "string" ||
     tenant.name.length === 0 ||
@@ -36,6 +40,7 @@ export function parseProvisionedTenant(
 
   return {
     adminEmail: data.adminEmail,
+    domain: { hostname: domain.hostname },
     status: data.status,
     tenant: { name: tenant.name, slug: tenant.slug }
   };

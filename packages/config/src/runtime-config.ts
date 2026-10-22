@@ -12,6 +12,7 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   adminInviteRedirectUrl: string;
   databaseUrl: string;
   metricsPort: number;
+  platformBaseDomain: string;
   port: number;
   staffPinPepper: string;
   supabaseSecretKey: string;
@@ -123,6 +124,22 @@ function readUrl(
   return url.toString().replace(/\/$/u, "");
 }
 
+function readCanonicalDomain(source: EnvironmentSource, key: string): string {
+  const value = required(source, key);
+  const labelPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/u;
+
+  if (
+    value.length > 253 ||
+    value !== value.toLowerCase() ||
+    !value.includes(".") ||
+    !value.split(".").every((label) => labelPattern.test(label))
+  ) {
+    throw new Error(`${key} must be a canonical DNS hostname`);
+  }
+
+  return value;
+}
+
 function withServiceContext<T>(service: string, read: () => T): T {
   try {
     return read();
@@ -145,6 +162,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       "SUPABASE_URL",
       "SUPABASE_SECRET_KEY",
       "ADMIN_INVITE_REDIRECT_URL",
+      "PLATFORM_BASE_DOMAIN",
       "STAFF_PIN_PEPPER"
     ]);
     const base = readBaseConfig(source);
@@ -168,6 +186,10 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       ["http:", "https:"],
       "an absolute HTTP(S) URL"
     );
+    const platformBaseDomain = readCanonicalDomain(
+      source,
+      "PLATFORM_BASE_DOMAIN"
+    );
     const supabaseSecretKey = required(source, "SUPABASE_SECRET_KEY");
     if (!supabaseSecretKey.startsWith("sb_secret_")) {
       throw new Error("SUPABASE_SECRET_KEY must be a server secret key");
@@ -182,6 +204,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       adminInviteRedirectUrl,
       databaseUrl,
       metricsPort,
+      platformBaseDomain,
       port,
       staffPinPepper,
       supabaseSecretKey,

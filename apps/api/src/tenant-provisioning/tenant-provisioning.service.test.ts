@@ -11,6 +11,7 @@ const identity = {
 const pending: TenantProvisioningRecord = {
   adminEmail: "owner@example.com",
   authUserId: null,
+  domain: { hostname: "cafe-norte.plataforma.test" },
   location: { id: "72000000-0000-4000-8000-000000000072", name: "Principal" },
   requestId: "73000000-0000-4000-8000-000000000073",
   status: "pending_invitation",
@@ -36,27 +37,36 @@ describe("TenantProvisioningService", () => {
       authUserId: "75000000-0000-4000-8000-000000000075",
       status: "invited" as const
     }));
+    const begin = vi.fn(async () => pending);
     const service = new TenantProvisioningService(
       { resolveForIdentity: async () => ({ type: "platform_superadmin" }) },
       {
         activateForIdentity: async () => false,
-        begin: async () => pending,
+        begin,
         complete
       },
       { invite },
-      "https://app.example.test/auth/callback"
+      "https://app.example.test/auth/callback",
+      "plataforma.test"
     );
 
     await expect(
       service.create(identity, "request-1", request)
     ).resolves.toEqual({
       adminEmail: pending.adminEmail,
+      domain: pending.domain,
       location: pending.location,
       requestId: pending.requestId,
       status: "invited",
       tenant: pending.tenant
     });
     expect(invite).toHaveBeenCalledOnce();
+    expect(begin).toHaveBeenCalledWith({
+      actorUserId: identity.userId,
+      idempotencyKey: "request-1",
+      platformHostname: "cafe-norte.plataforma.test",
+      request
+    });
     expect(complete).toHaveBeenCalledWith({
       actorUserId: identity.userId,
       authUserId: "75000000-0000-4000-8000-000000000075",
@@ -78,7 +88,8 @@ describe("TenantProvisioningService", () => {
         complete: async () => pending
       },
       { invite },
-      "https://app.example.test/auth/callback"
+      "https://app.example.test/auth/callback",
+      "plataforma.test"
     );
 
     await expect(
@@ -103,7 +114,8 @@ describe("TenantProvisioningService", () => {
         complete: async () => pending
       },
       { invite: async () => ({ userId: identity.userId }) },
-      "https://app.example.test/auth/callback"
+      "https://app.example.test/auth/callback",
+      "plataforma.test"
     );
 
     await expect(
@@ -122,7 +134,8 @@ describe("TenantProvisioningService", () => {
         complete: async () => pending
       },
       { invite: async () => ({ userId: identity.userId }) },
-      "https://app.example.test/auth/callback"
+      "https://app.example.test/auth/callback",
+      "plataforma.test"
     );
 
     await expect(

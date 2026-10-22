@@ -101,7 +101,7 @@ export async function createTenantAction(
 
   return {
     idempotencyKey: randomUUID(),
-    message: `Creamos ${result.tenant.name} y enviamos la invitación a ${result.adminEmail}.`,
+    message: `Creamos ${result.tenant.name}, enviamos la invitación a ${result.adminEmail} y reservamos https://${result.domain.hostname}.`,
     status: "success"
   };
 }
