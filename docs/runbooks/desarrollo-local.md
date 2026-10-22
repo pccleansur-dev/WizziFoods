@@ -80,6 +80,8 @@ de correo configurado en Coolify.
 
 El recorrido local de creación y entrega de negocios está documentado en
 [Aprovisionamiento de negocios](./aprovisionamiento-negocios.md).
+Las reglas que impiden cruzar negocios por dominio, sesión, jobs o canales están
+documentadas en [Contexto tenant](./contexto-tenant.md).
 
 ## Controles antes de integrar cambios
 

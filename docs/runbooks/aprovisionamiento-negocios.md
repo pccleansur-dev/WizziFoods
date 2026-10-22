@@ -4,15 +4,15 @@
 
 Este recorrido permite que el Superadmin cree y entregue un negocio sin operar
 su carta, salón ni equipo. El resultado inicial es un tenant en estado `draft`,
-una ubicación principal y una membresía de Administrador pendiente de
-activación.
+una ubicación principal, un subdominio principal de la plataforma y una
+membresía de Administrador pendiente de activación.
 
 ## Recorrido
 
 1. Un Superadmin con sesión AAL2 completa el formulario de alta.
 2. La web envía `POST /v1/platform/tenants` con un `Idempotency-Key` estable.
-3. La API crea la solicitud, el tenant, la ubicación y la membresía en una sola
-   transacción.
+3. La API crea la solicitud, el tenant, la ubicación, el subdominio principal y
+   la membresía en una sola transacción.
 4. Supabase Auth envía al Administrador una invitación de un solo uso.
 5. El Administrador acepta la invitación, define su contraseña y registra el
    segundo factor.
@@ -28,7 +28,9 @@ interfaz.
 El cliente conserva la misma clave mientras reintenta un alta fallida y genera
 una nueva únicamente después de una respuesta exitosa. La API y PostgreSQL
 reconocen esa clave y reutilizan la solicitud existente, por lo que un reintento
-no duplica tenant, ubicación ni membresía.
+no duplica tenant, ubicación, dominio ni membresía. Si cambia
+`PLATFORM_BASE_DOMAIN`, un reintento conserva el dominio originalmente asignado
+a esa solicitud.
 
 Estados del recorrido:
 

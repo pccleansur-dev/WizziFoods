@@ -188,24 +188,32 @@ membresía.
 
 **Tamaño:** M.
 
-### T08. Resolver tenant por dominio y proteger el contexto
+### T08. Resolver tenant por dominio y proteger el contexto — completada
 
 **Descripción:** Resolver subdominio/dominio público y convertir el tenant en requisito estructural de API, jobs y canales.
 
 **Criterios de aceptación:**
 
-- [ ] Un host conocido resuelve exactamente un tenant activo y uno desconocido falla de forma segura.
-- [ ] No se acepta `tenant_id` del cliente como autoridad para escrituras autenticadas.
-- [ ] Jobs, Storage y Realtime incluyen y validan el mismo contexto.
+- [x] Un host conocido resuelve exactamente un tenant activo y uno desconocido falla de forma segura.
+- [x] No se acepta `tenant_id` del cliente como autoridad para escrituras autenticadas.
+- [x] Jobs, Storage y Realtime incluyen y validan el mismo contexto.
 
 **Verificación:**
 
-- [ ] Pruebas de host, spoofing de cabeceras y canales cruzados.
-- [ ] Smoke test con dos subdominios locales.
+- [x] Pruebas de host, spoofing de cabeceras y canales cruzados.
+- [x] Smoke test con dos subdominios locales.
 
 **Dependencias:** T04, T07.
 
 **Archivos probables:** middleware tenant, tabla domains, utilidades de jobs/realtime, pruebas.
+
+**Resultado:** el aprovisionamiento reserva un subdominio principal idempotente;
+la API pública resuelve únicamente tenants y dominios activos desde `Host`, sin
+confiar en `X-Forwarded-Host`; y el acceso administrativo exige que sesión,
+membresía, tenant y ubicación coincidan. Los límites asíncronos comparten un
+`TenantScope` estricto para jobs, rutas de Storage y canales Realtime. Pruebas
+unitarias, pgTAP y un smoke local con dos subdominios cubren hosts desconocidos,
+cabeceras falsificadas e intentos de alcance cruzado.
 
 **Tamaño:** M.
 

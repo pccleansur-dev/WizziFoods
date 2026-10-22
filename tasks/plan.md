@@ -117,7 +117,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 2 — Administración de la plataforma
 
 - [x] T07. Aprovisionar y entregar un negocio desde Superadmin.
-- [ ] T08. Resolver tenant por dominio y proteger el contexto en toda solicitud.
+- [x] T08. Resolver tenant por dominio y proteger el contexto en toda solicitud.
 - [ ] T09. Implementar auditoría, soporte temporal y suspensión gradual.
 
 ### Fase 3 — Alta: identidad y carta
