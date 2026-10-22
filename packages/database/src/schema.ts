@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   foreignKey,
   index,
   pgTable,
@@ -57,6 +58,44 @@ export const locations = pgTable(
       .on(table.tenantId)
       .where(sql`${table.isPrimary}`),
     index("locations_tenant_id_idx").on(table.tenantId)
+  ]
+);
+
+export const tenantDomains = pgTable(
+  "tenant_domains",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    hostname: text("hostname").notNull(),
+    kind: text("kind").$type<"custom" | "platform_subdomain">().notNull(),
+    status: text("status")
+      .$type<"active" | "disabled" | "pending_verification">()
+      .default("pending_verification")
+      .notNull(),
+    isPrimary: boolean("is_primary").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => [
+    unique("tenant_domains_hostname_key").on(table.hostname),
+    unique("tenant_domains_tenant_id_hostname_key").on(
+      table.tenantId,
+      table.hostname
+    ),
+    uniqueIndex("tenant_domains_one_primary_per_tenant")
+      .on(table.tenantId)
+      .where(sql`${table.isPrimary}`),
+    index("tenant_domains_tenant_id_idx").on(table.tenantId),
+    check(
+      "tenant_domains_hostname_check",
+      sql`${table.hostname} = lower(btrim(${table.hostname})) and length(${table.hostname}) between 1 and 253`
+    )
   ]
 );
 
