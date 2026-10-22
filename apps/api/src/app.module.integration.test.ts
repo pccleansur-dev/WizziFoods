@@ -9,9 +9,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { AppModule } from "./app.module.js";
+import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
 
-describe("administrative API authentication boundary", () => {
+describe("API authentication boundaries", () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -21,6 +22,7 @@ describe("administrative API authentication boundary", () => {
       logLevel: "error",
       metricsPort: 9464,
       port: 3001,
+      staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseUrl: "https://auth.example.test"
     };
     const moduleRef = await Test.createTestingModule({
@@ -39,6 +41,19 @@ describe("administrative API authentication boundary", () => {
           tenantContexts: [],
           type: "tenant_admin"
         })
+      })
+      .overrideProvider(StaffAuthService)
+      .useValue({
+        currentSession: async () => ({ active: true }),
+        revalidate: async () => ({
+          revalidatedAt: "2026-10-21T18:00:00.000Z"
+        }),
+        signIn: async (tenantSlug: string, request: unknown) => ({
+          accessToken: "a".repeat(43),
+          request,
+          tenantSlug
+        }),
+        signOut: async () => undefined
       })
       .compile();
 
@@ -92,5 +107,43 @@ describe("administrative API authentication boundary", () => {
         access: { tenantContexts: [], type: "tenant_admin" }
       }
     });
+  });
+
+  it("creates a normalized staff session", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        method: "POST",
+        payload: { pin: "194827", username: "  Ana.Moza " },
+        url: "/v1/tenants/restaurante-demo/staff-sessions"
+      });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({
+      data: {
+        accessToken: "a".repeat(43),
+        request: { pin: "194827", username: "ana.moza" },
+        tenantSlug: "restaurante-demo"
+      }
+    });
+  });
+
+  it("rejects malformed staff login and missing session credentials", async () => {
+    const login = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        method: "POST",
+        payload: { pin: "123", username: "ana" },
+        url: "/v1/tenants/restaurante-demo/staff-sessions"
+      });
+    const currentSession = await app.getHttpAdapter().getInstance().inject({
+      method: "GET",
+      url: "/v1/staff-sessions/current"
+    });
+
+    expect(login.statusCode).toBe(400);
+    expect(currentSession.statusCode).toBe(401);
   });
 });

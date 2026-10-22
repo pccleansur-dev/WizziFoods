@@ -15,7 +15,7 @@ const baseEnvironment = {
 describe("runtime configuration", () => {
   it("fails with all missing API variables named", () => {
     expect(() => readApiConfig({})).toThrow(
-      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_URL is required"
+      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_URL is required; STAFF_PIN_PEPPER is required"
     );
   });
 
@@ -26,6 +26,7 @@ describe("runtime configuration", () => {
         API_METRICS_PORT: "9464",
         API_PORT: "3001",
         DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+        STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
         SUPABASE_URL: "http://supabase.local:8000"
       })
     ).toEqual({
@@ -34,6 +35,7 @@ describe("runtime configuration", () => {
       logLevel: "info",
       metricsPort: 9464,
       port: 3001,
+      staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseUrl: "http://supabase.local:8000"
     });
   });
@@ -45,6 +47,7 @@ describe("runtime configuration", () => {
         API_METRICS_PORT: "9464",
         API_PORT: "70000",
         DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+        STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
         SUPABASE_URL: "http://supabase.local:8000"
       })
     ).toThrow("API_PORT must be an integer between 1 and 65535");
@@ -57,9 +60,23 @@ describe("runtime configuration", () => {
         API_METRICS_PORT: "9464",
         API_PORT: "3001",
         DATABASE_URL: "https://db.example.test",
+        STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
         SUPABASE_URL: "http://supabase.local:8000"
       })
     ).toThrow("DATABASE_URL must be an absolute PostgreSQL URL");
+  });
+
+  it("rejects a weak staff PIN pepper", () => {
+    expect(() =>
+      readApiConfig({
+        ...baseEnvironment,
+        API_METRICS_PORT: "9464",
+        API_PORT: "3001",
+        DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+        STAFF_PIN_PEPPER: "too-short",
+        SUPABASE_URL: "http://supabase.local:8000"
+      })
+    ).toThrow("STAFF_PIN_PEPPER must have at least 32 characters");
   });
 
   it("requires an absolute HTTP API URL for web", () => {

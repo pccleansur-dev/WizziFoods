@@ -8,5 +8,18 @@ export {
   STAFF_ROLE_CAPABILITIES,
   staffRoleLabels,
   type StaffCapability,
-  type StaffRole
+  type StaffCurrentSessionView,
+  type StaffIdentity,
+  type StaffIdentityWithCapabilities,
+  type StaffLoginRequest,
+  type StaffRevalidationRequest,
+  type StaffRole,
+  type StaffSessionView
 } from "./staff-access.js";
+export {
+  evaluatePinAttempt,
+  isSensitiveRevalidationCurrent,
+  staffSessionExpiresAt,
+  type PinAttemptResult,
+  type StaffCredentialState
+} from "./staff-auth-policy.js";

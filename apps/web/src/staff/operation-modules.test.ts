@@ -1,0 +1,22 @@
+import { STAFF_ROLE_CAPABILITIES } from "@platform/contracts";
+import { describe, expect, it } from "vitest";
+
+import { operationModulesFor } from "./operation-modules";
+
+describe("staff operation modules", () => {
+  it("shows only kitchen production to kitchen staff", () => {
+    expect(
+      operationModulesFor("kitchen", STAFF_ROLE_CAPABILITIES.kitchen).map(
+        ({ title }) => title
+      )
+    ).toEqual(["Cocina"]);
+  });
+
+  it("shows the daily floor modules to a waiter", () => {
+    expect(
+      operationModulesFor("waiter", STAFF_ROLE_CAPABILITIES.waiter).map(
+        ({ title }) => title
+      )
+    ).toEqual(["Mesas y llamados", "Pedidos", "Cobros"]);
+  });
+});

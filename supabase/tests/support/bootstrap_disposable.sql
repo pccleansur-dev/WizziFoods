@@ -1,6 +1,14 @@
 create schema auth;
 create schema extensions;
 
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'authenticator') then
+    create role authenticator noinherit login;
+  end if;
+end;
+$$;
+
 create table auth.users (
   id uuid primary key
 );

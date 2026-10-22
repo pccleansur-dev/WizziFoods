@@ -13,10 +13,11 @@
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src",
     "test": "vitest run src",
-    "test:integration": "vitest run src/tenant-repository.integration.test.ts",
+    "test:integration": "vitest run src/tenant-repository.integration.test.ts src/staff-auth-repository.integration.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@platform/contracts": "workspace:*",
     "drizzle-orm": "0.45.4",
     "postgres": "3.4.9"
   }

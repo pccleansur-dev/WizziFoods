@@ -50,3 +50,32 @@ export const STAFF_AUTH_POLICY = {
   sensitiveRevalidationMinutes: 15,
   sessionDurationHours: 8
 } as const;
+
+export type StaffIdentity = {
+  location: { id: string; name: string };
+  staff: { displayName: string; id: string; role: StaffRole };
+  tenant: { id: string; name: string; slug: string };
+};
+
+export type StaffLoginRequest = {
+  pin: string;
+  username: string;
+};
+
+export type StaffIdentityWithCapabilities = StaffIdentity & {
+  staff: StaffIdentity["staff"] & {
+    capabilities: readonly StaffCapability[];
+  };
+};
+
+export type StaffCurrentSessionView = {
+  expiresAt: string;
+  identity: StaffIdentityWithCapabilities;
+  lastRevalidatedAt: string;
+};
+
+export type StaffSessionView = StaffCurrentSessionView & {
+  accessToken: string;
+};
+
+export type StaffRevalidationRequest = { pin: string };

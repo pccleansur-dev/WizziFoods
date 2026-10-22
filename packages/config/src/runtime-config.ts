@@ -12,6 +12,7 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   databaseUrl: string;
   metricsPort: number;
   port: number;
+  staffPinPepper: string;
   supabaseUrl: string;
 };
 
@@ -139,7 +140,8 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       "API_PORT",
       "API_METRICS_PORT",
       "DATABASE_URL",
-      "SUPABASE_URL"
+      "SUPABASE_URL",
+      "STAFF_PIN_PEPPER"
     ]);
     const base = readBaseConfig(source);
     const port = readInteger(source, "API_PORT", 1, 65_535);
@@ -156,8 +158,19 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       ["http:", "https:"],
       "an absolute HTTP(S) URL"
     );
+    const staffPinPepper = required(source, "STAFF_PIN_PEPPER");
+    if (staffPinPepper.length < 32) {
+      throw new Error("STAFF_PIN_PEPPER must have at least 32 characters");
+    }
 
-    return { ...base, databaseUrl, metricsPort, port, supabaseUrl };
+    return {
+      ...base,
+      databaseUrl,
+      metricsPort,
+      port,
+      staffPinPepper,
+      supabaseUrl
+    };
   });
 }
 

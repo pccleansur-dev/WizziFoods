@@ -126,20 +126,26 @@ verificaron los eventos de recuperación y revocación en la auditoría de Auth.
 
 **Tamaño:** M.
 
-### T06. Autenticar personal con usuario y PIN
+### T06. Autenticar personal con usuario y PIN — completada
 
 **Descripción:** Crear cuentas individuales de Encargado, Mozo, Cocina y Barra con controles específicos para PIN.
 
 **Criterios de aceptación:**
 
-- [ ] El PIN de seis dígitos se almacena con hash y nunca se devuelve o registra.
-- [ ] Intentos limitados, bloqueo temporal, vencimiento y revalidación sensible funcionan.
-- [ ] Cada rol recibe solamente las capacidades fijas documentadas.
+- [x] El PIN de seis dígitos se almacena con hash y nunca se devuelve o registra.
+- [x] Intentos limitados, bloqueo temporal, vencimiento y revalidación sensible funcionan.
+- [x] Cada rol recibe solamente las capacidades fijas documentadas.
 
 **Verificación:**
 
-- [ ] Pruebas unitarias de bloqueo y matriz de permisos.
-- [ ] Pruebas de integración de login, expiración y auditoría individual.
+- [x] Pruebas unitarias de bloqueo y matriz de permisos.
+- [x] Pruebas de integración de login, expiración y auditoría individual.
+
+**Resultado:** acceso interno responsive por negocio con usuario y PIN, sesiones
+opacas de ocho horas, bloqueo temporal, revalidación de Encargado, revocación y
+auditoría. La API aplica capacidades fijas por rol y mantiene credenciales y
+sesiones fuera del alcance directo de clientes. El recorrido real de login y
+panel de Encargado se verificó en navegador contra Supabase local.
 
 **Dependencias:** T04, T05.
 
@@ -149,8 +155,8 @@ verificaron los eventos de recuperación y revocación en la auditoría de Auth.
 
 ### Checkpoint 1
 
-- [ ] RLS negativa, sesiones y roles pasan en CI.
-- [ ] Revisión de seguridad antes de almacenar información real.
+- [x] RLS negativa, sesiones y roles pasan en CI.
+- [x] Revisión de seguridad antes de almacenar información real.
 
 ## Fase 2 — Administración de la plataforma
 

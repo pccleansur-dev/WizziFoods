@@ -1,4 +1,4 @@
-import { STAFF_AUTH_POLICY } from "@platform/contracts";
+import { STAFF_AUTH_POLICY } from "./staff-access.js";
 
 export type StaffCredentialState = {
   failedAttempts: number;

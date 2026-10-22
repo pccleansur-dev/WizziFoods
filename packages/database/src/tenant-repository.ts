@@ -8,6 +8,10 @@ import {
   tenantMemberships,
   tenants
 } from "./schema.js";
+import {
+  createStaffAuthRepository,
+  type StaffAuthRepository
+} from "./staff-auth-repository.js";
 
 export type TenantContext = {
   location: {
@@ -42,6 +46,7 @@ export interface IdentityAccessRepository {
 export type TenantDatabase = {
   close(): Promise<void>;
   identityAccessRepository: IdentityAccessRepository;
+  staffAuthRepository: StaffAuthRepository;
   tenantRepository: TenantRepository;
 };
 
@@ -140,6 +145,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
         });
       }
     },
+    staffAuthRepository: createStaffAuthRepository(client),
     tenantRepository: {
       async findForIdentity(userId: string): Promise<TenantContext[]> {
         assertUuid(userId, "userId");

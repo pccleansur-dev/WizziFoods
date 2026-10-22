@@ -144,6 +144,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@platform/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       drizzle-orm:
         specifier: 0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(postgres@3.4.9)

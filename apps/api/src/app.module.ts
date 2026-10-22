@@ -12,6 +12,11 @@ import { AppController } from "./app.controller.js";
 import { AdminAuthGuard } from "./auth/admin-auth.guard.js";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { SupabaseJwtVerifier } from "./auth/supabase-jwt.verifier.js";
+import {
+  StaffAuthController,
+  StaffSessionController
+} from "./staff-auth/staff-auth.controller.js";
+import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { TenantContextController } from "./tenants/tenant-context.controller.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
 
@@ -32,7 +37,12 @@ class TenantDatabaseLifecycle implements OnApplicationShutdown {
 export class AppModule {
   static register(config: ApiRuntimeConfig): DynamicModule {
     return {
-      controllers: [AppController, TenantContextController],
+      controllers: [
+        AppController,
+        StaffAuthController,
+        StaffSessionController,
+        TenantContextController
+      ],
       module: AppModule,
       providers: [
         {
@@ -50,6 +60,15 @@ export class AppModule {
           useFactory: () =>
             new AdminAuthService(
               new SupabaseJwtVerifier(`${config.supabaseUrl}/auth/v1`)
+            )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: StaffAuthService,
+          useFactory: (database: TenantDatabase) =>
+            new StaffAuthService(
+              database.staffAuthRepository,
+              config.staffPinPepper
             )
         },
         AdminAuthGuard,
