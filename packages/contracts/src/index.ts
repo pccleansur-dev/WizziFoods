@@ -23,3 +23,8 @@ export {
   type PinAttemptResult,
   type StaffCredentialState
 } from "./staff-auth-policy.js";
+export {
+  type CreateTenantProvisioningRequest,
+  type TenantProvisioningStatus,
+  type TenantProvisioningView
+} from "./tenant-provisioning.js";

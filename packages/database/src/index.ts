@@ -14,3 +14,9 @@ export {
   type StaffRevalidationResult,
   type StaffSessionRecord
 } from "./staff-auth-repository.js";
+export {
+  type BeginTenantProvisioningInput,
+  type CompleteTenantProvisioningInput,
+  type TenantProvisioningRecord,
+  type TenantProvisioningRepository
+} from "./tenant-provisioning-repository.js";
