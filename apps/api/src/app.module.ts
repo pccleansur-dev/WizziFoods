@@ -19,6 +19,9 @@ import {
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { TenantContextController } from "./tenants/tenant-context.controller.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
+import { TenantHostController } from "./tenants/tenant-host.controller.js";
+import { TenantHostGuard } from "./tenants/tenant-host.guard.js";
+import { TenantHostService } from "./tenants/tenant-host.service.js";
 import { createTenantAdminInvitationGateway } from "./tenant-provisioning/tenant-admin-invitation.gateway.js";
 import { TenantProvisioningController } from "./tenant-provisioning/tenant-provisioning.controller.js";
 import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
@@ -45,6 +48,7 @@ export class AppModule {
         StaffAuthController,
         StaffSessionController,
         TenantContextController,
+        TenantHostController,
         TenantProvisioningController
       ],
       module: AppModule,
@@ -61,6 +65,12 @@ export class AppModule {
               database.identityAccessRepository,
               database.tenantProvisioningRepository
             )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: TenantHostService,
+          useFactory: (database: TenantDatabase) =>
+            new TenantHostService(database.tenantDomainRepository)
         },
         {
           provide: AdminAuthService,
@@ -93,6 +103,7 @@ export class AppModule {
             )
         },
         AdminAuthGuard,
+        TenantHostGuard,
         TenantDatabaseLifecycle
       ]
     };

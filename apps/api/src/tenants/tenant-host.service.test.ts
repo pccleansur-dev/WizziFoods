@@ -1,0 +1,56 @@
+import { NotFoundException } from "@nestjs/common";
+import type { TenantHostContext } from "@platform/contracts";
+import { describe, expect, it } from "vitest";
+
+import { TenantHostService } from "./tenant-host.service.js";
+
+const context: TenantHostContext = {
+  domain: { hostname: "local-a.plataforma.test", id: "domain-a" },
+  location: { id: "location-a", name: "Principal" },
+  tenant: { id: "tenant-a", name: "Tenant A", slug: "tenant-a" }
+};
+
+describe("TenantHostService", () => {
+  it("canonicalizes the request authority before resolving it", async () => {
+    const resolved: string[] = [];
+    const service = new TenantHostService({
+      resolveByHostname: async (hostname: string) => {
+        resolved.push(hostname);
+        return context;
+      }
+    });
+
+    await expect(
+      service.resolve("LOCAL-A.PLATAFORMA.TEST:3001")
+    ).resolves.toEqual(context);
+    expect(resolved).toEqual(["local-a.plataforma.test"]);
+  });
+
+  it("fails closed before querying for malformed authorities", async () => {
+    const service = new TenantHostService({
+      resolveByHostname: async () => {
+        throw new Error("repository must not be queried");
+      }
+    });
+
+    await expect(
+      service.resolve("local-a.plataforma.test,attacker.test")
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it("uses the same generic not-found response for an unknown host", async () => {
+    const service = new TenantHostService({
+      resolveByHostname: async () => null
+    });
+
+    await expect(
+      service.resolve("unknown.plataforma.test")
+    ).rejects.toMatchObject({
+      response: {
+        error: {
+          code: "TENANT_NOT_FOUND"
+        }
+      }
+    });
+  });
+});

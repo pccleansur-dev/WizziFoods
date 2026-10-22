@@ -11,6 +11,7 @@ import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { AppModule } from "./app.module.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
+import { TenantHostService } from "./tenants/tenant-host.service.js";
 import { TenantProvisioningService } from "./tenant-provisioning/tenant-provisioning.service.js";
 
 describe("API authentication boundaries", () => {
@@ -43,6 +44,24 @@ describe("API authentication boundaries", () => {
         getForAuthenticatedIdentity: async () => ({
           tenantContexts: [],
           type: "tenant_admin"
+        })
+      })
+      .overrideProvider(TenantHostService)
+      .useValue({
+        resolve: async (authority: unknown) => ({
+          domain: {
+            hostname: String(authority).split(":")[0],
+            id: "75000000-0000-4000-8000-000000000075"
+          },
+          location: {
+            id: "72000000-0000-4000-8000-000000000072",
+            name: "Principal"
+          },
+          tenant: {
+            id: "74000000-0000-4000-8000-000000000074",
+            name: "Café Norte",
+            slug: "cafe-norte"
+          }
         })
       })
       .overrideProvider(StaffAuthService)
@@ -102,6 +121,29 @@ describe("API authentication boundaries", () => {
     });
 
     expect(response.statusCode).toBe(200);
+  });
+
+  it("returns public tenant context derived from Host only", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: {
+          host: "cafe-norte.plataforma.test:3001",
+          "x-forwarded-host": "attacker.plataforma.test"
+        },
+        method: "GET",
+        url: "/v1/public/tenant-context"
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      data: {
+        domain: { hostname: "cafe-norte.plataforma.test" },
+        location: { name: "Principal" },
+        tenant: { name: "Café Norte", slug: "cafe-norte" }
+      }
+    });
   });
 
   it("rejects tenant context requests without a bearer token", async () => {
