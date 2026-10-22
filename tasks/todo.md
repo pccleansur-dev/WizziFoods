@@ -160,20 +160,27 @@ panel de Encargado se verificó en navegador contra Supabase local.
 
 ## Fase 2 — Administración de la plataforma
 
-### T07. Aprovisionar y entregar un negocio
+### T07. Aprovisionar y entregar un negocio — completada
 
 **Descripción:** Permitir que Valentín cree un tenant, su ubicación y el primer Administrador sin completar la operación del restaurante.
 
 **Criterios de aceptación:**
 
-- [ ] Superadmin crea un negocio en estado borrador y genera una invitación de administrador de un solo uso.
-- [ ] La activación es idempotente y no duplica tenant ni ubicación.
-- [ ] El administrador completa su acceso sin recibir secretos por pantalla o logs.
+- [x] Superadmin crea un negocio en estado borrador y genera una invitación de administrador de un solo uso.
+- [x] La activación es idempotente y no duplica tenant ni ubicación.
+- [x] El administrador completa su acceso sin recibir secretos por pantalla o logs.
 
 **Verificación:**
 
-- [ ] Recorrido E2E creación → invitación → activación → acceso.
-- [ ] Reintentar cada paso y comprobar idempotencia.
+- [x] Recorrido E2E creación → invitación → activación → acceso.
+- [x] Reintentar cada paso y comprobar idempotencia.
+
+**Resultado:** el Superadmin crea el tenant y su ubicación principal en estado
+borrador mediante una operación idempotente. Supabase Auth entrega la invitación
+sin exponer enlaces, tokens ni identificadores internos en la interfaz. El primer
+Administrador define contraseña y segundo factor; su primer acceso AAL2 activa
+el alta. Los reintentos conservan una sola solicitud, tenant, ubicación y
+membresía.
 
 **Dependencias:** T05.
 

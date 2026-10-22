@@ -78,6 +78,9 @@ recuperación de contraseña sin enviar correos reales. Producción no usa este
 servicio: allí `SMTP_HOST`, credenciales y remitente deben apuntar al proveedor
 de correo configurado en Coolify.
 
+El recorrido local de creación y entrega de negocios está documentado en
+[Aprovisionamiento de negocios](./aprovisionamiento-negocios.md).
+
 ## Controles antes de integrar cambios
 
 ```powershell
