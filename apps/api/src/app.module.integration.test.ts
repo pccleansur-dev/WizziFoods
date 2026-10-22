@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { AppModule } from "./app.module.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
+import { SupportAccessService } from "./support-access/support-access.service.js";
 import { TenantAdminScopeService } from "./tenants/tenant-admin-scope.service.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
 import { TenantHostService } from "./tenants/tenant-host.service.js";
@@ -98,6 +99,36 @@ describe("API authentication boundaries", () => {
           tenantSlug
         }),
         signOut: async () => undefined
+      })
+      .overrideProvider(SupportAccessService)
+      .useValue({
+        grant: async (
+          context: {
+            identity: { userId: string };
+            scope: { tenantId: string };
+          },
+          request: unknown,
+          correlationId: string
+        ) => ({
+          contextUserId: context.identity.userId,
+          correlationId,
+          request,
+          tenantId: context.scope.tenantId
+        }),
+        list: async (context: { scope: { tenantId: string } }) => [
+          { tenantId: context.scope.tenantId }
+        ],
+        revoke: async (
+          context: { scope: { tenantId: string } },
+          grantId: string,
+          request: unknown,
+          correlationId: string
+        ) => ({
+          correlationId,
+          grantId,
+          request,
+          tenantId: context.scope.tenantId
+        })
       })
       .overrideProvider(TenantProvisioningService)
       .useValue({
@@ -321,6 +352,84 @@ describe("API authentication boundaries", () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({
       error: { code: "INVALID_TENANT_PROVISIONING" }
+    });
+  });
+
+  it("grants, lists and revokes support from guarded tenant context", async () => {
+    const server = app.getHttpAdapter().getInstance();
+    const headers = {
+      authorization: "Bearer signed-token",
+      host: "cafe-norte.plataforma.test:3001",
+      "x-request-id": "request-support-001"
+    };
+    const created = await server.inject({
+      headers,
+      method: "POST",
+      payload: {
+        durationMinutes: 60,
+        reason: " Diagnóstico solicitado ",
+        supportUserId: "b1000000-0000-4000-8000-000000000001"
+      },
+      url: "/v1/tenant/support-access"
+    });
+    const listed = await server.inject({
+      headers,
+      method: "GET",
+      url: "/v1/tenant/support-access"
+    });
+    const revoked = await server.inject({
+      headers: { ...headers, "x-request-id": "request-support-002" },
+      method: "DELETE",
+      payload: { reason: " Diagnóstico finalizado " },
+      url: "/v1/tenant/support-access/b5000000-0000-4000-8000-000000000005"
+    });
+
+    expect(created.statusCode).toBe(201);
+    expect(created.json()).toMatchObject({
+      data: {
+        contextUserId: "10000000-0000-4000-8000-000000000001",
+        correlationId: expect.any(String),
+        request: { reason: "Diagnóstico solicitado" },
+        tenantId: "74000000-0000-4000-8000-000000000074"
+      }
+    });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json()).toEqual({
+      data: [{ tenantId: "74000000-0000-4000-8000-000000000074" }]
+    });
+    expect(revoked.statusCode).toBe(200);
+    expect(revoked.json()).toMatchObject({
+      data: {
+        correlationId: expect.any(String),
+        grantId: "b5000000-0000-4000-8000-000000000005",
+        request: { reason: "Diagnóstico finalizado" },
+        tenantId: "74000000-0000-4000-8000-000000000074"
+      }
+    });
+  });
+
+  it("rejects tenant authority injected into support payloads", async () => {
+    const response = await app
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: {
+          authorization: "Bearer signed-token",
+          host: "cafe-norte.plataforma.test:3001"
+        },
+        method: "POST",
+        payload: {
+          durationMinutes: 60,
+          reason: "Diagnóstico solicitado",
+          supportUserId: "b1000000-0000-4000-8000-000000000001",
+          tenantId: "attacker-controlled"
+        },
+        url: "/v1/tenant/support-access"
+      });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      error: { code: "INVALID_SUPPORT_ACCESS" }
     });
   });
 });

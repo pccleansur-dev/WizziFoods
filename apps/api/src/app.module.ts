@@ -17,6 +17,8 @@ import {
   StaffSessionController
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
+import { SupportAccessController } from "./support-access/support-access.controller.js";
+import { SupportAccessService } from "./support-access/support-access.service.js";
 import { TenantContextController } from "./tenants/tenant-context.controller.js";
 import { TenantContextService } from "./tenants/tenant-context.service.js";
 import { TenantAdminScopeController } from "./tenants/tenant-admin-scope.controller.js";
@@ -50,6 +52,7 @@ export class AppModule {
         AppController,
         StaffAuthController,
         StaffSessionController,
+        SupportAccessController,
         TenantAdminScopeController,
         TenantContextController,
         TenantHostController,
@@ -93,6 +96,12 @@ export class AppModule {
               database.staffAuthRepository,
               config.staffPinPepper
             )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: SupportAccessService,
+          useFactory: (database: TenantDatabase) =>
+            new SupportAccessService(database.supportAccessRepository)
         },
         {
           inject: [TENANT_DATABASE],
