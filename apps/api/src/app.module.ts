@@ -12,6 +12,9 @@ import { AppController } from "./app.controller.js";
 import { AdminAuthGuard } from "./auth/admin-auth.guard.js";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { SupabaseJwtVerifier } from "./auth/supabase-jwt.verifier.js";
+import { BusinessMediaController } from "./business-media/business-media.controller.js";
+import { createBusinessMediaStorageGateway } from "./business-media/business-media-storage.gateway.js";
+import { BusinessMediaService } from "./business-media/business-media.service.js";
 import { BusinessProfileController } from "./business-profile/business-profile.controller.js";
 import { BusinessProfileService } from "./business-profile/business-profile.service.js";
 import {
@@ -55,6 +58,7 @@ export class AppModule {
     return {
       controllers: [
         AppController,
+        BusinessMediaController,
         BusinessProfileController,
         StaffAuthController,
         StaffSessionController,
@@ -74,6 +78,18 @@ export class AppModule {
         },
         TenantAdminScopeGuard,
         TenantAdminScopeService,
+        {
+          inject: [TENANT_DATABASE],
+          provide: BusinessMediaService,
+          useFactory: (database: TenantDatabase) =>
+            new BusinessMediaService(
+              database.businessMediaRepository,
+              createBusinessMediaStorageGateway(
+                config.supabaseUrl,
+                config.supabaseSecretKey
+              )
+            )
+        },
         {
           inject: [TENANT_DATABASE],
           provide: BusinessProfileService,
