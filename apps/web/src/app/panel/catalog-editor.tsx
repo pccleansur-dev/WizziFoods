@@ -27,6 +27,10 @@ import { CatalogPreview } from "./catalog-preview";
 import type { PublishedCatalog, SavedCatalogDraft } from "./catalog";
 import { BusinessMediaUploadField } from "./business-media-upload-field";
 import { CatalogAvailabilityControl } from "./catalog-availability";
+import {
+  CatalogPublicationReadiness,
+  catalogIsReadyToPublish
+} from "./catalog-publication-readiness";
 
 const initialActionState = (
   catalog: SavedCatalogDraft | null
@@ -39,10 +43,12 @@ const initialActionState = (
 
 export function CatalogEditor({
   catalog,
+  hasBusinessProfile,
   languages,
   publishedCatalog
 }: {
   catalog: SavedCatalogDraft | null;
+  hasBusinessProfile: boolean;
   languages: string[];
   publishedCatalog: PublishedCatalog | null;
 }) {
@@ -98,6 +104,11 @@ export function CatalogEditor({
   const draftRevision = saveState.draftRevision ?? catalog?.revision ?? null;
   const publishedRevision =
     publishState.publishedRevision ?? catalog?.basePublishedRevision ?? null;
+  const readyToPublish = catalogIsReadyToPublish(
+    draft,
+    languages,
+    hasBusinessProfile
+  );
 
   return (
     <section className="catalog-section" aria-labelledby="catalog-title">
@@ -513,6 +524,11 @@ export function CatalogEditor({
             </div>
           </div>
 
+          <CatalogPublicationReadiness
+            draft={draft}
+            hasBusinessProfile={hasBusinessProfile}
+            languages={languages}
+          />
           <div className="catalog-actions">
             <form action={saveAction}>
               <input
@@ -536,7 +552,9 @@ export function CatalogEditor({
               />
               <button
                 className="button button--secondary"
-                disabled={publishing || dirty || draftRevision === null}
+                disabled={
+                  publishing || dirty || draftRevision === null || !readyToPublish
+                }
                 type="submit"
               >
                 {publishing ? "Publicando…" : "Publicar cambios"}

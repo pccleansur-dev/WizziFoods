@@ -975,6 +975,72 @@ dd {
   gap: 1rem;
 }
 
+.catalog-readiness {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e7d6bd;
+  border-radius: 1rem;
+  background: #fffaf2;
+}
+
+.catalog-readiness--ready {
+  border-color: #b9d7c3;
+  background: #f3faf5;
+}
+
+.catalog-readiness h3,
+.catalog-readiness p {
+  margin: 0;
+}
+
+.catalog-readiness p {
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.catalog-readiness ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-readiness li {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.catalog-readiness li span {
+  display: grid;
+  flex: 0 0 1.45rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #f0dfc3;
+  color: #764b17;
+  font-weight: 800;
+}
+
+.catalog-readiness--ready li span {
+  background: #d7eedf;
+  color: #22663a;
+}
+
+@media (max-width: 640px) {
+  .catalog-readiness ul {
+    grid-template-columns: 1fr;
+  }
+}
+
 .catalog-section__heading {
   align-items: flex-start;
   margin-bottom: 1.5rem;

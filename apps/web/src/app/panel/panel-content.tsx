@@ -108,6 +108,7 @@ export function PanelContent({
       <BusinessProfileForm draft={editableProfile} />
       <CatalogEditor
         catalog={catalog}
+        hasBusinessProfile={businessProfile !== null}
         languages={editableProfile.languages}
         publishedCatalog={publishedCatalog}
       />
