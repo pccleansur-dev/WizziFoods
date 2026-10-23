@@ -44,7 +44,10 @@ Una nueva autorización para el mismo tenant y la misma persona de soporte
 reactiva el registro corriente, mientras que el historial anterior permanece
 en auditoría.
 
-## Límites actuales
+## Superficie actual
 
-La base y la API ya aplican la política. La visualización y los controles del
-panel se incorporan antes de cerrar T09, junto con la política de suspensión.
+La base y la API aplican la política completa. Los estados se consultan con
+`GET /v1/tenant/support-access`; el historial Superadmin muestra las altas y
+revocaciones sin exponer secretos. Los controles específicos del Administrador
+se incorporarán junto con el área de equipo de T14, reutilizando estas rutas y
+sin cambiar el modelo de autorización.

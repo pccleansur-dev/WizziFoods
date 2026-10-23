@@ -223,23 +223,24 @@ cabeceras falsificadas e intentos de alcance cruzado.
 
 **Criterios de aceptación:**
 
-- [ ] Soporte requiere autorización temporal, visible y revocable del Administrador.
-- [ ] Acciones sensibles registran actor, tenant, motivo, tiempo y correlación.
-- [ ] Suspensión comercial bloquea nuevas sesiones después de cerrar las activas; seguridad puede bloquear inmediatamente.
+- [x] Soporte requiere autorización temporal, visible y revocable del Administrador.
+- [x] Acciones sensibles registran actor, tenant, motivo, tiempo y correlación.
+- [x] Suspensión comercial bloquea nuevas sesiones después de cerrar las activas; seguridad puede bloquear inmediatamente.
 
 **Verificación:**
 
-- [ ] Pruebas de autorización/revocación y políticas de suspensión.
-- [ ] Inspección manual del historial sin secretos ni datos de pago completos.
+- [x] Pruebas de autorización/revocación y políticas de suspensión.
+- [x] Inspección manual del historial sin secretos ni datos de pago completos.
 
 **Dependencias:** T06, T08.
 
 **Archivos probables:** módulo audit, módulo support-access, políticas suspension, vistas Superadmin.
 
-**Avance:** historial append-only y autorización temporal de soporte entregados
-en base y API. El tenant se deriva del host y la identidad, el plazo está
-limitado a cuatro horas, y alta, vencimiento y revocación tienen pruebas
-negativas. Quedan la visualización en panel y la suspensión gradual/inmediata.
+**Resultado:** historial append-only, autorización temporal de soporte y
+suspensión entregados en base y API. El panel Superadmin muestra negocios,
+estados e historial sensible, y distingue suspensión comercial gradual de
+seguridad inmediata. La finalización comercial queda reservada al ciclo de
+mesas de T16: la API no puede falsear que se cerró la última sesión.
 
 **Tamaño:** M.
 
