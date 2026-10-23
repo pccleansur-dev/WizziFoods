@@ -30,6 +30,7 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
   const categoryId = "fb000000-0000-4000-8000-000000000004";
   const sectorId = "fb000000-0000-4000-8000-000000000005";
   const productId = "fb000000-0000-4000-8000-000000000006";
+  const variantId = "fb000000-0000-4000-8000-000000000007";
   const hostname = "catalog-flow.plataforma.test";
   const admin = postgres(databaseAdminUrl ?? "", { prepare: false });
   let app: NestFastifyApplication | undefined;
@@ -115,17 +116,45 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
       .sign(privateKey);
   }
 
-  it("keeps draft content private until publication and overlays availability", async () => {
+  it("covers draft, preview, publication, and immediate availability end to end", async () => {
     const server = app!.getHttpAdapter().getInstance();
     const adminHeaders = {
       authorization: `Bearer ${await createToken()}`,
       host: hostname
     };
+    const profile = await server.inject({
+      headers: adminHeaders,
+      method: "PUT",
+      payload: {
+        address: "Av. Demo 123",
+        contactPhone: "+54 11 5555 0000",
+        coverAssetId: null,
+        description: "Cocina de barrio.",
+        displayName: "Catalog Flow",
+        languages: ["es", "en"],
+        logoAssetId: null,
+        openingHours: "Todos los días",
+        referenceAssetIds: [],
+        visual: {
+          accentColor: "#D97706",
+          headingStyle: "serif",
+          layout: "visual",
+          primaryColor: "#1F2937",
+          secondaryColor: "#F9FAFB"
+        }
+      },
+      url: "/v1/tenant/business-profile"
+    });
+    expect(profile.statusCode, profile.body).toBe(200);
+
     const draft = {
       baseRevision: null,
       categories: [
         {
-          content: [{ description: "", language: "es", title: "Principales" }],
+          content: [
+            { description: "", language: "es", title: "Principales" },
+            { description: "", language: "en", title: "Main dishes" }
+          ],
           id: categoryId,
           position: 0
         }
@@ -138,6 +167,11 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
               description: "Con papas",
               language: "es",
               title: "Milanesa"
+            },
+            {
+              description: "With potatoes",
+              language: "en",
+              title: "Milanese"
             }
           ],
           id: productId,
@@ -145,7 +179,17 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
           position: 0,
           priceCents: 125000,
           sectorId,
-          variants: []
+          variants: [
+            {
+              content: [
+                { description: "", language: "es", title: "Napolitana" },
+                { description: "", language: "en", title: "Neapolitan" }
+              ],
+              id: variantId,
+              position: 0,
+              priceDeltaCents: 25000
+            }
+          ]
         }
       ],
       sectors: [{ id: sectorId, kind: "kitchen", name: "Cocina", position: 0 }]
@@ -180,6 +224,64 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
       sourceDraftRevision: 1
     });
 
+    const currentForAdmin = await server.inject({
+      headers: adminHeaders,
+      method: "GET",
+      url: "/v1/tenant/catalog/current"
+    });
+    expect(currentForAdmin.statusCode, currentForAdmin.body).toBe(200);
+    expect(currentForAdmin.json().data).toMatchObject({
+      catalog: {
+        products: [
+          {
+            content: [{ title: "Milanesa" }, { title: "Milanese" }],
+            variants: [
+              {
+                content: [{ title: "Napolitana" }, { title: "Neapolitan" }]
+              }
+            ]
+          }
+        ]
+      },
+      revision: 1
+    });
+
+    const previewDraft = {
+      ...draft,
+      baseRevision: 1,
+      products: draft.products.map((product) => ({
+        ...product,
+        content: product.content.map((content) =>
+          content.language === "es"
+            ? { ...content, title: "Milanesa especial" }
+            : content
+        ),
+        priceCents: 130000
+      }))
+    };
+    const savedPreview = await server.inject({
+      headers: adminHeaders,
+      method: "PUT",
+      payload: previewDraft,
+      url: "/v1/tenant/catalog/draft"
+    });
+    expect(savedPreview.statusCode, savedPreview.body).toBe(200);
+    expect(savedPreview.json().data).toMatchObject({
+      draft: {
+        products: [
+          {
+            content: [
+              { title: "Milanesa especial" },
+              { title: "Milanese" }
+            ],
+            priceCents: 130000
+          }
+        ]
+      },
+      isDirty: true,
+      revision: 2
+    });
+
     const availability = await server.inject({
       headers: adminHeaders,
       method: "PATCH",
@@ -202,7 +304,11 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
         [productId]: { isAvailable: false, version: 1 }
       },
       catalog: {
-        products: [{ content: [{ title: "Milanesa" }] }]
+        products: [
+          {
+            content: [{ title: "Milanesa" }, { title: "Milanese" }]
+          }
+        ]
       },
       revision: 1
     });
@@ -215,9 +321,20 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
     expect(resumed.statusCode, resumed.body).toBe(200);
     expect(resumed.json().data).toMatchObject({
       basePublishedRevision: 1,
-      draft: { baseRevision: 1 },
-      isDirty: false,
-      revision: 1
+      draft: {
+        baseRevision: 1,
+        products: [
+          {
+            content: [
+              { title: "Milanesa especial" },
+              { title: "Milanese" }
+            ],
+            priceCents: 130000
+          }
+        ]
+      },
+      isDirty: true,
+      revision: 2
     });
   });
 });
