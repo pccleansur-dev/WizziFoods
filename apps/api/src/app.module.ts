@@ -12,6 +12,8 @@ import { AppController } from "./app.controller.js";
 import { AdminAuthGuard } from "./auth/admin-auth.guard.js";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { SupabaseJwtVerifier } from "./auth/supabase-jwt.verifier.js";
+import { BusinessProfileController } from "./business-profile/business-profile.controller.js";
+import { BusinessProfileService } from "./business-profile/business-profile.service.js";
 import {
   StaffAuthController,
   StaffSessionController
@@ -53,6 +55,7 @@ export class AppModule {
     return {
       controllers: [
         AppController,
+        BusinessProfileController,
         StaffAuthController,
         StaffSessionController,
         SupportAccessController,
@@ -71,6 +74,12 @@ export class AppModule {
         },
         TenantAdminScopeGuard,
         TenantAdminScopeService,
+        {
+          inject: [TENANT_DATABASE],
+          provide: BusinessProfileService,
+          useFactory: (database: TenantDatabase) =>
+            new BusinessProfileService(database.businessProfileRepository)
+        },
         {
           inject: [TENANT_DATABASE],
           provide: TenantContextService,
