@@ -80,6 +80,9 @@ describe("PanelContent", () => {
     );
 
     expect(markup).toContain("Bodegón del Centro");
+    expect(markup).toContain("Datos e identidad");
+    expect(markup).toContain("Vista previa");
+    expect(markup).toContain("no modifica lo publicado");
     expect(markup).toContain("Gestionar carta");
     expect(markup).not.toContain("Crear y entregar negocios");
   });

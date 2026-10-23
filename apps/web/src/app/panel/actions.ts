@@ -3,7 +3,9 @@
 import { randomUUID } from "node:crypto";
 
 import { readWebConfig } from "@platform/config";
+import { parseBusinessProfileDraft } from "@platform/contracts";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createAuthServerClient } from "../../auth/supabase-server";
@@ -12,9 +14,103 @@ import {
   type TenantProvisioningActionState
 } from "./tenant-provisioning-state";
 import type { TenantSuspensionActionState } from "./tenant-suspension-state";
+import type { BusinessProfileActionState } from "./business-profile-state";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+export async function saveBusinessProfileAction(
+  previousState: BusinessProfileActionState,
+  formData: FormData
+): Promise<BusinessProfileActionState> {
+  const nullableAsset = (name: string) => {
+    const value = formData.get(name);
+    return typeof value === "string" && value ? value : null;
+  };
+  const draft = parseBusinessProfileDraft({
+    address: String(formData.get("address") ?? "").trim(),
+    contactPhone: String(formData.get("contactPhone") ?? "").trim(),
+    coverAssetId: nullableAsset("coverAssetId"),
+    description: String(formData.get("description") ?? "").trim(),
+    displayName: String(formData.get("displayName") ?? "").trim(),
+    languages: formData.getAll("languages").map(String),
+    logoAssetId: nullableAsset("logoAssetId"),
+    openingHours: String(formData.get("openingHours") ?? "").trim(),
+    referenceAssetIds: formData.getAll("referenceAssetIds").map(String),
+    visual: {
+      accentColor: String(formData.get("accentColor") ?? "").toUpperCase(),
+      headingStyle: formData.get("headingStyle"),
+      layout: formData.get("layout"),
+      primaryColor: String(formData.get("primaryColor") ?? "").toUpperCase(),
+      secondaryColor: String(formData.get("secondaryColor") ?? "").toUpperCase()
+    }
+  });
+  if (!draft) {
+    return {
+      ...previousState,
+      message: "Revisá los datos, colores e idiomas del negocio.",
+      status: "error"
+    };
+  }
+
+  const supabase = await createAuthServerClient();
+  const claims = await supabase.auth.getClaims();
+  const session = await supabase.auth.getSession();
+  const accessToken = session.data.session?.access_token;
+  if (
+    claims.error ||
+    claims.data?.claims.aal !== "aal2" ||
+    session.error ||
+    !accessToken
+  ) {
+    return {
+      ...previousState,
+      message: "La sesión venció. Volvé a ingresar.",
+      status: "error"
+    };
+  }
+
+  try {
+    const config = readWebConfig(process.env);
+    const requestHeaders = await headers();
+    const host = requestHeaders.get("host");
+    if (!host) throw new Error("missing host");
+    const response = await fetch(
+      `${config.apiUrl}/v1/tenant/business-profile`,
+      {
+        body: JSON.stringify(draft),
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+          host
+        },
+        method: "PUT"
+      }
+    );
+    if (!response.ok) {
+      return {
+        ...previousState,
+        message:
+          response.status === 400
+            ? "Revisá los datos del perfil."
+            : "No pudimos guardar el avance. Intentá nuevamente.",
+        status: "error"
+      };
+    }
+  } catch {
+    return {
+      ...previousState,
+      message: "No pudimos comunicarnos con la plataforma. Intentá nuevamente.",
+      status: "error"
+    };
+  }
+  revalidatePath("/panel");
+  return {
+    message: "Guardamos el borrador. La versión publicada no cambió.",
+    status: "success"
+  };
+}
 
 function errorState(
   previousState: TenantProvisioningActionState,

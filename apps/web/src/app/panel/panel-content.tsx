@@ -4,12 +4,16 @@ import type { AdministrativeAccess } from "../../auth/admin-access";
 import type { PlatformOperations } from "./platform-operations";
 import { PlatformOperationsPanel } from "./platform-operations-panel";
 import { TenantProvisioningForm } from "./tenant-provisioning-form";
+import { BusinessProfileForm } from "./business-profile-form";
+import type { SavedBusinessProfileDraft } from "./business-profile";
 
 export function PanelContent({
   administrativeAccess,
+  businessProfile = null,
   platformOperations = null
 }: {
   administrativeAccess: AdministrativeAccess;
+  businessProfile?: SavedBusinessProfileDraft | null;
   platformOperations?: PlatformOperations | null;
 }) {
   const { access } = administrativeAccess;
@@ -68,6 +72,25 @@ export function PanelContent({
     );
   }
 
+  const editableProfile = businessProfile ?? {
+    address: "",
+    contactPhone: "",
+    coverAssetId: null,
+    description: "",
+    displayName: context.tenant.name,
+    languages: ["es"],
+    logoAssetId: null,
+    openingHours: "",
+    referenceAssetIds: [],
+    visual: {
+      accentColor: "#D97706",
+      headingStyle: "serif" as const,
+      layout: "visual" as const,
+      primaryColor: "#1F2937",
+      secondaryColor: "#F9FAFB"
+    }
+  };
+
   return (
     <div className="panel-content">
       <p className="eyebrow">Administrador del negocio</p>
@@ -76,6 +99,7 @@ export function PanelContent({
         Ubicación principal: {context.location.name}. Estado del negocio:{" "}
         <strong>{context.tenant.status}</strong>.
       </p>
+      <BusinessProfileForm draft={editableProfile} />
       <div className="panel-module-list" aria-label="Módulos administrativos">
         <div>
           <span>Identidad y menú</span>

@@ -720,9 +720,173 @@ dd {
   overflow-wrap: anywhere;
 }
 
+.profile-workspace {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.profile-form,
+.profile-preview {
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid #ded8cd;
+  border-radius: 1rem;
+  background: #fffdf8;
+}
+
+.profile-section-heading {
+  margin-bottom: 1.5rem;
+}
+
+.profile-section-heading h2 {
+  margin-bottom: 0.45rem;
+}
+
+.profile-section-heading p:last-child {
+  color: #625b51;
+}
+
+.profile-fields-grid,
+.profile-color-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 1.5rem 0;
+  padding: 0;
+  border: 0;
+}
+
+.profile-options legend {
+  width: 100%;
+  margin-bottom: 0.25rem;
+  font-weight: 750;
+}
+
+.profile-options label,
+.profile-color-grid label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.profile-options input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.profile-color-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.profile-color-grid label {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.profile-color-grid input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.25rem;
+}
+
+.profile-preview {
+  align-self: start;
+  background: #f0ece4;
+}
+
+.profile-preview__status {
+  margin-bottom: 0.75rem;
+  color: #665f55;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.profile-preview__surface {
+  min-height: 24rem;
+  padding: clamp(1.5rem, 6vw, 3rem);
+  border-radius: 0.8rem;
+  box-shadow: 0 1.25rem 3rem rgb(55 43 25 / 12%);
+}
+
+.profile-preview__surface > span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-preview__surface h3 {
+  max-width: 12ch;
+  margin: 2rem 0 0.75rem;
+  font-size: clamp(2rem, 9vw, 3.5rem);
+  line-height: 0.95;
+}
+
+.preview-heading--serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.profile-preview__surface p {
+  max-width: 34rem;
+  line-height: 1.6;
+}
+
+.profile-preview__surface button {
+  min-height: 2.75rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 750;
+}
+
+.profile-preview__surface--compact {
+  min-height: 18rem;
+}
+
+.profile-preview__surface--modern {
+  border-radius: 0;
+}
+
+.profile-contrast-warning,
+.profile-contrast-ok {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.profile-contrast-warning {
+  color: #8b241d;
+}
+
+.profile-contrast-ok {
+  color: #355f3f;
+}
+
 @media (min-width: 42rem) {
   .panel-module-list {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .profile-fields-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-field--wide {
+    grid-column: 1 / -1;
   }
 }
 
@@ -734,6 +898,15 @@ dd {
 
   .operations-grid {
     grid-template-columns: minmax(22rem, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .profile-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 0.8fr);
+  }
+
+  .profile-preview {
+    position: sticky;
+    top: 1rem;
   }
 }
 

@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 import { loadAdministrativeAccess } from "../../auth/load-admin-access";
 import { signOutAction } from "./actions";
 import { PanelContent } from "./panel-content";
 import { loadPlatformOperations } from "./platform-operations";
+import { loadBusinessProfileDraft } from "./business-profile";
 
 export default async function PanelPage() {
   const result = await loadAdministrativeAccess();
@@ -16,6 +18,10 @@ export default async function PanelPage() {
     result.status === "ready" &&
     result.data.access.type === "platform_superadmin"
       ? await loadPlatformOperations()
+      : null;
+  const businessProfile =
+    result.status === "ready" && result.data.access.type === "tenant_admin"
+      ? await loadBusinessProfileDraft((await headers()).get("host") ?? "")
       : null;
 
   return (
@@ -35,6 +41,9 @@ export default async function PanelPage() {
             platformOperations?.status === "ready"
               ? platformOperations.data
               : null
+          }
+          businessProfile={
+            businessProfile?.status === "ready" ? businessProfile.data : null
           }
         />
       ) : (
