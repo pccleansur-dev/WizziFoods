@@ -11,16 +11,25 @@ export function createEmptyCatalogDraft(): CatalogDraft {
 
 export function addCatalogCategory(
   draft: CatalogDraft,
-  createId: IdFactory = () => crypto.randomUUID()
+  createId: IdFactory = () => crypto.randomUUID(),
+  languages: string[] = ["es"]
 ): CatalogDraft {
+  const content = synchronizeContent(
+    [
+      {
+        description: "",
+        language: languages[0] ?? "es",
+        title: "Nueva categoría"
+      }
+    ],
+    languages
+  );
   return {
     ...draft,
     categories: [
       ...draft.categories,
       {
-        content: [
-          { description: "", language: "es", title: "Nueva categoría" }
-        ],
+        content,
         id: createId(),
         position: draft.categories.length
       }
@@ -48,7 +57,8 @@ export function addCatalogSector(
 
 export function addCatalogProduct(
   draft: CatalogDraft,
-  createId: IdFactory = () => crypto.randomUUID()
+  createId: IdFactory = () => crypto.randomUUID(),
+  languages: string[] = ["es"]
 ): CatalogDraft {
   const category = draft.categories[0];
   const sector = draft.sectors[0];
@@ -62,7 +72,16 @@ export function addCatalogProduct(
       ...draft.products,
       {
         categoryId: category.id,
-        content: [{ description: "", language: "es", title: "Nuevo plato" }],
+        content: synchronizeContent(
+          [
+            {
+              description: "",
+              language: languages[0] ?? "es",
+              title: "Nuevo plato"
+            }
+          ],
+          languages
+        ),
         id: createId(),
         imageAssetId: null,
         position,
@@ -75,14 +94,12 @@ export function addCatalogProduct(
 }
 
 function localizedFallback(
-  content: LocalizedCatalogContent[],
   language: string
 ): LocalizedCatalogContent {
-  const fallback = content[0] ?? { description: "", title: "" };
   return {
-    description: fallback.description,
+    description: "",
     language,
-    title: fallback.title
+    title: ""
   };
 }
 
@@ -97,7 +114,7 @@ function synchronizeContent(
     ...content,
     ...configured
       .filter((language) => !content.some((item) => item.language === language))
-      .map((language) => localizedFallback(content, language))
+      .map((language) => localizedFallback(language))
   ];
 }
 

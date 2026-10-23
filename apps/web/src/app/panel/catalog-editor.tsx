@@ -132,7 +132,11 @@ export function CatalogEditor({
           <div className="catalog-toolbar" aria-label="Acciones de la carta">
             <button
               className="button button--secondary"
-              onClick={() => change(addCatalogCategory)}
+              onClick={() =>
+                change((current) =>
+                  addCatalogCategory(current, undefined, languages)
+                )
+              }
               type="button"
             >
               + Agregar categoría
@@ -147,7 +151,11 @@ export function CatalogEditor({
             <button
               className="button button--secondary"
               disabled={!draft.categories.length || !draft.sectors.length}
-              onClick={() => change(addCatalogProduct)}
+              onClick={() =>
+                change((current) =>
+                  addCatalogProduct(current, undefined, languages)
+                )
+              }
               type="button"
             >
               + Agregar producto

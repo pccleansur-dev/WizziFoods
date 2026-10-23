@@ -83,7 +83,7 @@ describe("catalog editor state", () => {
         {
           content: [
             { description: "", language: "es", title: "Nueva variante" },
-            { description: "", language: "en", title: "Nueva variante" }
+            { description: "", language: "en", title: "" }
           ],
           id: ids[3],
           position: 0,
@@ -98,7 +98,7 @@ describe("catalog editor state", () => {
     });
   });
 
-  it("adds configured languages with an explicit fallback and edits one locale", () => {
+  it("adds configured languages as reviewable drafts and edits one locale", () => {
     let cursor = 0;
     const nextId = () => ids[cursor++]!;
     let draft = addCatalogCategory(createEmptyCatalogDraft(), nextId);
@@ -114,11 +114,35 @@ describe("catalog editor state", () => {
       "Milanese"
     );
 
-    expect(draft.categories[0]?.content).toHaveLength(2);
+    expect(draft.categories[0]?.content).toEqual([
+      { description: "", language: "es", title: "Nueva categoría" },
+      { description: "", language: "en", title: "" }
+    ]);
     expect(draft.products[0]?.content).toEqual([
       { description: "", language: "es", title: "Nuevo plato" },
       { description: "", language: "en", title: "Milanese" }
     ]);
+  });
+
+  it("creates categories and products with every configured language editable", () => {
+    let cursor = 0;
+    const nextId = () => ids[cursor++]!;
+    let draft = addCatalogCategory(
+      createEmptyCatalogDraft(),
+      nextId,
+      ["es", "en"]
+    );
+    draft = addCatalogSector(draft, nextId);
+    draft = addCatalogProduct(draft, nextId, ["es", "en"]);
+
+    expect(draft.categories[0]?.content.map(({ language }) => language)).toEqual(
+      ["es", "en"]
+    );
+    expect(draft.products[0]?.content.map(({ language }) => language)).toEqual([
+      "es",
+      "en"
+    ]);
+    expect(draft.products[0]?.content[1]?.title).toBe("");
   });
 
   it.each([
