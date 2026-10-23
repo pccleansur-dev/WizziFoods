@@ -1,0 +1,83 @@
+import type { CatalogDraft } from "@platform/contracts";
+
+function price(cents: number) {
+  return new Intl.NumberFormat("es-AR", {
+    currency: "ARS",
+    maximumFractionDigits: 2,
+    style: "currency"
+  }).format(cents / 100);
+}
+
+export function CatalogPreview({
+  draft,
+  publishedRevision
+}: {
+  draft: CatalogDraft;
+  publishedRevision: number | null;
+}) {
+  return (
+    <aside className="catalog-preview" aria-label="Vista previa de la carta">
+      <div className="catalog-preview__heading">
+        <div>
+          <p className="eyebrow">Vista previa de la carta</p>
+          <h3>Así la verá el cliente</h3>
+        </div>
+        <span className="catalog-status catalog-status--draft">Borrador</span>
+      </div>
+      {draft.categories.length === 0 ? (
+        <div className="catalog-empty-preview">
+          <span aria-hidden="true">◌</span>
+          <strong>La carta todavía está vacía</strong>
+          <p>Agregá una categoría, un sector y el primer producto.</p>
+        </div>
+      ) : (
+        <div className="catalog-menu-preview">
+          {draft.categories.map((category) => {
+            const categoryContent = category.content[0];
+            const products = draft.products.filter(
+              ({ categoryId }) => categoryId === category.id
+            );
+            return (
+              <section key={category.id} className="catalog-menu-section">
+                <div>
+                  <h4>{categoryContent?.title || "Categoría sin nombre"}</h4>
+                  {categoryContent?.description ? (
+                    <p>{categoryContent.description}</p>
+                  ) : null}
+                </div>
+                {products.length === 0 ? (
+                  <p className="catalog-menu-section__empty">
+                    Sin productos todavía
+                  </p>
+                ) : (
+                  products.map((product) => {
+                    const content = product.content[0];
+                    return (
+                      <article key={product.id} className="catalog-menu-item">
+                        <div>
+                          <h5>{content?.title || "Producto sin nombre"}</h5>
+                          {content?.description ? (
+                            <p>{content.description}</p>
+                          ) : null}
+                        </div>
+                        <strong>{price(product.priceCents)}</strong>
+                      </article>
+                    );
+                  })
+                )}
+              </section>
+            );
+          })}
+        </div>
+      )}
+      <div className="catalog-preview__published">
+        <span>Versión visible ahora</span>
+        <strong>
+          {publishedRevision === null
+            ? "Todavía no publicada"
+            : `Publicada · versión ${publishedRevision}`}
+        </strong>
+      </div>
+    </aside>
+  );
+}

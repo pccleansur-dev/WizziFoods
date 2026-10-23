@@ -3,7 +3,10 @@
 import { randomUUID } from "node:crypto";
 
 import { readWebConfig } from "@platform/config";
-import { parseBusinessProfileDraft } from "@platform/contracts";
+import {
+  parseBusinessProfileDraft,
+  parseCatalogDraft
+} from "@platform/contracts";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -15,9 +18,165 @@ import {
 } from "./tenant-provisioning-state";
 import type { TenantSuspensionActionState } from "./tenant-suspension-state";
 import type { BusinessProfileActionState } from "./business-profile-state";
+import type { CatalogActionState } from "./catalog-action-state";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+async function tenantMutationContext() {
+  const supabase = await createAuthServerClient();
+  const claims = await supabase.auth.getClaims();
+  const session = await supabase.auth.getSession();
+  const accessToken = session.data.session?.access_token;
+  const host = (await headers()).get("host");
+  if (
+    claims.error ||
+    claims.data?.claims.aal !== "aal2" ||
+    session.error ||
+    !accessToken ||
+    !host
+  ) {
+    return null;
+  }
+  return { accessToken, host };
+}
+
+function catalogError(
+  previousState: CatalogActionState,
+  message: string
+): CatalogActionState {
+  return { ...previousState, message, status: "error" };
+}
+
+export async function saveCatalogAction(
+  previousState: CatalogActionState,
+  formData: FormData
+): Promise<CatalogActionState> {
+  const serialized = formData.get("catalog");
+  if (typeof serialized !== "string" || serialized.length > 1_000_000) {
+    return catalogError(previousState, "La carta enviada no es válida.");
+  }
+  let draft;
+  try {
+    draft = parseCatalogDraft(JSON.parse(serialized));
+  } catch {
+    draft = null;
+  }
+  if (!draft) {
+    return catalogError(
+      previousState,
+      "Revisá categorías, sectores, productos y precios."
+    );
+  }
+  const auth = await tenantMutationContext();
+  if (!auth) {
+    return catalogError(previousState, "La sesión venció. Volvé a ingresar.");
+  }
+  try {
+    const config = readWebConfig(process.env);
+    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog/draft`, {
+      body: JSON.stringify(draft),
+      cache: "no-store",
+      headers: {
+        authorization: `Bearer ${auth.accessToken}`,
+        "content-type": "application/json",
+        host: auth.host
+      },
+      method: "PUT"
+    });
+    if (!response.ok) {
+      return catalogError(
+        previousState,
+        response.status === 409
+          ? "La carta cambió en otra sesión. Recargá antes de continuar."
+          : "No pudimos guardar la carta. Intentá nuevamente."
+      );
+    }
+    const body = (await response.json()) as {
+      data?: { revision?: unknown };
+    };
+    if (!Number.isSafeInteger(body.data?.revision)) {
+      return catalogError(previousState, "No pudimos confirmar el guardado.");
+    }
+    revalidatePath("/panel");
+    return {
+      draftRevision: body.data!.revision as number,
+      message: "Borrador guardado. La carta publicada no cambió.",
+      publishedRevision: previousState.publishedRevision,
+      status: "success"
+    };
+  } catch {
+    return catalogError(
+      previousState,
+      "No pudimos comunicarnos con la plataforma. Intentá nuevamente."
+    );
+  }
+}
+
+export async function publishCatalogAction(
+  previousState: CatalogActionState,
+  formData: FormData
+): Promise<CatalogActionState> {
+  const expectedDraftRevision = Number(formData.get("draftRevision"));
+  if (
+    !Number.isSafeInteger(expectedDraftRevision) ||
+    expectedDraftRevision < 1
+  ) {
+    return catalogError(
+      previousState,
+      "Guardá el borrador antes de publicarlo."
+    );
+  }
+  const auth = await tenantMutationContext();
+  if (!auth) {
+    return catalogError(previousState, "La sesión venció. Volvé a ingresar.");
+  }
+  try {
+    const config = readWebConfig(process.env);
+    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog/publish`, {
+      body: JSON.stringify({ expectedDraftRevision }),
+      cache: "no-store",
+      headers: {
+        authorization: `Bearer ${auth.accessToken}`,
+        "content-type": "application/json",
+        host: auth.host
+      },
+      method: "POST"
+    });
+    if (!response.ok) {
+      return catalogError(
+        previousState,
+        response.status === 409
+          ? "El borrador cambió. Guardalo otra vez antes de publicar."
+          : "No pudimos publicar la carta. Intentá nuevamente."
+      );
+    }
+    const body = (await response.json()) as {
+      data?: { revision?: unknown; sourceDraftRevision?: unknown };
+    };
+    if (
+      !Number.isSafeInteger(body.data?.revision) ||
+      body.data?.sourceDraftRevision !== expectedDraftRevision
+    ) {
+      return catalogError(
+        previousState,
+        "No pudimos confirmar la publicación."
+      );
+    }
+    revalidatePath("/panel");
+    return {
+      draftRevision: expectedDraftRevision,
+      message: "Carta publicada. Los clientes ya ven esta versión.",
+      publishedRevision: body.data!.revision as number,
+      status: "success"
+    };
+  } catch {
+    return catalogError(
+      previousState,
+      "No pudimos comunicarnos con la plataforma. Intentá nuevamente."
+    );
+  }
+}
 
 export async function saveBusinessProfileAction(
   previousState: BusinessProfileActionState,

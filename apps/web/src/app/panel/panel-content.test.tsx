@@ -41,6 +41,7 @@ describe("PanelContent", () => {
             }
           ]
         }}
+        catalog={null}
       />
     );
 
@@ -87,6 +88,9 @@ describe("PanelContent", () => {
     expect(markup).toContain("Vista previa");
     expect(markup).toContain("no modifica lo publicado");
     expect(markup).toContain("Gestionar carta");
+    expect(markup).toContain("Carta y productos");
+    expect(markup).toContain("Vista previa de la carta");
+    expect(markup).toContain("Agregar categoría");
     expect(markup).not.toContain("Crear y entregar negocios");
   });
 });
