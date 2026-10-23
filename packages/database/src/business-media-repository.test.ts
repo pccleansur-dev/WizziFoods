@@ -18,6 +18,26 @@ const validInput = {
 };
 
 describe("business media repository", () => {
+  it("rejects malformed worker claims before querying", async () => {
+    const repository = createBusinessMediaRepository(unreachableClient);
+    await expect(
+      repository.claim({
+        assetId: "asset-from-queue",
+        scope: validInput.scope
+      })
+    ).rejects.toThrow("assetId must be a UUID");
+  });
+
+  it("rejects unsafe queue controls before querying", async () => {
+    const repository = createBusinessMediaRepository(unreachableClient);
+    await expect(repository.readJob(0)).rejects.toThrow(
+      "visibility timeout must be between 1 and 3600 seconds"
+    );
+    await expect(repository.ackJob("0")).rejects.toThrow(
+      "messageId must be a positive integer"
+    );
+  });
+
   it("rejects malformed queue identifiers before querying", async () => {
     const repository = createBusinessMediaRepository(unreachableClient);
     await expect(

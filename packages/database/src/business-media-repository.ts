@@ -59,14 +59,34 @@ export type QueueBusinessMediaInput = {
 
 export type BusinessMediaProcessingRecord = {
   id: string;
-  processingMessageId: number;
+  processingMessageId: string;
   status: "deleted" | "failed" | "ready" | "reserved";
 };
 
+export type ClaimBusinessMediaInput = {
+  assetId: string;
+  scope: TenantScope;
+};
+
+export type ClaimedBusinessMedia = {
+  contentType: "image/jpeg" | "image/png" | "image/webp";
+  kind: BusinessMediaKind;
+  objectPath: string;
+};
+
+export type QueuedBusinessMediaJob = {
+  envelope: unknown;
+  expectedScope: TenantScope;
+  messageId: string;
+};
+
 export interface BusinessMediaRepository {
+  ackJob(messageId: string): Promise<void>;
+  claim(input: ClaimBusinessMediaInput): Promise<ClaimedBusinessMedia>;
   complete(input: CompleteBusinessMediaInput): Promise<CompletedBusinessMedia>;
   fail(input: FailBusinessMediaInput): Promise<void>;
   queue(input: QueueBusinessMediaInput): Promise<BusinessMediaProcessingRecord>;
+  readJob(visibilityTimeoutSeconds: number): Promise<QueuedBusinessMediaJob | null>;
   reserve(input: ReserveBusinessMediaInput): Promise<ReservedBusinessMedia>;
 }
 
@@ -97,6 +117,19 @@ type BusinessMediaProcessingRow = {
   status: BusinessMediaProcessingRecord["status"];
 };
 
+type ClaimedBusinessMediaRow = {
+  content_type: ClaimedBusinessMedia["contentType"];
+  kind: BusinessMediaKind;
+  object_path: string;
+};
+
+type QueuedBusinessMediaJobRow = {
+  envelope: unknown;
+  expected_location_id: string;
+  expected_tenant_id: string;
+  message_id: number | string;
+};
+
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
@@ -104,6 +137,40 @@ export function createBusinessMediaRepository(
   client: Sql
 ): BusinessMediaRepository {
   return {
+    async ackJob(messageId) {
+      if (!/^[1-9][0-9]*$/u.test(messageId)) {
+        throw new Error("messageId must be a positive integer");
+      }
+      const [row] = await client<{ acknowledged: boolean }[]>`
+        select private.ack_business_media_job(
+          ${messageId}::bigint
+        ) as acknowledged
+      `;
+      if (!row?.acknowledged) {
+        throw new Error("Business media job acknowledgement failed");
+      }
+    },
+    async claim(input) {
+      const scope = parseTenantScope(input.scope);
+      if (!scope) throw new Error("tenant scope must be canonical");
+      if (!uuidPattern.test(input.assetId)) {
+        throw new Error("assetId must be a UUID");
+      }
+      const [row] = await client<ClaimedBusinessMediaRow[]>`
+        select *
+        from private.claim_business_media_asset(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.assetId}::uuid
+        )
+      `;
+      if (!row) throw new Error("Business media claim returned no record");
+      return {
+        contentType: row.content_type,
+        kind: row.kind,
+        objectPath: row.object_path
+      };
+    },
     async complete(input) {
       const scope = parseTenantScope(input.scope);
       if (!scope) throw new Error("tenant scope must be canonical");
@@ -186,8 +253,38 @@ export function createBusinessMediaRepository(
       }
       return {
         id: row.id,
-        processingMessageId: Number(row.processing_message_id),
+        processingMessageId: String(row.processing_message_id),
         status: row.status
+      };
+    },
+    async readJob(visibilityTimeoutSeconds) {
+      if (
+        !Number.isSafeInteger(visibilityTimeoutSeconds) ||
+        visibilityTimeoutSeconds < 1 ||
+        visibilityTimeoutSeconds > 3600
+      ) {
+        throw new Error(
+          "visibility timeout must be between 1 and 3600 seconds"
+        );
+      }
+      const [row] = await client<QueuedBusinessMediaJobRow[]>`
+        select *
+        from private.read_business_media_job(
+          ${visibilityTimeoutSeconds}::integer
+        )
+      `;
+      if (!row) return null;
+      const expectedScope = parseTenantScope({
+        locationId: row.expected_location_id,
+        tenantId: row.expected_tenant_id
+      });
+      if (!expectedScope) {
+        throw new Error("Queued business media scope is not canonical");
+      }
+      return {
+        envelope: row.envelope,
+        expectedScope,
+        messageId: String(row.message_id)
       };
     },
     async reserve(input) {

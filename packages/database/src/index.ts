@@ -1,11 +1,14 @@
 export {
   type BusinessMediaProcessingRecord,
   type BusinessMediaRepository,
+  type ClaimBusinessMediaInput,
+  type ClaimedBusinessMedia,
   type CompleteBusinessMediaInput,
   type CompletedBusinessMedia,
   createBusinessMediaRepository,
   type FailBusinessMediaInput,
   type QueueBusinessMediaInput,
+  type QueuedBusinessMediaJob,
   type ReservedBusinessMedia,
   type ReserveBusinessMediaInput
 } from "./business-media-repository.js";
