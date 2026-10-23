@@ -21,6 +21,17 @@ export {
   type SaveBusinessProfileDraftInput
 } from "./business-profile-repository.js";
 export {
+  type CatalogAvailability,
+  type CatalogDraftRecord,
+  type CatalogPublicationRecord,
+  type CatalogRepository,
+  createCatalogRepository,
+  type PublishedCatalogRecord,
+  type PublishCatalogInput,
+  type SaveCatalogDraftInput,
+  type SetCatalogAvailabilityInput
+} from "./catalog-repository.js";
+export {
   type AppendAuditEventInput,
   type AuditActorType,
   type AuditRepository
