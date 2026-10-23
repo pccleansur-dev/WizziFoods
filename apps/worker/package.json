@@ -14,7 +14,8 @@
   "dependencies": {
     "@platform/config": "workspace:*",
     "@platform/contracts": "workspace:*",
-    "@platform/observability": "workspace:*"
+    "@platform/observability": "workspace:*",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "tsx": "4.23.15"
