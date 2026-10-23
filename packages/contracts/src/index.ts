@@ -8,6 +8,12 @@ export {
   type BusinessMediaUploadRejection
 } from "./business-media.js";
 export {
+  parseBusinessProfileDraft,
+  type BusinessProfileDraft,
+  type BusinessProfileHeadingStyle,
+  type BusinessProfileLayout
+} from "./business-profile.js";
+export {
   createServiceStatus,
   type ServiceName,
   type ServiceStatus
