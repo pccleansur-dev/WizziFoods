@@ -18,6 +18,17 @@ const validInput = {
 };
 
 describe("business media repository", () => {
+  it("rejects malformed queue identifiers before querying", async () => {
+    const repository = createBusinessMediaRepository(unreachableClient);
+    await expect(
+      repository.queue({
+        assetId: "asset-from-client",
+        requesterId: validInput.requesterId,
+        scope: validInput.scope
+      })
+    ).rejects.toThrow("assetId must be a UUID");
+  });
+
   it("rejects malformed completion identifiers before querying", async () => {
     const repository = createBusinessMediaRepository(unreachableClient);
     await expect(

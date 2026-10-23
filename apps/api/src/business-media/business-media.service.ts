@@ -15,6 +15,18 @@ export class BusinessMediaService {
     private readonly storage: BusinessMediaStorageGateway
   ) {}
 
+  async queue(context: TenantAdminRequestContext, assetId: string) {
+    const result = await this.repository.queue({
+      assetId,
+      requesterId: context.identity.userId,
+      scope: context.scope
+    });
+    return {
+      assetId: result.id,
+      status: result.status === "reserved" ? "processing" : result.status
+    };
+  }
+
   async reserve(
     context: TenantAdminRequestContext,
     request: BusinessMediaReservationRequest

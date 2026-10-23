@@ -1,4 +1,7 @@
-import type { BusinessMediaRepository } from "@platform/database";
+import type {
+  BusinessMediaRepository,
+  QueueBusinessMediaInput
+} from "@platform/database";
 import { describe, expect, it } from "vitest";
 
 import type { TenantAdminRequestContext } from "../tenants/tenant-admin-scope.service.js";
@@ -14,6 +17,35 @@ const context = {
 } as TenantAdminRequestContext;
 
 describe("BusinessMediaService", () => {
+  it("queues an uploaded asset using only the authenticated tenant scope", async () => {
+    const received: unknown[] = [];
+    const repository = {
+      queue: async (input: QueueBusinessMediaInput) => {
+        received.push(input);
+        return {
+          id: "e6000000-0000-4000-8000-000000000006",
+          processingMessageId: 42,
+          status: "reserved" as const
+        };
+      }
+    } as unknown as BusinessMediaRepository;
+    const service = new BusinessMediaService(repository, {} as never);
+
+    await expect(
+      service.queue(context, "e6000000-0000-4000-8000-000000000006")
+    ).resolves.toEqual({
+      assetId: "e6000000-0000-4000-8000-000000000006",
+      status: "processing"
+    });
+    expect(received).toEqual([
+      {
+        assetId: "e6000000-0000-4000-8000-000000000006",
+        requesterId: context.identity.userId,
+        scope: context.scope
+      }
+    ]);
+  });
+
   it("reserves a scoped path before signing its upload URL", async () => {
     const received: unknown[] = [];
     const repository = {

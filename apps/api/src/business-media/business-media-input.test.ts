@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBusinessMediaReservationRequest } from "./business-media-input.js";
+import {
+  parseBusinessMediaAssetId,
+  parseBusinessMediaReservationRequest
+} from "./business-media-input.js";
 
 describe("business media reservation input", () => {
+  it("accepts only canonical asset identifiers", () => {
+    expect(
+      parseBusinessMediaAssetId("e6000000-0000-4000-8000-000000000006")
+    ).toBe("e6000000-0000-4000-8000-000000000006");
+    expect(() => parseBusinessMediaAssetId("asset-from-client")).toThrow(
+      "Identificador de archivo inválido."
+    );
+  });
+
   it("accepts a supported image source", () => {
     expect(
       parseBusinessMediaReservationRequest({

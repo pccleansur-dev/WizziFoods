@@ -9,6 +9,16 @@ export type BusinessMediaReservationRequest = {
   kind: BusinessMediaKind;
 };
 
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+export function parseBusinessMediaAssetId(input: unknown): string {
+  if (typeof input !== "string" || !uuidPattern.test(input)) {
+    throw new Error("Identificador de archivo inválido.");
+  }
+  return input;
+}
+
 export function parseBusinessMediaReservationRequest(
   input: unknown
 ): BusinessMediaReservationRequest {

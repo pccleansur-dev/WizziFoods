@@ -51,9 +51,22 @@ export type FailBusinessMediaInput = {
   scope: TenantScope;
 };
 
+export type QueueBusinessMediaInput = {
+  assetId: string;
+  requesterId: string;
+  scope: TenantScope;
+};
+
+export type BusinessMediaProcessingRecord = {
+  id: string;
+  processingMessageId: number;
+  status: "deleted" | "failed" | "ready" | "reserved";
+};
+
 export interface BusinessMediaRepository {
   complete(input: CompleteBusinessMediaInput): Promise<CompletedBusinessMedia>;
   fail(input: FailBusinessMediaInput): Promise<void>;
+  queue(input: QueueBusinessMediaInput): Promise<BusinessMediaProcessingRecord>;
   reserve(input: ReserveBusinessMediaInput): Promise<ReservedBusinessMedia>;
 }
 
@@ -76,6 +89,12 @@ type CompletedBusinessMediaRow = Omit<
   status: "ready";
   stored_size_bytes: string | number;
   width: number;
+};
+
+type BusinessMediaProcessingRow = {
+  id: string;
+  processing_message_id: number | string;
+  status: BusinessMediaProcessingRecord["status"];
 };
 
 const uuidPattern =
@@ -143,6 +162,33 @@ export function createBusinessMediaRepository(
           ${input.assetId}::uuid
         )
       `;
+    },
+    async queue(input) {
+      const scope = parseTenantScope(input.scope);
+      if (!scope) throw new Error("tenant scope must be canonical");
+      if (!uuidPattern.test(input.assetId)) {
+        throw new Error("assetId must be a UUID");
+      }
+      if (!uuidPattern.test(input.requesterId)) {
+        throw new Error("requesterId must be a UUID");
+      }
+      const [row] = await client<BusinessMediaProcessingRow[]>`
+        select *
+        from private.enqueue_business_media_processing(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.requesterId}::uuid,
+          ${input.assetId}::uuid
+        )
+      `;
+      if (!row?.processing_message_id) {
+        throw new Error("Business media queueing returned no record");
+      }
+      return {
+        id: row.id,
+        processingMessageId: Number(row.processing_message_id),
+        status: row.status
+      };
     },
     async reserve(input) {
       const scope = parseTenantScope(input.scope);
