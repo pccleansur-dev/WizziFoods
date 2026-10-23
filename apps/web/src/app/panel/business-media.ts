@@ -28,7 +28,8 @@ function record(value: unknown): Record<string, unknown> | null {
 
 function dataRecord(value: unknown): Record<string, unknown> {
   const root = record(value);
-  const data = root && Object.keys(root).length === 1 ? record(root.data) : null;
+  const data =
+    root && Object.keys(root).length === 1 ? record(root.data) : null;
   if (!data) throw new Error("Respuesta de archivo inválida.");
   return data;
 }

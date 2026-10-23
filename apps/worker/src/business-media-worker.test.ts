@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { BusinessMediaJobRetryError, runBusinessMediaIteration } from "./business-media-worker.js";
+import {
+  BusinessMediaJobRetryError,
+  runBusinessMediaIteration
+} from "./business-media-worker.js";
 
 const scope = {
   locationId: "a5000000-0000-4000-8000-000000000005",
@@ -13,7 +16,9 @@ const envelope = {
   scope
 };
 
-function createRepository(assetStatus: "failed" | "ready" | "reserved" = "reserved") {
+function createRepository(
+  assetStatus: "failed" | "ready" | "reserved" = "reserved"
+) {
   return {
     ackJob: vi.fn().mockResolvedValue(undefined),
     claim: vi.fn().mockResolvedValue({
@@ -23,6 +28,7 @@ function createRepository(assetStatus: "failed" | "ready" | "reserved" = "reserv
     }),
     complete: vi.fn().mockResolvedValue({}),
     fail: vi.fn().mockResolvedValue(undefined),
+    getStatus: vi.fn(),
     queue: vi.fn(),
     readJob: vi.fn().mockResolvedValue({
       assetStatus,

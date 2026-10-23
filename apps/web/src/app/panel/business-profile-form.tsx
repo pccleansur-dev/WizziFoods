@@ -135,7 +135,10 @@ export function BusinessProfileForm({
             Inglés
           </label>
         </fieldset>
-        <section className="profile-media" aria-labelledby="profile-media-title">
+        <section
+          className="profile-media"
+          aria-labelledby="profile-media-title"
+        >
           <div>
             <h3 id="profile-media-title">Imágenes del negocio</h3>
             <p>

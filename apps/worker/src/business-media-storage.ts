@@ -26,24 +26,20 @@ export function createBusinessMediaStorage(
 ): BusinessMediaJobStorage {
   return {
     async download(objectPath) {
-      const result = await storage
-        .from("business-media")
-        .download(objectPath);
+      const result = await storage.from("business-media").download(objectPath);
       if (result.error || !result.data) {
         throw new Error("Business media download failed");
       }
       return new Uint8Array(await result.data.arrayBuffer());
     },
     async replace(objectPath, bytes, contentType) {
-      const result = await storage.from("business-media").upload(
-        objectPath,
-        bytes,
-        {
+      const result = await storage
+        .from("business-media")
+        .upload(objectPath, bytes, {
           cacheControl: "31536000",
           contentType,
           upsert: true
-        }
-      );
+        });
       if (result.error || !result.data) {
         throw new Error("Business media replacement failed");
       }

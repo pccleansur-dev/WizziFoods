@@ -45,7 +45,10 @@ const outputBounds: Record<
   reference: { height: 1600, width: 1600 }
 };
 
-function encode(pipeline: Sharp, contentType: SupportedBusinessMediaType): Sharp {
+function encode(
+  pipeline: Sharp,
+  contentType: SupportedBusinessMediaType
+): Sharp {
   if (contentType === "image/jpeg") {
     return pipeline.jpeg({ mozjpeg: true, quality: 82 });
   }

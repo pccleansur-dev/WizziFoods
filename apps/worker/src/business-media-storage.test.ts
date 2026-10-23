@@ -11,9 +11,9 @@ describe("business media storage", () => {
     const from = vi.fn(() => ({ download, upload: vi.fn() }));
     const storage = createBusinessMediaStorage({ from });
 
-    await expect(storage.download("tenant/location/logo/id.webp")).resolves.toEqual(
-      new Uint8Array([1, 2, 3])
-    );
+    await expect(
+      storage.download("tenant/location/logo/id.webp")
+    ).resolves.toEqual(new Uint8Array([1, 2, 3]));
     expect(from).toHaveBeenCalledWith("business-media");
     expect(download).toHaveBeenCalledWith("tenant/location/logo/id.webp");
   });
@@ -24,22 +24,14 @@ describe("business media storage", () => {
     const storage = createBusinessMediaStorage({ from });
     const bytes = new Uint8Array([4, 5, 6]);
 
-    await storage.replace(
-      "tenant/location/logo/id.webp",
-      bytes,
-      "image/webp"
-    );
+    await storage.replace("tenant/location/logo/id.webp", bytes, "image/webp");
 
     expect(from).toHaveBeenCalledWith("business-media");
-    expect(upload).toHaveBeenCalledWith(
-      "tenant/location/logo/id.webp",
-      bytes,
-      {
-        cacheControl: "31536000",
-        contentType: "image/webp",
-        upsert: true
-      }
-    );
+    expect(upload).toHaveBeenCalledWith("tenant/location/logo/id.webp", bytes, {
+      cacheControl: "31536000",
+      contentType: "image/webp",
+      upsert: true
+    });
   });
 
   it("returns stable errors without leaking provider detail", async () => {

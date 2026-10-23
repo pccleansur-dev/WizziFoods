@@ -64,5 +64,7 @@ export async function uploadBusinessMedia(
       throw new Error("La imagen no pudo validarse.");
     }
   }
-  throw new Error("La imagen sigue procesándose. Volvé a intentar en un momento.");
+  throw new Error(
+    "La imagen sigue procesándose. Volvé a intentar en un momento."
+  );
 }
