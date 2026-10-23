@@ -26,6 +26,12 @@ export class CatalogService {
     });
   }
 
+  getAdminCurrent(
+    context: TenantAdminRequestContext
+  ): Promise<PublishedCatalogRecord | null> {
+    return this.catalogRepository.getCurrent(context.scope);
+  }
+
   getDraft(
     context: TenantAdminRequestContext
   ): Promise<CatalogDraftRecord | null> {

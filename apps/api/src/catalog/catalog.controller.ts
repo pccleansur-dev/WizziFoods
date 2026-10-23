@@ -63,6 +63,13 @@ export class CatalogAdminController {
     @Inject(CatalogService) private readonly service: CatalogService
   ) {}
 
+  @Get("current")
+  async getCurrent(@Req() request: AdminCatalogRequest) {
+    return {
+      data: await this.service.getAdminCurrent(request.tenantAdminContext)
+    };
+  }
+
   @Get("draft")
   async getDraft(@Req() request: AdminCatalogRequest) {
     return { data: await this.service.getDraft(request.tenantAdminContext) };

@@ -26,6 +26,21 @@ describe("catalog controllers", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it("reads the current publication inside the authenticated tenant scope", async () => {
+    const current = { revision: 4 };
+    const context = { scope: { tenantId: crypto.randomUUID() } };
+    const controller = new CatalogAdminController({
+      getAdminCurrent: (received: unknown) => {
+        expect(received).toBe(context);
+        return Promise.resolve(current);
+      }
+    } as never);
+
+    await expect(
+      controller.getCurrent({ tenantAdminContext: context } as never)
+    ).resolves.toEqual({ data: current });
+  });
+
   it("maps a malformed availability body to a bad request", async () => {
     const controller = new CatalogAdminController({} as never);
 
