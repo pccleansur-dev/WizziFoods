@@ -40,6 +40,7 @@ create table private.business_media_assets (
   object_path text not null unique,
   created_by uuid not null,
   created_at timestamptz not null default now(),
+  reservation_expires_at timestamptz not null default (now() + interval '15 minutes'),
   updated_at timestamptz not null default now(),
   foreign key (tenant_id, location_id)
     references public.locations(tenant_id, id)
@@ -47,6 +48,9 @@ create table private.business_media_assets (
   foreign key (tenant_id, created_by)
     references public.tenant_memberships(tenant_id, user_id)
     on delete restrict,
+  check (
+    reservation_expires_at > created_at
+  ),
   check (
     object_path = 'tenants/' || tenant_id::text
       || '/locations/' || location_id::text
@@ -137,7 +141,13 @@ begin
   into current_usage
   from private.business_media_assets asset
   where asset.tenant_id = target_tenant_id
-    and asset.status in ('reserved', 'ready');
+    and (
+      asset.status = 'ready'
+      or (
+        asset.status = 'reserved'
+        and asset.reservation_expires_at > statement_timestamp()
+      )
+    );
 
   if current_usage + target_source_size_bytes > 1073741824 then
     raise exception 'business media tenant quota exceeded'

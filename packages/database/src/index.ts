@@ -1,4 +1,10 @@
 export {
+  type BusinessMediaRepository,
+  createBusinessMediaRepository,
+  type ReservedBusinessMedia,
+  type ReserveBusinessMediaInput
+} from "./business-media-repository.js";
+export {
   type BusinessProfileDraftRecord,
   type BusinessProfileRepository,
   createBusinessProfileRepository,

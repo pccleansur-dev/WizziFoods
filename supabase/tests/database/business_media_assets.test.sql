@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(11);
+select plan(12);
 
 insert into auth.users (id)
 values
@@ -69,6 +69,10 @@ select ok(
     || '[0-9a-f-]{36}/business-profile/logo/[0-9a-f-]{36}[.]jpg$'
   ),
   'the server derives an opaque tenant-scoped object path'
+);
+select ok(
+  (select reservation_expires_at > created_at from reserved_media),
+  'an abandoned reservation expires instead of consuming quota forever'
 );
 select throws_ok(
   $$
