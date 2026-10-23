@@ -90,4 +90,17 @@ describe("business media policy", () => {
       })
     ).toThrow("extension must be supported");
   });
+
+  it("supports a tenant-scoped product image without accepting a filename", () => {
+    expect(
+      businessMediaObjectPath({
+        assetId: "93000000-0000-4000-8000-000000000093",
+        extension: "jpg",
+        kind: "product",
+        scope
+      })
+    ).toBe(
+      `tenants/${scope.tenantId}/locations/${scope.locationId}/business-profile/product/93000000-0000-4000-8000-000000000093.jpg`
+    );
+  });
 });

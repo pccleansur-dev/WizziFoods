@@ -9,7 +9,7 @@ export const BUSINESS_MEDIA_POLICY = {
   supportedContentTypes: ["image/jpeg", "image/png", "image/webp"]
 } as const;
 
-export type BusinessMediaKind = "cover" | "logo" | "reference";
+export type BusinessMediaKind = "cover" | "logo" | "product" | "reference";
 export type BusinessMediaExtension = "jpeg" | "jpg" | "png" | "webp";
 export type BusinessMediaUploadRejection =
   | "file_too_large"
@@ -65,7 +65,11 @@ export function businessMediaObjectPath(input: {
   if (!(["jpeg", "jpg", "png", "webp"] as string[]).includes(input.extension)) {
     throw new Error("extension must be supported");
   }
-  if (!(["cover", "logo", "reference"] as string[]).includes(input.kind)) {
+  if (
+    !(["cover", "logo", "product", "reference"] as string[]).includes(
+      input.kind
+    )
+  ) {
     throw new Error("kind must be supported");
   }
   return `${tenantStoragePrefix(input.scope)}/business-profile/${input.kind}/${input.assetId}.${input.extension}`;

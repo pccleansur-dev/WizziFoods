@@ -33,6 +33,7 @@ export function parseBusinessMediaReservationRequest(
     typeof value.contentType !== "string" ||
     (value.kind !== "cover" &&
       value.kind !== "logo" &&
+      value.kind !== "product" &&
       value.kind !== "reference")
   ) {
     throw new Error("Datos del archivo inválidos.");

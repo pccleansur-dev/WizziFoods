@@ -29,6 +29,20 @@ describe("business media reservation input", () => {
     });
   });
 
+  it("accepts product images under the same upload policy", () => {
+    expect(
+      parseBusinessMediaReservationRequest({
+        byteLength: 4096,
+        contentType: "image/webp",
+        kind: "product"
+      })
+    ).toEqual({
+      byteLength: 4096,
+      contentType: "image/webp",
+      kind: "product"
+    });
+  });
+
   it.each([
     null,
     {},
