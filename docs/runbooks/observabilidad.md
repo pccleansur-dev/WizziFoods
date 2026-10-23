@@ -56,6 +56,25 @@ logs JSON. Toda entrada propia incluye además `service`, `environment`,
 4. Buscar `trace_completed` por el `traceId` asociado.
 5. En el worker, verificar la presencia periódica de `worker_heartbeat`.
 
+## Procesamiento de imágenes del negocio
+
+Las preguntas operativas que debe responder la telemetría son:
+
+1. ¿El worker está completando, rechazando o recuperando trabajos?
+2. ¿Hay fallos transitorios que estén dejando trabajos para reintento?
+3. ¿La cola o la base dejaron de estar disponibles antes de tomar un trabajo?
+
+Los eventos estables son `business_media_job_completed`,
+`business_media_job_rejected`, `business_media_job_recovered`,
+`business_media_job_retry` y `business_media_queue_retry`. Los cuatro primeros
+incluyen correlación de traza y el identificador interno del mensaje, pero nunca
+la ruta del archivo, su contenido ni el error devuelto por el proveedor. Un
+trabajo con `business_media_job_retry` no se confirma: vuelve a estar visible al
+vencer `WORKER_VISIBILITY_TIMEOUT_SECONDS`. Un evento
+`business_media_job_recovered` confirma que el procesamiento ya había llegado a
+estado terminal y que el worker completó el acuse pendiente sin reprocesar la
+imagen.
+
 Si falta una variable obligatoria, el servicio finaliza antes de aceptar tráfico
 y emite `service_start_failed`. Nunca debe reemplazarse una variable ausente por
 un valor de producción implícito.

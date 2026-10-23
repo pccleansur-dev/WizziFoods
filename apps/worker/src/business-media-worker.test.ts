@@ -53,9 +53,13 @@ describe("business media worker iteration", () => {
   it("processes and acknowledges a reserved job", async () => {
     const repository = createRepository();
     const processJob = vi.fn().mockResolvedValue("ready");
+    const complete = vi.fn();
+    const retry = vi.fn();
+    const start = vi.fn(() => ({ complete, retry }));
 
     await expect(
       runBusinessMediaIteration({
+        observer: { start },
         processJob,
         repository,
         storage: { download: vi.fn(), replace: vi.fn() },
@@ -68,6 +72,9 @@ describe("business media worker iteration", () => {
       expect.objectContaining({ storage: expect.any(Object) })
     );
     expect(repository.ackJob).toHaveBeenCalledWith("42");
+    expect(start).toHaveBeenCalledWith("42");
+    expect(complete).toHaveBeenCalledWith("ready");
+    expect(retry).not.toHaveBeenCalled();
   });
 
   it("acknowledges an already terminal job without processing it again", async () => {
@@ -89,8 +96,10 @@ describe("business media worker iteration", () => {
   it("keeps a transiently failed job unacknowledged for retry", async () => {
     const repository = createRepository();
     const processJob = vi.fn().mockRejectedValue(new Error("storage offline"));
+    const retry = vi.fn();
 
     const result = runBusinessMediaIteration({
+      observer: { start: () => ({ complete: vi.fn(), retry }) },
       processJob,
       repository,
       storage: { download: vi.fn(), replace: vi.fn() },
@@ -100,5 +109,6 @@ describe("business media worker iteration", () => {
     await expect(result).rejects.toBeInstanceOf(BusinessMediaJobRetryError);
     await expect(result).rejects.toMatchObject({ messageId: "42" });
     expect(repository.ackJob).not.toHaveBeenCalled();
+    expect(retry).toHaveBeenCalledOnce();
   });
 });

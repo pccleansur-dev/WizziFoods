@@ -3,7 +3,16 @@ import { pathToFileURL } from "node:url";
 
 import { readWorkerConfig } from "@platform/config";
 import { createServiceStatus, type ServiceStatus } from "@platform/contracts";
+import { createTenantDatabase } from "@platform/database";
 import { initializeTelemetry, startOperation } from "@platform/observability";
+
+import { createBusinessMediaJobObserver } from "./business-media-observer.js";
+import { createSupabaseBusinessMediaStorage } from "./business-media-storage.js";
+import {
+  BusinessMediaJobRetryError,
+  runBusinessMediaIteration
+} from "./business-media-worker.js";
+import { startPollingLoop } from "./polling-loop.js";
 
 export function getWorkerStatus(): ServiceStatus {
   return createServiceStatus("worker");
@@ -17,6 +26,12 @@ function startWorker(): void {
     metricsPort: config.metricsPort,
     serviceName: "worker"
   });
+  const database = createTenantDatabase(config.databaseUrl);
+  const storage = createSupabaseBusinessMediaStorage(
+    config.supabaseUrl,
+    config.supabaseSecretKey
+  );
+  const observer = createBusinessMediaJobObserver(telemetry);
   const startup = startOperation(telemetry, "service.start", {
     entryPoint: "process"
   });
@@ -30,7 +45,7 @@ function startWorker(): void {
   });
   startup.end();
 
-  setInterval(() => {
+  const heartbeatTimer = setInterval(() => {
     const heartbeat = startOperation(telemetry, "worker.heartbeat", {
       entryPoint: "scheduler"
     });
@@ -42,6 +57,50 @@ function startWorker(): void {
     });
     heartbeat.end();
   }, config.heartbeatMs);
+
+  const polling = startPollingLoop({
+    iteration: async () => {
+      await runBusinessMediaIteration({
+        observer,
+        repository: database.businessMediaRepository,
+        storage,
+        visibilityTimeoutSeconds: config.visibilityTimeoutSeconds
+      });
+    },
+    onError: (error) => {
+      if (error instanceof BusinessMediaJobRetryError) return;
+      telemetry.logger.warn("business_media_queue_retry", {
+        entryPoint: "queue",
+        reason: "queue_unavailable",
+        requestId: randomUUID()
+      });
+    },
+    pollMs: config.pollMs
+  });
+
+  let shutdownPromise: Promise<void> | undefined;
+  const shutdown = (signal: "SIGINT" | "SIGTERM") => {
+    shutdownPromise ??= (async () => {
+      telemetry.logger.info("service_stopping", {
+        entryPoint: "process",
+        requestId: randomUUID(),
+        signal
+      });
+      clearInterval(heartbeatTimer);
+      await polling.stop();
+      await database.close();
+      await telemetry.sdk.shutdown();
+    })();
+    return shutdownPromise;
+  };
+
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.once(signal, () => {
+      void shutdown(signal).catch(() => {
+        process.exitCode = 1;
+      });
+    });
+  }
 }
 
 const entryPoint = process.argv[1];
