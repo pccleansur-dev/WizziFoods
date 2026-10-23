@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(14);
+select plan(17);
 
 insert into auth.users (id)
 values
@@ -90,6 +90,11 @@ select ok(
   (select processing_message_id is not null from queued_asset),
   'an active reservation records its durable message'
 );
+select is(
+  (select reservation_expires_at from queued_asset),
+  'infinity'::timestamptz,
+  'a queued asset keeps consuming quota until it reaches a terminal state'
+);
 select results_eq(
   $$
     select
@@ -126,6 +131,31 @@ select is(
   (select count(*) from pgmq.q_business_media_processing),
   1::bigint,
   'an enqueue retry does not duplicate the job'
+);
+
+select results_eq(
+  $$
+    select kind, content_type, object_path
+    from private.claim_business_media_asset(
+      'f3000000-0000-4000-8000-000000000003',
+      (select location_id from reserved_asset),
+      (select id from reserved_asset)
+    )
+  $$,
+  $$ select kind, content_type, object_path from reserved_asset $$,
+  'the worker claims trusted media metadata from the database'
+);
+select throws_ok(
+  $$
+    select * from private.claim_business_media_asset(
+      'f4000000-0000-4000-8000-000000000004',
+      (select id from public.locations where tenant_id = 'f4000000-0000-4000-8000-000000000004'),
+      (select id from reserved_asset)
+    )
+  $$,
+  '22023',
+  null,
+  'the worker cannot claim media through a different tenant scope'
 );
 
 create temporary table claimed_job on commit drop as

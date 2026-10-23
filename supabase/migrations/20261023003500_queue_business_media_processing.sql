@@ -91,6 +91,7 @@ begin
   set
     processing_message_id = message_id,
     processing_started_at = statement_timestamp(),
+    reservation_expires_at = 'infinity'::timestamptz,
     updated_at = statement_timestamp()
   where asset.id = current_asset.id
   returning * into current_asset;
@@ -105,6 +106,43 @@ revoke all on function private.enqueue_business_media_processing(
 grant execute on function private.enqueue_business_media_processing(
   uuid, uuid, uuid, uuid
 ) to authenticator;
+
+create or replace function private.claim_business_media_asset(
+  target_tenant_id uuid,
+  target_location_id uuid,
+  target_asset_id uuid
+)
+returns private.business_media_assets
+language plpgsql
+security definer
+set search_path = ''
+set row_security = off
+as $$
+declare
+  current_asset private.business_media_assets%rowtype;
+begin
+  select *
+  into current_asset
+  from private.business_media_assets asset
+  where asset.tenant_id = target_tenant_id
+    and asset.location_id = target_location_id
+    and asset.id = target_asset_id
+    and asset.status = 'reserved'
+    and asset.processing_message_id is not null;
+
+  if not found then
+    raise exception 'business media asset is not queued for this scope'
+      using errcode = '22023';
+  end if;
+
+  return current_asset;
+end;
+$$;
+
+revoke all on function private.claim_business_media_asset(uuid, uuid, uuid)
+from public, anon, authenticated;
+grant execute on function private.claim_business_media_asset(uuid, uuid, uuid)
+to authenticator;
 
 create or replace function private.read_business_media_job(
   target_visibility_timeout_seconds integer
