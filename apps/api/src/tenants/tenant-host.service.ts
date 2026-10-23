@@ -23,6 +23,22 @@ export class TenantHostService {
     return context;
   }
 
+  async resolveForAdmin(
+    authority: unknown,
+    requesterId: string
+  ): Promise<TenantHostContext> {
+    const hostname = parseTenantHostname(authority);
+    if (!hostname) this.notFound();
+
+    const context = await this.tenantDomainRepository.resolveAdminByHostname(
+      hostname,
+      requesterId
+    );
+    if (!context) this.notFound();
+
+    return context;
+  }
+
   private notFound(): never {
     throw new NotFoundException({
       error: {

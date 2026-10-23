@@ -7,6 +7,7 @@ import {
 import type { TenantHostContext } from "@platform/contracts";
 import type { FastifyRequest } from "fastify";
 
+import type { AdminAuthenticatedRequest } from "../auth/admin-auth.guard.js";
 import { TenantHostService } from "./tenant-host.service.js";
 
 export type TenantHostRequest = FastifyRequest & {
@@ -14,6 +15,7 @@ export type TenantHostRequest = FastifyRequest & {
 };
 
 type PendingTenantHostRequest = FastifyRequest & {
+  adminIdentity?: AdminAuthenticatedRequest["adminIdentity"];
   tenantHostContext?: TenantHostContext;
 };
 
@@ -28,9 +30,12 @@ export class TenantHostGuard implements CanActivate {
     const request = context
       .switchToHttp()
       .getRequest<PendingTenantHostRequest>();
-    request.tenantHostContext = await this.tenantHostService.resolve(
-      request.headers.host
-    );
+    request.tenantHostContext = request.adminIdentity
+      ? await this.tenantHostService.resolveForAdmin(
+          request.headers.host,
+          request.adminIdentity.userId
+        )
+      : await this.tenantHostService.resolve(request.headers.host);
     return true;
   }
 }

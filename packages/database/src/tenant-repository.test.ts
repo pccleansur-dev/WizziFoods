@@ -43,4 +43,19 @@ describe("createTenantDatabase", () => {
 
     await database.close();
   });
+
+  it("rejects a malformed administrative requester before opening a query", async () => {
+    const database = createTenantDatabase(
+      "postgresql://unused:unused@127.0.0.1:1/unused"
+    );
+
+    await expect(
+      database.tenantDomainRepository.resolveAdminByHostname(
+        "tenant-a.plataforma.test",
+        "requester-from-client"
+      )
+    ).rejects.toThrow("requesterId must be a UUID");
+
+    await database.close();
+  });
 });

@@ -67,6 +67,21 @@ describe("API authentication boundaries", () => {
             name: "Café Norte",
             slug: "cafe-norte"
           }
+        }),
+        resolveForAdmin: async (authority: unknown) => ({
+          domain: {
+            hostname: String(authority).split(":")[0],
+            id: "75000000-0000-4000-8000-000000000075"
+          },
+          location: {
+            id: "72000000-0000-4000-8000-000000000072",
+            name: "Principal"
+          },
+          tenant: {
+            id: "74000000-0000-4000-8000-000000000074",
+            name: "Café Norte",
+            slug: "cafe-norte"
+          }
         })
       })
       .overrideProvider(TenantAdminScopeService)

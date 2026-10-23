@@ -21,11 +21,14 @@ describe("TenantHostGuard", () => {
     };
     const authorities: unknown[] = [];
     const guard = new TenantHostGuard({
-      resolve: async (authority) => {
+      resolve: async (authority: unknown) => {
         authorities.push(authority);
         return tenantHostContext;
+      },
+      resolveForAdmin: async () => {
+        throw new Error("public requests must use the public resolver");
       }
-    } as TenantHostService);
+    } as unknown as TenantHostService);
     const request: {
       headers: Record<string, string>;
       tenantHostContext?: TenantHostContext;
@@ -41,6 +44,44 @@ describe("TenantHostGuard", () => {
 
     await expect(guard.canActivate(executionContext)).resolves.toBe(true);
     expect(authorities).toEqual(["real.plataforma.test:3001"]);
+    expect(request.tenantHostContext).toEqual(tenantHostContext);
+  });
+
+  it("uses the membership-aware resolver after administrator authentication", async () => {
+    const tenantHostContext: TenantHostContext = {
+      domain: { hostname: "draft.plataforma.test", id: "domain-a" },
+      location: { id: "location-a", name: "Principal" },
+      tenant: { id: "tenant-a", name: "Tenant A", slug: "tenant-a" }
+    };
+    const received: unknown[] = [];
+    const guard = new TenantHostGuard({
+      resolve: async () => {
+        throw new Error(
+          "administrative requests must not use the public resolver"
+        );
+      },
+      resolveForAdmin: async (authority: unknown, requesterId: string) => {
+        received.push(authority, requesterId);
+        return tenantHostContext;
+      }
+    } as unknown as TenantHostService);
+    const request = {
+      adminIdentity: {
+        assuranceLevel: "aal2",
+        userId: "10000000-0000-4000-8000-000000000001"
+      },
+      headers: { host: "draft.plataforma.test:3001" },
+      tenantHostContext: undefined
+    };
+    const executionContext = {
+      switchToHttp: () => ({ getRequest: () => request })
+    } as ExecutionContext;
+
+    await expect(guard.canActivate(executionContext)).resolves.toBe(true);
+    expect(received).toEqual([
+      "draft.plataforma.test:3001",
+      "10000000-0000-4000-8000-000000000001"
+    ]);
     expect(request.tenantHostContext).toEqual(tenantHostContext);
   });
 });

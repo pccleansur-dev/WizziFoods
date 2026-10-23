@@ -14,6 +14,7 @@ describe("TenantHostService", () => {
   it("canonicalizes the request authority before resolving it", async () => {
     const resolved: string[] = [];
     const service = new TenantHostService({
+      resolveAdminByHostname: async () => null,
       resolveByHostname: async (hostname: string) => {
         resolved.push(hostname);
         return context;
@@ -28,6 +29,7 @@ describe("TenantHostService", () => {
 
   it("fails closed before querying for malformed authorities", async () => {
     const service = new TenantHostService({
+      resolveAdminByHostname: async () => null,
       resolveByHostname: async () => {
         throw new Error("repository must not be queried");
       }
@@ -40,6 +42,7 @@ describe("TenantHostService", () => {
 
   it("uses the same generic not-found response for an unknown host", async () => {
     const service = new TenantHostService({
+      resolveAdminByHostname: async () => null,
       resolveByHostname: async () => null
     });
 
@@ -52,5 +55,27 @@ describe("TenantHostService", () => {
         }
       }
     });
+  });
+
+  it("resolves draft tenants only through an assigned administrator", async () => {
+    const received: unknown[] = [];
+    const service = new TenantHostService({
+      resolveAdminByHostname: async (hostname, requesterId) => {
+        received.push(hostname, requesterId);
+        return context;
+      },
+      resolveByHostname: async () => null
+    });
+
+    await expect(
+      service.resolveForAdmin(
+        "LOCAL-A.PLATAFORMA.TEST:3001",
+        "10000000-0000-4000-8000-000000000001"
+      )
+    ).resolves.toEqual(context);
+    expect(received).toEqual([
+      "local-a.plataforma.test",
+      "10000000-0000-4000-8000-000000000001"
+    ]);
   });
 });
