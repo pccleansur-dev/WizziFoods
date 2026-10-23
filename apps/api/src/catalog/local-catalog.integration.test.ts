@@ -270,10 +270,7 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
       draft: {
         products: [
           {
-            content: [
-              { title: "Milanesa especial" },
-              { title: "Milanese" }
-            ],
+            content: [{ title: "Milanesa especial" }, { title: "Milanese" }],
             priceCents: 130000
           }
         ]
@@ -325,10 +322,7 @@ describeWithLocalStack("catalog lifecycle with local Supabase", () => {
         baseRevision: 1,
         products: [
           {
-            content: [
-              { title: "Milanesa especial" },
-              { title: "Milanese" }
-            ],
+            content: [{ title: "Milanesa especial" }, { title: "Milanese" }],
             priceCents: 130000
           }
         ]

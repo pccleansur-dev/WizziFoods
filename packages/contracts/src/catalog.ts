@@ -151,9 +151,7 @@ export function catalogPublicationIssues(
     ...draft.products,
     ...draft.products.flatMap(({ variants }) => variants)
   ];
-  if (
-    localizedItems.some((item) => !hasLanguages(item.content, languages))
-  ) {
+  if (localizedItems.some((item) => !hasLanguages(item.content, languages))) {
     issues.push("MISSING_LOCALIZED_CONTENT");
   }
   return issues;

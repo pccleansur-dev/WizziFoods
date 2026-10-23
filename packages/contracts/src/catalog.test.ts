@@ -118,11 +118,7 @@ describe("catalog publication readiness", () => {
         { baseRevision: null, categories: [], products: [], sectors: [] },
         ["es"]
       )
-    ).toEqual([
-      "MISSING_CATEGORY",
-      "MISSING_SECTOR",
-      "MISSING_PRODUCT"
-    ]);
+    ).toEqual(["MISSING_CATEGORY", "MISSING_SECTOR", "MISSING_PRODUCT"]);
   });
 
   it("requires reviewed titles for every configured language", () => {

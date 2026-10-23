@@ -561,7 +561,10 @@ export function CatalogEditor({
               <button
                 className="button button--secondary"
                 disabled={
-                  publishing || dirty || draftRevision === null || !readyToPublish
+                  publishing ||
+                  dirty ||
+                  draftRevision === null ||
+                  !readyToPublish
                 }
                 type="submit"
               >

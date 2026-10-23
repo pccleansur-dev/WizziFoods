@@ -127,17 +127,16 @@ describe("catalog editor state", () => {
   it("creates categories and products with every configured language editable", () => {
     let cursor = 0;
     const nextId = () => ids[cursor++]!;
-    let draft = addCatalogCategory(
-      createEmptyCatalogDraft(),
-      nextId,
-      ["es", "en"]
-    );
+    let draft = addCatalogCategory(createEmptyCatalogDraft(), nextId, [
+      "es",
+      "en"
+    ]);
     draft = addCatalogSector(draft, nextId);
     draft = addCatalogProduct(draft, nextId, ["es", "en"]);
 
-    expect(draft.categories[0]?.content.map(({ language }) => language)).toEqual(
-      ["es", "en"]
-    );
+    expect(
+      draft.categories[0]?.content.map(({ language }) => language)
+    ).toEqual(["es", "en"]);
     expect(draft.products[0]?.content.map(({ language }) => language)).toEqual([
       "es",
       "en"

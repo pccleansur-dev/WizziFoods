@@ -48,7 +48,12 @@ describe("catalog publication readiness", () => {
   it("keeps every missing requirement visible before publication", () => {
     const markup = renderToStaticMarkup(
       <CatalogPublicationReadiness
-        draft={{ baseRevision: null, categories: [], products: [], sectors: [] }}
+        draft={{
+          baseRevision: null,
+          categories: [],
+          products: [],
+          sectors: []
+        }}
         hasBusinessProfile={false}
         languages={["es", "en"]}
       />

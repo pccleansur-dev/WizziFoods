@@ -93,9 +93,7 @@ export function addCatalogProduct(
   };
 }
 
-function localizedFallback(
-  language: string
-): LocalizedCatalogContent {
+function localizedFallback(language: string): LocalizedCatalogContent {
   return {
     description: "",
     language,

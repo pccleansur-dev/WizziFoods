@@ -77,7 +77,9 @@ describe("catalog controllers", () => {
     } as never);
 
     const error = await controller
-      .publish({ tenantAdminContext: {} } as never, { expectedDraftRevision: 1 })
+      .publish({ tenantAdminContext: {} } as never, {
+        expectedDraftRevision: 1
+      })
       .catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(BadRequestException);
