@@ -14,10 +14,12 @@ export {
   type BusinessProfileLayout
 } from "./business-profile.js";
 export {
+  catalogPublicationIssues,
   parseCatalogDraft,
   type CatalogCategory,
   type CatalogDraft,
   type CatalogProduct,
+  type CatalogPublicationIssue,
   type CatalogSector,
   type CatalogSectorKind,
   type CatalogVariant,

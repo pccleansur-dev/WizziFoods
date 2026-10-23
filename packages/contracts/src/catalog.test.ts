@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCatalogDraft } from "./catalog.js";
+import {
+  catalogPublicationIssues,
+  parseCatalogDraft,
+  type CatalogDraft
+} from "./catalog.js";
 
 const categoryId = "c1000000-0000-4000-8000-000000000001";
 const sectorId = "c2000000-0000-4000-8000-000000000002";
@@ -12,7 +16,7 @@ const productContent = {
   title: "Milanesa"
 };
 
-const validDraft = {
+const validDraft: CatalogDraft = {
   baseRevision: null,
   categories: [
     {
@@ -104,5 +108,59 @@ describe("catalog draft contract", () => {
     ]
   ])("rejects %s", (_case, input) => {
     expect(parseCatalogDraft(input)).toBeNull();
+  });
+});
+
+describe("catalog publication readiness", () => {
+  it("explains every missing structural requirement without blocking saves", () => {
+    expect(
+      catalogPublicationIssues(
+        { baseRevision: null, categories: [], products: [], sectors: [] },
+        ["es"]
+      )
+    ).toEqual([
+      "MISSING_CATEGORY",
+      "MISSING_SECTOR",
+      "MISSING_PRODUCT"
+    ]);
+  });
+
+  it("requires reviewed titles for every configured language", () => {
+    expect(catalogPublicationIssues(validDraft, ["es", "en"])).toEqual([
+      "MISSING_LOCALIZED_CONTENT"
+    ]);
+  });
+
+  it("accepts a complete multilingual catalog with variants", () => {
+    const translated = {
+      ...validDraft,
+      categories: validDraft.categories.map((category) => ({
+        ...category,
+        content: [
+          ...category.content,
+          { description: "", language: "en", title: "Main dishes" }
+        ]
+      })),
+      products: validDraft.products.map((product) => ({
+        ...product,
+        content: [
+          ...product.content,
+          {
+            description: "With golden potatoes.",
+            language: "en",
+            title: "Milanese"
+          }
+        ],
+        variants: product.variants.map((variant) => ({
+          ...variant,
+          content: [
+            ...variant.content,
+            { description: "", language: "en", title: "Neapolitan" }
+          ]
+        }))
+      }))
+    };
+
+    expect(catalogPublicationIssues(translated, ["es", "en"])).toEqual([]);
   });
 });

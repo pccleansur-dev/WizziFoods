@@ -44,6 +44,12 @@ export type CatalogDraft = {
   sectors: CatalogSector[];
 };
 
+export type CatalogPublicationIssue =
+  | "MISSING_CATEGORY"
+  | "MISSING_LOCALIZED_CONTENT"
+  | "MISSING_PRODUCT"
+  | "MISSING_SECTOR";
+
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const languagePattern = /^[a-z]{2}(?:-[A-Z]{2})?$/u;
@@ -118,6 +124,39 @@ function uniquePositions(values: { position: number }[]): boolean {
   return (
     new Set(values.map(({ position: value }) => value)).size === values.length
   );
+}
+
+function hasLanguages(
+  content: LocalizedCatalogContent[],
+  languages: string[]
+): boolean {
+  return languages.every((language) =>
+    content.some(
+      (localized) =>
+        localized.language === language && localized.title.trim().length > 0
+    )
+  );
+}
+
+export function catalogPublicationIssues(
+  draft: CatalogDraft,
+  languages: string[]
+): CatalogPublicationIssue[] {
+  const issues: CatalogPublicationIssue[] = [];
+  if (draft.categories.length === 0) issues.push("MISSING_CATEGORY");
+  if (draft.sectors.length === 0) issues.push("MISSING_SECTOR");
+  if (draft.products.length === 0) issues.push("MISSING_PRODUCT");
+  const localizedItems = [
+    ...draft.categories,
+    ...draft.products,
+    ...draft.products.flatMap(({ variants }) => variants)
+  ];
+  if (
+    localizedItems.some((item) => !hasLanguages(item.content, languages))
+  ) {
+    issues.push("MISSING_LOCALIZED_CONTENT");
+  }
+  return issues;
 }
 
 export function parseCatalogDraft(input: unknown): CatalogDraft | null {
