@@ -15,6 +15,10 @@ import {
   type BusinessMediaRepository
 } from "./business-media-repository.js";
 import {
+  createCatalogRepository,
+  type CatalogRepository
+} from "./catalog-repository.js";
+import {
   locations,
   platformSuperadmins,
   tenantMemberships,
@@ -75,6 +79,7 @@ export type TenantDatabase = {
   auditRepository: AuditRepository;
   businessMediaRepository: BusinessMediaRepository;
   businessProfileRepository: BusinessProfileRepository;
+  catalogRepository: CatalogRepository;
   close(): Promise<void>;
   identityAccessRepository: IdentityAccessRepository;
   staffAuthRepository: StaffAuthRepository;
@@ -147,6 +152,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     auditRepository: createAuditRepository(client),
     businessMediaRepository: createBusinessMediaRepository(client),
     businessProfileRepository: createBusinessProfileRepository(client),
+    catalogRepository: createCatalogRepository(client),
     close: async () => client.end(),
     identityAccessRepository: {
       async resolveForIdentity(

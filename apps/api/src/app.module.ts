@@ -18,6 +18,11 @@ import { BusinessMediaService } from "./business-media/business-media.service.js
 import { BusinessProfileController } from "./business-profile/business-profile.controller.js";
 import { BusinessProfileService } from "./business-profile/business-profile.service.js";
 import {
+  CatalogAdminController,
+  PublicCatalogController
+} from "./catalog/catalog.controller.js";
+import { CatalogService } from "./catalog/catalog.service.js";
+import {
   StaffAuthController,
   StaffSessionController
 } from "./staff-auth/staff-auth.controller.js";
@@ -60,6 +65,8 @@ export class AppModule {
         AppController,
         BusinessMediaController,
         BusinessProfileController,
+        CatalogAdminController,
+        PublicCatalogController,
         StaffAuthController,
         StaffSessionController,
         SupportAccessController,
@@ -95,6 +102,12 @@ export class AppModule {
           provide: BusinessProfileService,
           useFactory: (database: TenantDatabase) =>
             new BusinessProfileService(database.businessProfileRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: CatalogService,
+          useFactory: (database: TenantDatabase) =>
+            new CatalogService(database.catalogRepository)
         },
         {
           inject: [TENANT_DATABASE],
