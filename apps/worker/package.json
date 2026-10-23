@@ -14,7 +14,9 @@
   "dependencies": {
     "@platform/config": "workspace:*",
     "@platform/contracts": "workspace:*",
+    "@platform/database": "workspace:*",
     "@platform/observability": "workspace:*",
+    "@supabase/supabase-js": "2.90.1",
     "sharp": "0.35.5"
   },
   "devDependencies": {

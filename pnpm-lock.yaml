@@ -133,9 +133,15 @@ importers:
       '@platform/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@platform/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@platform/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@supabase/supabase-js':
+        specifier: 2.90.1
+        version: 2.90.1
       sharp:
         specifier: 0.35.5
         version: 0.35.5(@types/node@24.19.2)
