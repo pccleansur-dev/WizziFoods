@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import { saveBusinessProfileAction } from "./actions";
 import type { BusinessProfileActionState } from "./business-profile-state";
 import { contrastRatio, readableTextColor } from "./color-contrast";
+import { BusinessMediaUploadField } from "./business-media-upload-field";
 
 export function BusinessProfileForm({
   draft
@@ -13,6 +14,11 @@ export function BusinessProfileForm({
   draft: BusinessProfileDraft;
 }) {
   const [preview, setPreview] = useState(draft);
+  const [media, setMedia] = useState({
+    coverAssetId: draft.coverAssetId,
+    logoAssetId: draft.logoAssetId,
+    referenceAssetIds: draft.referenceAssetIds
+  });
   const initialState: BusinessProfileActionState = {
     message: "",
     status: "idle"
@@ -129,6 +135,48 @@ export function BusinessProfileForm({
             Inglés
           </label>
         </fieldset>
+        <section className="profile-media" aria-labelledby="profile-media-title">
+          <div>
+            <h3 id="profile-media-title">Imágenes del negocio</h3>
+            <p>
+              Se comprimen y verifican antes de sumarse al borrador. JPG, PNG o
+              WebP, hasta 12 MB por archivo.
+            </p>
+          </div>
+          <BusinessMediaUploadField
+            help="Se usa en la cabecera, el acceso y los comprobantes visuales."
+            hasAsset={Boolean(media.logoAssetId)}
+            kind="logo"
+            label="Logo del negocio"
+            onReady={(logoAssetId) =>
+              setMedia((current) => ({ ...current, logoAssetId }))
+            }
+          />
+          <BusinessMediaUploadField
+            help="Acompaña la bienvenida y la vista principal de la carta."
+            hasAsset={Boolean(media.coverAssetId)}
+            kind="cover"
+            label="Imagen de portada"
+            onReady={(coverAssetId) =>
+              setMedia((current) => ({ ...current, coverAssetId }))
+            }
+          />
+          <BusinessMediaUploadField
+            currentCount={media.referenceAssetIds.length}
+            disabled={media.referenceAssetIds.length >= 12}
+            help="Fotos del local, platos o cartas actuales para orientar la propuesta visual."
+            kind="reference"
+            label="Fotos de referencia"
+            onReady={(assetId) =>
+              setMedia((current) => ({
+                ...current,
+                referenceAssetIds: [
+                  ...new Set([...current.referenceAssetIds, assetId])
+                ]
+              }))
+            }
+          />
+        </section>
         <fieldset className="profile-options">
           <legend>Composición</legend>
           {(["visual", "compact", "modern"] as const).map((layout) => (
@@ -183,14 +231,14 @@ export function BusinessProfileForm({
         <input
           name="logoAssetId"
           type="hidden"
-          value={draft.logoAssetId ?? ""}
+          value={media.logoAssetId ?? ""}
         />
         <input
           name="coverAssetId"
           type="hidden"
-          value={draft.coverAssetId ?? ""}
+          value={media.coverAssetId ?? ""}
         />
-        {draft.referenceAssetIds.map((id) => (
+        {media.referenceAssetIds.map((id) => (
           <input key={id} name="referenceAssetIds" type="hidden" value={id} />
         ))}
         <button

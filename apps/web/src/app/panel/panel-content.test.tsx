@@ -81,6 +81,9 @@ describe("PanelContent", () => {
 
     expect(markup).toContain("Bodegón del Centro");
     expect(markup).toContain("Datos e identidad");
+    expect(markup).toContain("Logo del negocio");
+    expect(markup).toContain("Imagen de portada");
+    expect(markup).toContain("Fotos de referencia");
     expect(markup).toContain("Vista previa");
     expect(markup).toContain("no modifica lo publicado");
     expect(markup).toContain("Gestionar carta");
