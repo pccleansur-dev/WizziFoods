@@ -1,4 +1,10 @@
 export {
+  type BusinessProfileDraftRecord,
+  type BusinessProfileRepository,
+  createBusinessProfileRepository,
+  type SaveBusinessProfileDraftInput
+} from "./business-profile-repository.js";
+export {
   type AppendAuditEventInput,
   type AuditActorType,
   type AuditRepository

@@ -7,6 +7,10 @@ import {
   type AuditRepository
 } from "./audit-repository.js";
 import {
+  createBusinessProfileRepository,
+  type BusinessProfileRepository
+} from "./business-profile-repository.js";
+import {
   locations,
   platformSuperadmins,
   tenantMemberships,
@@ -65,6 +69,7 @@ export interface IdentityAccessRepository {
 
 export type TenantDatabase = {
   auditRepository: AuditRepository;
+  businessProfileRepository: BusinessProfileRepository;
   close(): Promise<void>;
   identityAccessRepository: IdentityAccessRepository;
   staffAuthRepository: StaffAuthRepository;
@@ -135,6 +140,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
 
   return {
     auditRepository: createAuditRepository(client),
+    businessProfileRepository: createBusinessProfileRepository(client),
     close: async () => client.end(),
     identityAccessRepository: {
       async resolveForIdentity(
