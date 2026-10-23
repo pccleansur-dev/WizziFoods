@@ -1306,6 +1306,61 @@ dd {
   font-size: 0.75rem;
 }
 
+.catalog-availability {
+  margin-top: 1rem;
+  padding: 1.15rem;
+  border: 1px solid #c9d7cc;
+  border-radius: 0.85rem;
+  background: #f1f7f2;
+}
+
+.catalog-availability .catalog-card__heading {
+  align-items: start;
+}
+
+.catalog-availability h3,
+.catalog-availability p {
+  margin: 0;
+}
+
+.catalog-availability .catalog-card__heading p {
+  margin-top: 0.3rem;
+  color: #536158;
+  font-size: 0.82rem;
+}
+
+.catalog-availability-row {
+  display: grid;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.9rem 0;
+  border-top: 1px solid #d5e1d7;
+}
+
+.catalog-availability-row > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.catalog-availability-row .button {
+  width: 100%;
+}
+
+.catalog-availability-row .form-message {
+  grid-column: 1 / -1;
+}
+
+.catalog-availability-status {
+  width: fit-content;
+  color: #315d49;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.catalog-availability-status--unavailable {
+  color: #8b241d;
+}
+
 @media (min-width: 42rem) {
   .panel-module-list {
     grid-template-columns: repeat(3, 1fr);
@@ -1333,6 +1388,14 @@ dd {
 
   .catalog-localized-fields__language > strong {
     grid-column: 1 / -1;
+  }
+
+  .catalog-availability-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .catalog-availability-row .button {
+    width: auto;
   }
 }
 

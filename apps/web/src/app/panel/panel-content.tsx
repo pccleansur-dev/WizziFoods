@@ -7,17 +7,19 @@ import { TenantProvisioningForm } from "./tenant-provisioning-form";
 import { BusinessProfileForm } from "./business-profile-form";
 import type { SavedBusinessProfileDraft } from "./business-profile";
 import { CatalogEditor } from "./catalog-editor";
-import type { SavedCatalogDraft } from "./catalog";
+import type { PublishedCatalog, SavedCatalogDraft } from "./catalog";
 
 export function PanelContent({
   administrativeAccess,
   businessProfile = null,
   catalog = null,
+  publishedCatalog = null,
   platformOperations = null
 }: {
   administrativeAccess: AdministrativeAccess;
   businessProfile?: SavedBusinessProfileDraft | null;
   catalog?: SavedCatalogDraft | null;
+  publishedCatalog?: PublishedCatalog | null;
   platformOperations?: PlatformOperations | null;
 }) {
   const { access } = administrativeAccess;
@@ -104,7 +106,11 @@ export function PanelContent({
         <strong>{context.tenant.status}</strong>.
       </p>
       <BusinessProfileForm draft={editableProfile} />
-      <CatalogEditor catalog={catalog} languages={editableProfile.languages} />
+      <CatalogEditor
+        catalog={catalog}
+        languages={editableProfile.languages}
+        publishedCatalog={publishedCatalog}
+      />
       <div className="panel-module-list" aria-label="Módulos administrativos">
         <div>
           <span>Identidad y menú</span>

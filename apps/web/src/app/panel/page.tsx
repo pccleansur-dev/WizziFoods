@@ -6,7 +6,7 @@ import { signOutAction } from "./actions";
 import { PanelContent } from "./panel-content";
 import { loadPlatformOperations } from "./platform-operations";
 import { loadBusinessProfileDraft } from "./business-profile";
-import { loadCatalogDraft } from "./catalog";
+import { loadCatalogDraft, loadPublishedCatalog } from "./catalog";
 
 export default async function PanelPage() {
   const result = await loadAdministrativeAccess();
@@ -28,6 +28,10 @@ export default async function PanelPage() {
   const catalog =
     result.status === "ready" && result.data.access.type === "tenant_admin"
       ? await loadCatalogDraft(tenantHost)
+      : null;
+  const publishedCatalog =
+    result.status === "ready" && result.data.access.type === "tenant_admin"
+      ? await loadPublishedCatalog(tenantHost)
       : null;
 
   return (
@@ -52,6 +56,9 @@ export default async function PanelPage() {
             businessProfile?.status === "ready" ? businessProfile.data : null
           }
           catalog={catalog?.status === "ready" ? catalog.data : null}
+          publishedCatalog={
+            publishedCatalog?.status === "ready" ? publishedCatalog.data : null
+          }
         />
       ) : (
         <section className="panel-content" role="alert">

@@ -24,8 +24,9 @@ import {
   catalogLanguageName
 } from "./catalog-localized-fields";
 import { CatalogPreview } from "./catalog-preview";
-import type { SavedCatalogDraft } from "./catalog";
+import type { PublishedCatalog, SavedCatalogDraft } from "./catalog";
 import { BusinessMediaUploadField } from "./business-media-upload-field";
+import { CatalogAvailabilityControl } from "./catalog-availability";
 
 const initialActionState = (
   catalog: SavedCatalogDraft | null
@@ -38,10 +39,12 @@ const initialActionState = (
 
 export function CatalogEditor({
   catalog,
-  languages
+  languages,
+  publishedCatalog
 }: {
   catalog: SavedCatalogDraft | null;
   languages: string[];
+  publishedCatalog: PublishedCatalog | null;
 }) {
   const initialDraft = synchronizeCatalogLanguages(
     catalog?.draft ?? createEmptyCatalogDraft(),
@@ -557,6 +560,35 @@ export function CatalogEditor({
           language={previewLanguage}
           publishedRevision={publishedRevision}
         />
+      </div>
+      <div
+        className="catalog-availability"
+        aria-labelledby="availability-title"
+      >
+        <div className="catalog-card__heading">
+          <div>
+            <h3 id="availability-title">Disponibilidad inmediata</h3>
+            <p>
+              Estos cambios impactan ahora en la carta publicada y no publican
+              el resto del borrador.
+            </p>
+          </div>
+          <span>Versión publicada</span>
+        </div>
+        {publishedCatalog?.catalog.products.length ? (
+          publishedCatalog.catalog.products.map((product) => (
+            <CatalogAvailabilityControl
+              initialAvailability={publishedCatalog.availability[product.id]}
+              key={product.id}
+              productId={product.id}
+              productTitle={product.content[0]?.title ?? "Producto sin nombre"}
+            />
+          ))
+        ) : (
+          <p className="catalog-helper">
+            Publicá la primera versión para administrar disponibilidad.
+          </p>
+        )}
       </div>
     </section>
   );

@@ -141,6 +141,49 @@ describe("PanelContent", () => {
           revision: 1,
           updatedAt: "2026-10-23T15:00:00.000Z"
         }}
+        publishedCatalog={{
+          availability: {},
+          catalog: {
+            baseRevision: 1,
+            categories: [
+              {
+                content: [
+                  { description: "", language: "es", title: "Principales" }
+                ],
+                id: "20000000-0000-4000-8000-000000000002",
+                position: 0
+              }
+            ],
+            products: [
+              {
+                categoryId: "20000000-0000-4000-8000-000000000002",
+                content: [
+                  {
+                    description: "Con papas",
+                    language: "es",
+                    title: "Milanesa"
+                  }
+                ],
+                id: "30000000-0000-4000-8000-000000000003",
+                imageAssetId: null,
+                position: 0,
+                priceCents: 125000,
+                sectorId: "40000000-0000-4000-8000-000000000004",
+                variants: []
+              }
+            ],
+            sectors: [
+              {
+                id: "40000000-0000-4000-8000-000000000004",
+                kind: "kitchen",
+                name: "Cocina",
+                position: 0
+              }
+            ]
+          },
+          publishedAt: "2026-10-23T16:00:00.000Z",
+          revision: 1
+        }}
       />
     );
 
@@ -157,6 +200,9 @@ describe("PanelContent", () => {
     expect(markup).toContain("Agregar categoría");
     expect(markup).toContain("Contenido por idioma");
     expect(markup).toContain("Agregar variante");
+    expect(markup).toContain("Disponibilidad inmediata");
+    expect(markup).toContain("Milanesa");
+    expect(markup).toContain("Disponible");
     expect(markup).not.toContain("Crear y entregar negocios");
   });
 });

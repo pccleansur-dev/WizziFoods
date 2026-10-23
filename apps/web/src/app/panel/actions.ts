@@ -19,6 +19,7 @@ import {
 import type { TenantSuspensionActionState } from "./tenant-suspension-state";
 import type { BusinessProfileActionState } from "./business-profile-state";
 import type { CatalogActionState } from "./catalog-action-state";
+import type { CatalogAvailabilityActionState } from "./catalog-availability-state";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -46,6 +47,99 @@ function catalogError(
   message: string
 ): CatalogActionState {
   return { ...previousState, message, status: "error" };
+}
+
+function availabilityError(
+  previousState: CatalogAvailabilityActionState,
+  message: string
+): CatalogAvailabilityActionState {
+  return { ...previousState, message, status: "error" };
+}
+
+export async function setCatalogAvailabilityAction(
+  previousState: CatalogAvailabilityActionState,
+  formData: FormData
+): Promise<CatalogAvailabilityActionState> {
+  const productId = formData.get("productId");
+  const rawExpectedVersion = formData.get("expectedVersion");
+  const rawAvailability = formData.get("isAvailable");
+  const expectedVersion =
+    rawExpectedVersion === "" ? null : Number(rawExpectedVersion);
+  if (
+    typeof productId !== "string" ||
+    !uuidPattern.test(productId) ||
+    !(
+      expectedVersion === null ||
+      (Number.isSafeInteger(expectedVersion) && expectedVersion > 0)
+    ) ||
+    (rawAvailability !== "true" && rawAvailability !== "false")
+  ) {
+    return availabilityError(
+      previousState,
+      "El cambio de disponibilidad no es válido."
+    );
+  }
+  const auth = await tenantMutationContext();
+  if (!auth) {
+    return availabilityError(
+      previousState,
+      "La sesión venció. Volvé a ingresar."
+    );
+  }
+  try {
+    const config = readWebConfig(process.env);
+    const response = await fetch(
+      `${config.apiUrl}/v1/tenant/catalog/products/${productId}/availability`,
+      {
+        body: JSON.stringify({
+          expectedVersion,
+          isAvailable: rawAvailability === "true"
+        }),
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          "content-type": "application/json",
+          host: auth.host
+        },
+        method: "PATCH"
+      }
+    );
+    if (!response.ok) {
+      return availabilityError(
+        previousState,
+        response.status === 409
+          ? "La disponibilidad cambió en otra sesión. Recargá antes de continuar."
+          : "No pudimos actualizar la disponibilidad."
+      );
+    }
+    const body = (await response.json()) as {
+      data?: { isAvailable?: unknown; version?: unknown };
+    };
+    if (
+      typeof body.data?.isAvailable !== "boolean" ||
+      !Number.isSafeInteger(body.data.version) ||
+      (body.data.version as number) < 1
+    ) {
+      return availabilityError(
+        previousState,
+        "No pudimos confirmar la disponibilidad."
+      );
+    }
+    revalidatePath("/panel");
+    return {
+      isAvailable: body.data.isAvailable,
+      message: body.data.isAvailable
+        ? "El producto ya está disponible en la carta publicada."
+        : "El producto ya no se ofrece en la carta publicada.",
+      status: "success",
+      version: body.data.version as number
+    };
+  } catch {
+    return availabilityError(
+      previousState,
+      "No pudimos comunicarnos con la plataforma. Intentá nuevamente."
+    );
+  }
 }
 
 export async function saveCatalogAction(
