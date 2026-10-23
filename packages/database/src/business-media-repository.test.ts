@@ -18,6 +18,44 @@ const validInput = {
 };
 
 describe("business media repository", () => {
+  it("rejects malformed completion identifiers before querying", async () => {
+    const repository = createBusinessMediaRepository(unreachableClient);
+    await expect(
+      repository.complete({
+        assetId: "asset-from-client",
+        height: 480,
+        scope: validInput.scope,
+        sha256: "a".repeat(64),
+        storedSizeBytes: 1536,
+        width: 640
+      })
+    ).rejects.toThrow("assetId must be a UUID");
+  });
+
+  it("rejects untrusted processed metadata before querying", async () => {
+    const repository = createBusinessMediaRepository(unreachableClient);
+    await expect(
+      repository.complete({
+        assetId: "e6000000-0000-4000-8000-000000000006",
+        height: 480,
+        scope: validInput.scope,
+        sha256: "not-a-digest",
+        storedSizeBytes: 1536,
+        width: 640
+      })
+    ).rejects.toThrow("processed business media metadata must be canonical");
+  });
+
+  it("rejects malformed failure identifiers before querying", async () => {
+    const repository = createBusinessMediaRepository(unreachableClient);
+    await expect(
+      repository.fail({
+        assetId: "asset-from-client",
+        scope: validInput.scope
+      })
+    ).rejects.toThrow("assetId must be a UUID");
+  });
+
   it("rejects a non-canonical scope before querying", async () => {
     const repository = createBusinessMediaRepository(unreachableClient);
     await expect(

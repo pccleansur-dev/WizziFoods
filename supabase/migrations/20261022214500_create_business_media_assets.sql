@@ -40,7 +40,7 @@ create table private.business_media_assets (
   object_path text not null unique,
   created_by uuid not null,
   created_at timestamptz not null default now(),
-  reservation_expires_at timestamptz not null default (now() + interval '15 minutes'),
+  reservation_expires_at timestamptz not null default (now() + interval '2 hours'),
   updated_at timestamptz not null default now(),
   foreign key (tenant_id, location_id)
     references public.locations(tenant_id, id)
@@ -187,6 +187,136 @@ revoke all on function private.reserve_business_media_asset(
 ) from public, anon, authenticated;
 grant execute on function private.reserve_business_media_asset(
   uuid, uuid, uuid, text, text, bigint
+) to authenticator;
+
+create or replace function private.complete_business_media_asset(
+  target_tenant_id uuid,
+  target_asset_id uuid,
+  target_stored_size_bytes bigint,
+  target_width integer,
+  target_height integer,
+  target_sha256 text
+)
+returns private.business_media_assets
+language plpgsql
+security definer
+set search_path = ''
+set row_security = off
+as $$
+declare
+  current_asset private.business_media_assets%rowtype;
+begin
+  select *
+  into current_asset
+  from private.business_media_assets asset
+  where asset.tenant_id = target_tenant_id
+    and asset.id = target_asset_id
+  for update;
+
+  if not found then
+    raise exception 'business media asset not found' using errcode = '22023';
+  end if;
+
+  if target_stored_size_bytes < 1 or target_stored_size_bytes > 12582912
+    or target_width < 1 or target_width > 12000
+    or target_height < 1 or target_height > 12000
+    or target_sha256 !~ '^[0-9a-f]{64}$'
+  then
+    raise exception 'invalid processed business media metadata'
+      using errcode = '22023';
+  end if;
+
+  if current_asset.status = 'ready' then
+    if current_asset.stored_size_bytes = target_stored_size_bytes
+      and current_asset.width = target_width
+      and current_asset.height = target_height
+      and current_asset.sha256 = target_sha256
+    then
+      return current_asset;
+    end if;
+    raise exception 'business media completion conflicts with ready asset'
+      using errcode = '22023';
+  end if;
+
+  if current_asset.status <> 'reserved'
+    or current_asset.reservation_expires_at <= statement_timestamp()
+  then
+    raise exception 'business media reservation is not active'
+      using errcode = '22023';
+  end if;
+
+  update private.business_media_assets asset
+  set
+    status = 'ready',
+    stored_size_bytes = target_stored_size_bytes,
+    width = target_width,
+    height = target_height,
+    sha256 = target_sha256,
+    updated_at = statement_timestamp()
+  where asset.tenant_id = target_tenant_id
+    and asset.id = target_asset_id
+  returning * into current_asset;
+
+  return current_asset;
+end;
+$$;
+
+revoke all on function private.complete_business_media_asset(
+  uuid, uuid, bigint, integer, integer, text
+) from public, anon, authenticated;
+grant execute on function private.complete_business_media_asset(
+  uuid, uuid, bigint, integer, integer, text
+) to authenticator;
+
+create or replace function private.fail_business_media_asset(
+  target_tenant_id uuid,
+  target_asset_id uuid
+)
+returns private.business_media_assets
+language plpgsql
+security definer
+set search_path = ''
+set row_security = off
+as $$
+declare
+  current_asset private.business_media_assets%rowtype;
+begin
+  select *
+  into current_asset
+  from private.business_media_assets asset
+  where asset.tenant_id = target_tenant_id
+    and asset.id = target_asset_id
+  for update;
+
+  if not found then
+    raise exception 'business media asset not found' using errcode = '22023';
+  end if;
+
+  if current_asset.status = 'failed' then
+    return current_asset;
+  end if;
+  if current_asset.status <> 'reserved' then
+    raise exception 'only a reserved business media asset can fail'
+      using errcode = '22023';
+  end if;
+
+  update private.business_media_assets asset
+  set
+    status = 'failed',
+    updated_at = statement_timestamp()
+  where asset.tenant_id = target_tenant_id
+    and asset.id = target_asset_id
+  returning * into current_asset;
+
+  return current_asset;
+end;
+$$;
+
+revoke all on function private.fail_business_media_asset(
+  uuid, uuid
+) from public, anon, authenticated;
+grant execute on function private.fail_business_media_asset(
+  uuid, uuid
 ) to authenticator;
 
 commit;

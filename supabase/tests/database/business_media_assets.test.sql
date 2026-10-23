@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(12);
+select plan(21);
 
 insert into auth.users (id)
 values
@@ -71,8 +71,16 @@ select ok(
   'the server derives an opaque tenant-scoped object path'
 );
 select ok(
-  (select reservation_expires_at > created_at from reserved_media),
-  'an abandoned reservation expires instead of consuming quota forever'
+  (select reservation_expires_at - created_at = interval '2 hours' from reserved_media),
+  'the reservation matches the signed upload URL lifetime'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'private.complete_business_media_asset(uuid,uuid,bigint,integer,integer,text)',
+    'EXECUTE'
+  ),
+  'browser identities cannot mark their own media ready'
 );
 select throws_ok(
   $$
@@ -153,6 +161,135 @@ select throws_ok(
   '22023',
   null,
   'the tenant quota includes reserved uploads'
+);
+
+create temporary table ready_media on commit drop as
+select *
+from private.complete_business_media_asset(
+  'e3000000-0000-4000-8000-000000000003',
+  (select id from reserved_media),
+  1536,
+  640,
+  480,
+  repeat('a', 64)
+);
+
+select results_eq(
+  $$ select status, stored_size_bytes, width, height, sha256 from ready_media $$,
+  $$ values ('ready'::text, 1536::bigint, 640, 480, repeat('a', 64)) $$,
+  'the trusted processor completes an active reservation'
+);
+select is(
+  (
+    select status
+    from private.complete_business_media_asset(
+      'e3000000-0000-4000-8000-000000000003',
+      (select id from reserved_media),
+      1536, 640, 480, repeat('a', 64)
+    )
+  ),
+  'ready',
+  'completion is idempotent for identical metadata'
+);
+select throws_ok(
+  $$
+    select * from private.complete_business_media_asset(
+      'e3000000-0000-4000-8000-000000000003',
+      (select id from reserved_media),
+      1537, 640, 480, repeat('a', 64)
+    )
+  $$,
+  '22023',
+  null,
+  'a retry cannot replace trusted metadata'
+);
+select throws_ok(
+  $$
+    select * from private.complete_business_media_asset(
+      'e4000000-0000-4000-8000-000000000004',
+      (select id from reserved_media),
+      1536, 640, 480, repeat('a', 64)
+    )
+  $$,
+  '22023',
+  null,
+  'completion is scoped to the owning tenant'
+);
+
+update private.business_media_assets
+set
+  created_at = statement_timestamp() - interval '3 hours',
+  reservation_expires_at = statement_timestamp() - interval '1 hour'
+where id = (
+  select id
+  from private.business_media_assets
+  where tenant_id = 'e3000000-0000-4000-8000-000000000003'
+    and status = 'reserved'
+  order by id
+  limit 1
+);
+
+select throws_ok(
+  $$
+    select * from private.complete_business_media_asset(
+      'e3000000-0000-4000-8000-000000000003',
+      (
+        select id
+        from private.business_media_assets
+        where tenant_id = 'e3000000-0000-4000-8000-000000000003'
+          and status = 'reserved'
+          and reservation_expires_at <= statement_timestamp()
+        order by id
+        limit 1
+      ),
+      1536, 640, 480, repeat('b', 64)
+    )
+  $$,
+  '22023',
+  null,
+  'an expired upload cannot become ready'
+);
+
+create temporary table failed_media on commit drop as
+select *
+from private.fail_business_media_asset(
+  'e3000000-0000-4000-8000-000000000003',
+  (
+    select id
+    from private.business_media_assets
+    where tenant_id = 'e3000000-0000-4000-8000-000000000003'
+      and status = 'reserved'
+    order by created_at desc
+    limit 1
+  )
+);
+
+select is(
+  (select status from failed_media),
+  'failed',
+  'the trusted processor releases quota after a failed upload'
+);
+select is(
+  (
+    select status
+    from private.fail_business_media_asset(
+      'e3000000-0000-4000-8000-000000000003',
+      (select id from failed_media)
+    )
+  ),
+  'failed',
+  'failure handling is idempotent'
+);
+select throws_ok(
+  $$
+    select * from private.fail_business_media_asset(
+      'e3000000-0000-4000-8000-000000000003',
+      (select id from reserved_media)
+    )
+  $$,
+  '22023',
+  null,
+  'a ready asset cannot be downgraded to failed'
 );
 
 select * from finish();

@@ -24,7 +24,36 @@ export type ReservedBusinessMedia = {
   status: "reserved";
 };
 
+export type CompleteBusinessMediaInput = {
+  assetId: string;
+  height: number;
+  scope: TenantScope;
+  sha256: string;
+  storedSizeBytes: number;
+  width: number;
+};
+
+export type CompletedBusinessMedia = {
+  contentType: string;
+  height: number;
+  id: string;
+  kind: BusinessMediaKind;
+  objectPath: string;
+  sha256: string;
+  sourceSizeBytes: number;
+  status: "ready";
+  storedSizeBytes: number;
+  width: number;
+};
+
+export type FailBusinessMediaInput = {
+  assetId: string;
+  scope: TenantScope;
+};
+
 export interface BusinessMediaRepository {
+  complete(input: CompleteBusinessMediaInput): Promise<CompletedBusinessMedia>;
+  fail(input: FailBusinessMediaInput): Promise<void>;
   reserve(input: ReserveBusinessMediaInput): Promise<ReservedBusinessMedia>;
 }
 
@@ -38,6 +67,17 @@ type BusinessMediaRow = {
   status: "reserved";
 };
 
+type CompletedBusinessMediaRow = Omit<
+  BusinessMediaRow,
+  "reservation_expires_at" | "status"
+> & {
+  height: number;
+  sha256: string;
+  status: "ready";
+  stored_size_bytes: string | number;
+  width: number;
+};
+
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
@@ -45,6 +85,65 @@ export function createBusinessMediaRepository(
   client: Sql
 ): BusinessMediaRepository {
   return {
+    async complete(input) {
+      const scope = parseTenantScope(input.scope);
+      if (!scope) throw new Error("tenant scope must be canonical");
+      if (!uuidPattern.test(input.assetId)) {
+        throw new Error("assetId must be a UUID");
+      }
+      if (
+        !Number.isSafeInteger(input.storedSizeBytes) ||
+        input.storedSizeBytes < 1 ||
+        input.storedSizeBytes > 12 * 1024 * 1024 ||
+        !Number.isSafeInteger(input.width) ||
+        input.width < 1 ||
+        input.width > 12000 ||
+        !Number.isSafeInteger(input.height) ||
+        input.height < 1 ||
+        input.height > 12000 ||
+        !/^[0-9a-f]{64}$/u.test(input.sha256)
+      ) {
+        throw new Error("processed business media metadata must be canonical");
+      }
+
+      const [row] = await client<CompletedBusinessMediaRow[]>`
+        select *
+        from private.complete_business_media_asset(
+          ${scope.tenantId}::uuid,
+          ${input.assetId}::uuid,
+          ${input.storedSizeBytes}::bigint,
+          ${input.width}::integer,
+          ${input.height}::integer,
+          ${input.sha256}
+        )
+      `;
+      if (!row) throw new Error("Business media completion returned no record");
+      return {
+        contentType: row.content_type,
+        height: row.height,
+        id: row.id,
+        kind: row.kind,
+        objectPath: row.object_path,
+        sha256: row.sha256,
+        sourceSizeBytes: Number(row.source_size_bytes),
+        status: row.status,
+        storedSizeBytes: Number(row.stored_size_bytes),
+        width: row.width
+      };
+    },
+    async fail(input) {
+      const scope = parseTenantScope(input.scope);
+      if (!scope) throw new Error("tenant scope must be canonical");
+      if (!uuidPattern.test(input.assetId)) {
+        throw new Error("assetId must be a UUID");
+      }
+      await client`
+        select private.fail_business_media_asset(
+          ${scope.tenantId}::uuid,
+          ${input.assetId}::uuid
+        )
+      `;
+    },
     async reserve(input) {
       const scope = parseTenantScope(input.scope);
       if (!scope) throw new Error("tenant scope must be canonical");
