@@ -23,6 +23,13 @@ export type ProcessedBusinessMedia = {
   width: number;
 };
 
+export class InvalidBusinessMediaError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidBusinessMediaError";
+  }
+}
+
 const expectedFormat: Record<SupportedBusinessMediaType, string> = {
   "image/jpeg": "jpeg",
   "image/png": "png",
@@ -60,7 +67,9 @@ export async function processBusinessMedia(
     input.bytes.byteLength < 1 ||
     input.bytes.byteLength > BUSINESS_MEDIA_POLICY.maxSourceBytes
   ) {
-    throw new Error("business media source exceeds file limit");
+    throw new InvalidBusinessMediaError(
+      "business media source exceeds file limit"
+    );
   }
 
   let decoder: Sharp;
@@ -73,7 +82,9 @@ export async function processBusinessMedia(
     });
     metadata = await decoder.metadata();
   } catch {
-    throw new Error("business media source cannot be decoded");
+    throw new InvalidBusinessMediaError(
+      "business media source cannot be decoded"
+    );
   }
 
   if (
@@ -82,7 +93,9 @@ export async function processBusinessMedia(
     !metadata.height ||
     (metadata.pages ?? 1) !== 1
   ) {
-    throw new Error("declared image type does not match source bytes");
+    throw new InvalidBusinessMediaError(
+      "declared image type does not match source bytes"
+    );
   }
 
   const bounds = outputBounds[input.kind];
