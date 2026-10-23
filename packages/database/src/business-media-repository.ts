@@ -75,6 +75,7 @@ export type ClaimedBusinessMedia = {
 };
 
 export type QueuedBusinessMediaJob = {
+  assetStatus: "deleted" | "failed" | "ready" | "reserved";
   envelope: unknown;
   expectedScope: TenantScope;
   messageId: string;
@@ -124,6 +125,7 @@ type ClaimedBusinessMediaRow = {
 };
 
 type QueuedBusinessMediaJobRow = {
+  asset_status: QueuedBusinessMediaJob["assetStatus"];
   envelope: unknown;
   expected_location_id: string;
   expected_tenant_id: string;
@@ -282,6 +284,7 @@ export function createBusinessMediaRepository(
         throw new Error("Queued business media scope is not canonical");
       }
       return {
+        assetStatus: row.asset_status,
         envelope: row.envelope,
         expectedScope,
         messageId: String(row.message_id)

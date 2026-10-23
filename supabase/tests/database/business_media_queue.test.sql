@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(17);
+select plan(19);
 
 insert into auth.users (id)
 values
@@ -187,8 +187,26 @@ select private.fail_business_media_asset(
   (select id from reserved_asset)
 );
 
+update pgmq.q_business_media_processing
+set vt = clock_timestamp()
+where msg_id = (select message_id from claimed_job);
+
+create temporary table recovered_job on commit drop as
+select * from private.read_business_media_job(60);
+
+select is(
+  (select asset_status from recovered_job),
+  'failed'::text,
+  'a terminal message can be recovered after acknowledgement interruption'
+);
+select is(
+  (select message_id from recovered_job),
+  (select message_id from claimed_job),
+  'the recovered terminal message keeps its durable identity'
+);
+
 select ok(
-  private.ack_business_media_job((select message_id from claimed_job)),
+  private.ack_business_media_job((select message_id from recovered_job)),
   'a terminal job can be acknowledged'
 );
 select is(
