@@ -26,6 +26,41 @@ const draft = {
 };
 
 describe("business profile repository", () => {
+  it("normalizes PostgreSQL timestamp text when a draft is resumed", async () => {
+    const client = (() =>
+      Promise.resolve([
+        {
+          accent_color: "#D97706",
+          address: "",
+          contact_phone: "",
+          cover_asset_id: null,
+          description: "",
+          display_name: "Bodegón Demo",
+          heading_style: "serif",
+          languages: ["es"],
+          logo_asset_id: null,
+          opening_hours: "",
+          primary_color: "#1F2937",
+          reference_asset_ids: [],
+          revision: 1,
+          secondary_color: "#F9FAFB",
+          updated_at: "2026-10-23 14:00:00+00",
+          visual_layout: "visual"
+        }
+      ])) as never;
+    const repository = createBusinessProfileRepository(client);
+
+    await expect(
+      repository.getDraft(
+        {
+          locationId: "d5000000-0000-4000-8000-000000000005",
+          tenantId: "d3000000-0000-4000-8000-000000000003"
+        },
+        "d1000000-0000-4000-8000-000000000001"
+      )
+    ).resolves.toMatchObject({ updatedAt: "2026-10-23T14:00:00.000Z" });
+  });
+
   it("rejects an invalid tenant scope before querying", async () => {
     const repository = createBusinessProfileRepository(unreachableClient);
 

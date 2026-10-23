@@ -18,6 +18,28 @@ const validInput = {
 };
 
 describe("business media repository", () => {
+  it("normalizes PostgreSQL timestamp text from a media reservation", async () => {
+    const client = (() =>
+      Promise.resolve([
+        {
+          content_type: "image/jpeg",
+          id: "e6000000-0000-4000-8000-000000000006",
+          kind: "logo",
+          object_path:
+            "tenants/e3000000-0000-4000-8000-000000000003/locations/e5000000-0000-4000-8000-000000000005/business-profile/logo/e6000000-0000-4000-8000-000000000006.jpg",
+          reservation_expires_at: "2026-10-23 14:00:00+00",
+          source_size_bytes: 2048,
+          status: "reserved"
+        }
+      ])) as never;
+    const repository = createBusinessMediaRepository(client);
+
+    await expect(repository.reserve(validInput)).resolves.toMatchObject({
+      expiresAt: "2026-10-23T14:00:00.000Z",
+      status: "reserved"
+    });
+  });
+
   it("rejects malformed worker claims before querying", async () => {
     const repository = createBusinessMediaRepository(unreachableClient);
     await expect(

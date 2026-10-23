@@ -98,7 +98,9 @@ export interface BusinessMediaRepository {
     input: GetBusinessMediaStatusInput
   ): Promise<BusinessMediaAssetStatusRecord>;
   queue(input: QueueBusinessMediaInput): Promise<BusinessMediaProcessingRecord>;
-  readJob(visibilityTimeoutSeconds: number): Promise<QueuedBusinessMediaJob | null>;
+  readJob(
+    visibilityTimeoutSeconds: number
+  ): Promise<QueuedBusinessMediaJob | null>;
   reserve(input: ReserveBusinessMediaInput): Promise<ReservedBusinessMedia>;
 }
 
@@ -107,7 +109,7 @@ type BusinessMediaRow = {
   id: string;
   kind: BusinessMediaKind;
   object_path: string;
-  reservation_expires_at: Date;
+  reservation_expires_at: Date | string;
   source_size_bytes: string | number;
   status: "reserved";
 };
@@ -151,6 +153,14 @@ type QueuedBusinessMediaJobRow = {
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+function toIsoTimestamp(value: Date | string, field: string): string {
+  const timestamp = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(timestamp.valueOf())) {
+    throw new Error(`${field} must be a valid timestamp`);
+  }
+  return timestamp.toISOString();
+}
 
 export function createBusinessMediaRepository(
   client: Sql
@@ -267,7 +277,8 @@ export function createBusinessMediaRepository(
           ${input.assetId}::uuid
         )
       `;
-      if (!row) throw new Error("Business media asset status returned no record");
+      if (!row)
+        throw new Error("Business media asset status returned no record");
       return row;
     },
     async queue(input) {
@@ -361,7 +372,10 @@ export function createBusinessMediaRepository(
         throw new Error("Business media reservation did not return a record");
       return {
         contentType: row.content_type,
-        expiresAt: row.reservation_expires_at.toISOString(),
+        expiresAt: toIsoTimestamp(
+          row.reservation_expires_at,
+          "reservation_expires_at"
+        ),
         id: row.id,
         kind: row.kind,
         objectPath: row.object_path,

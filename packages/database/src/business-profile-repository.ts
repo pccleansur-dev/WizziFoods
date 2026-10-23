@@ -42,7 +42,7 @@ type BusinessProfileRow = {
   reference_asset_ids: string[];
   revision: number;
   secondary_color: string;
-  updated_at: Date;
+  updated_at: Date | string;
   visual_layout: BusinessProfileDraft["visual"]["layout"];
 };
 
@@ -67,6 +67,14 @@ function assertDraft(draft: BusinessProfileDraft): BusinessProfileDraft {
   return parsed;
 }
 
+function toIsoTimestamp(value: Date | string): string {
+  const timestamp = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(timestamp.valueOf())) {
+    throw new Error("updated_at must be a valid timestamp");
+  }
+  return timestamp.toISOString();
+}
+
 function mapRow(row: BusinessProfileRow): BusinessProfileDraftRecord {
   return {
     address: row.address,
@@ -79,7 +87,7 @@ function mapRow(row: BusinessProfileRow): BusinessProfileDraftRecord {
     openingHours: row.opening_hours,
     referenceAssetIds: row.reference_asset_ids,
     revision: row.revision,
-    updatedAt: row.updated_at.toISOString(),
+    updatedAt: toIsoTimestamp(row.updated_at),
     visual: {
       accentColor: row.accent_color,
       headingStyle: row.heading_style,
