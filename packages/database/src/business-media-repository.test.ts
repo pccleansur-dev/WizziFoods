@@ -28,6 +28,17 @@ describe("business media repository", () => {
     ).rejects.toThrow("assetId must be a UUID");
   });
 
+  it("rejects malformed status identifiers before querying", async () => {
+    const repository = createBusinessMediaRepository(unreachableClient);
+    await expect(
+      repository.getStatus({
+        assetId: "asset-from-client",
+        requesterId: validInput.requesterId,
+        scope: validInput.scope
+      })
+    ).rejects.toThrow("assetId must be a UUID");
+  });
+
   it("rejects unsafe queue controls before querying", async () => {
     const repository = createBusinessMediaRepository(unreachableClient);
     await expect(repository.readJob(0)).rejects.toThrow(

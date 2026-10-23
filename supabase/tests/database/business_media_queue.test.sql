@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(19);
+select plan(21);
 
 insert into auth.users (id)
 values
@@ -131,6 +131,32 @@ select is(
   (select count(*) from pgmq.q_business_media_processing),
   1::bigint,
   'an enqueue retry does not duplicate the job'
+);
+select is(
+  (
+    select status
+    from private.get_business_media_asset_status(
+      'f3000000-0000-4000-8000-000000000003',
+      (select location_id from reserved_asset),
+      'f1000000-0000-4000-8000-000000000001',
+      (select id from reserved_asset)
+    )
+  ),
+  'reserved'::text,
+  'the tenant administrator can read processing status'
+);
+select throws_ok(
+  $$
+    select * from private.get_business_media_asset_status(
+      'f3000000-0000-4000-8000-000000000003',
+      (select location_id from reserved_asset),
+      'f2000000-0000-4000-8000-000000000002',
+      (select id from reserved_asset)
+    )
+  $$,
+  '42501',
+  null,
+  'an administrator from another tenant cannot read processing status'
 );
 
 select results_eq(

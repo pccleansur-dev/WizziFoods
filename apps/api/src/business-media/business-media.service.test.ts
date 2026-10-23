@@ -17,6 +17,36 @@ const context = {
 } as TenantAdminRequestContext;
 
 describe("BusinessMediaService", () => {
+  it("reads status using only the authenticated tenant scope", async () => {
+    const received: unknown[] = [];
+    const repository = {
+      getStatus: async (input) => {
+        received.push(input);
+        return {
+          id: "e6000000-0000-4000-8000-000000000006",
+          kind: "logo" as const,
+          status: "ready" as const
+        };
+      }
+    } as BusinessMediaRepository;
+    const service = new BusinessMediaService(repository, {} as never);
+
+    await expect(
+      service.getStatus(context, "e6000000-0000-4000-8000-000000000006")
+    ).resolves.toEqual({
+      assetId: "e6000000-0000-4000-8000-000000000006",
+      kind: "logo",
+      status: "ready"
+    });
+    expect(received).toEqual([
+      {
+        assetId: "e6000000-0000-4000-8000-000000000006",
+        requesterId: context.identity.userId,
+        scope: context.scope
+      }
+    ]);
+  });
+
   it("queues an uploaded asset using only the authenticated tenant scope", async () => {
     const received: unknown[] = [];
     const repository = {

@@ -57,6 +57,14 @@ export type QueueBusinessMediaInput = {
   scope: TenantScope;
 };
 
+export type GetBusinessMediaStatusInput = QueueBusinessMediaInput;
+
+export type BusinessMediaAssetStatusRecord = {
+  id: string;
+  kind: BusinessMediaKind;
+  status: "failed" | "ready" | "reserved";
+};
+
 export type BusinessMediaProcessingRecord = {
   id: string;
   processingMessageId: string;
@@ -86,6 +94,9 @@ export interface BusinessMediaRepository {
   claim(input: ClaimBusinessMediaInput): Promise<ClaimedBusinessMedia>;
   complete(input: CompleteBusinessMediaInput): Promise<CompletedBusinessMedia>;
   fail(input: FailBusinessMediaInput): Promise<void>;
+  getStatus(
+    input: GetBusinessMediaStatusInput
+  ): Promise<BusinessMediaAssetStatusRecord>;
   queue(input: QueueBusinessMediaInput): Promise<BusinessMediaProcessingRecord>;
   readJob(visibilityTimeoutSeconds: number): Promise<QueuedBusinessMediaJob | null>;
   reserve(input: ReserveBusinessMediaInput): Promise<ReservedBusinessMedia>;
@@ -116,6 +127,12 @@ type BusinessMediaProcessingRow = {
   id: string;
   processing_message_id: number | string;
   status: BusinessMediaProcessingRecord["status"];
+};
+
+type BusinessMediaAssetStatusRow = {
+  id: string;
+  kind: BusinessMediaKind;
+  status: BusinessMediaAssetStatusRecord["status"];
 };
 
 type ClaimedBusinessMediaRow = {
@@ -231,6 +248,27 @@ export function createBusinessMediaRepository(
           ${input.assetId}::uuid
         )
       `;
+    },
+    async getStatus(input) {
+      const scope = parseTenantScope(input.scope);
+      if (!scope) throw new Error("tenant scope must be canonical");
+      if (!uuidPattern.test(input.assetId)) {
+        throw new Error("assetId must be a UUID");
+      }
+      if (!uuidPattern.test(input.requesterId)) {
+        throw new Error("requesterId must be a UUID");
+      }
+      const [row] = await client<BusinessMediaAssetStatusRow[]>`
+        select *
+        from private.get_business_media_asset_status(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.requesterId}::uuid,
+          ${input.assetId}::uuid
+        )
+      `;
+      if (!row) throw new Error("Business media asset status returned no record");
+      return row;
     },
     async queue(input) {
       const scope = parseTenantScope(input.scope);

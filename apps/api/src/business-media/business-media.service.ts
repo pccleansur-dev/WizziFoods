@@ -15,6 +15,19 @@ export class BusinessMediaService {
     private readonly storage: BusinessMediaStorageGateway
   ) {}
 
+  async getStatus(context: TenantAdminRequestContext, assetId: string) {
+    const result = await this.repository.getStatus({
+      assetId,
+      requesterId: context.identity.userId,
+      scope: context.scope
+    });
+    return {
+      assetId: result.id,
+      kind: result.kind,
+      status: result.status
+    };
+  }
+
   async queue(context: TenantAdminRequestContext, assetId: string) {
     const result = await this.repository.queue({
       assetId,

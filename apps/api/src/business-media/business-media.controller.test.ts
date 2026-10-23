@@ -19,4 +19,12 @@ describe("BusinessMediaController", () => {
       controller.queue({} as never, "asset-from-client")
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it("rejects a malformed status identifier at the HTTP boundary", async () => {
+    const controller = new BusinessMediaController({} as never);
+
+    await expect(
+      controller.getStatus({} as never, "asset-from-client")
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
 });

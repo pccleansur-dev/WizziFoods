@@ -1,4 +1,5 @@
 export {
+  type BusinessMediaAssetStatusRecord,
   type BusinessMediaProcessingRecord,
   type BusinessMediaRepository,
   type ClaimBusinessMediaInput,
@@ -7,6 +8,7 @@ export {
   type CompletedBusinessMedia,
   createBusinessMediaRepository,
   type FailBusinessMediaInput,
+  type GetBusinessMediaStatusInput,
   type QueueBusinessMediaInput,
   type QueuedBusinessMediaJob,
   type ReservedBusinessMedia,

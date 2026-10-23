@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
@@ -35,6 +36,27 @@ export class BusinessMediaController {
     @Inject(BusinessMediaService)
     private readonly service: BusinessMediaService
   ) {}
+
+  @Get(":assetId")
+  async getStatus(
+    @Req() request: BusinessMediaRequest,
+    @Param("assetId") assetId: unknown
+  ) {
+    let parsed;
+    try {
+      parsed = parseBusinessMediaAssetId(assetId);
+    } catch (error) {
+      throw new BadRequestException({
+        error: {
+          code: "INVALID_BUSINESS_MEDIA",
+          message: (error as Error).message
+        }
+      });
+    }
+    return {
+      data: await this.service.getStatus(request.tenantAdminContext, parsed)
+    };
+  }
 
   @Post(":assetId/processing")
   @HttpCode(HttpStatus.ACCEPTED)
