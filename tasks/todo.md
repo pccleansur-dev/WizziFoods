@@ -251,20 +251,29 @@ mesas de T16: la API no puede falsear que se cerró la última sesión.
 
 ## Fase 3 — Alta: identidad y carta
 
-### T10. Guardar perfil, imágenes y propuesta visual
+### T10. Guardar perfil, imágenes y propuesta visual — completada
 
 **Descripción:** Entregar el primer tramo guardable del asistente con identidad básica, medios y una configuración visual editable.
 
 **Criterios de aceptación:**
 
-- [ ] El Administrador guarda datos, logo, portada, colores y referencias desde móvil o escritorio.
-- [ ] Storage aplica rutas y permisos por tenant, límites, compresión y metadatos.
-- [ ] La vista previa nunca modifica la versión publicada.
+- [x] El Administrador guarda datos, logo, portada, colores y referencias desde móvil o escritorio.
+- [x] Storage aplica rutas y permisos por tenant, límites, compresión y metadatos.
+- [x] La vista previa nunca modifica la versión publicada.
 
 **Verificación:**
 
-- [ ] Pruebas de archivos inválidos, cuota y acceso cruzado.
-- [ ] Recorrido responsive guardar → salir → continuar.
+- [x] Pruebas de archivos inválidos, cuota y acceso cruzado.
+- [x] Recorrido responsive guardar → salir → continuar.
+
+**Resultado:** el Administrador edita identidad, datos, colores e imágenes en un
+borrador responsive con vista previa separada de la versión publicada. Las
+imágenes se reservan en rutas privadas por tenant y ubicación, se validan,
+comprimen y procesan en una cola durable antes de poder asociarse al perfil. La
+base rechaza archivos pendientes, ajenos o de un tipo visual incorrecto. Un
+recorrido autenticado contra Supabase local verificó reserva, guardado y carga
+posterior del borrador de un tenant todavía no publicado, sin habilitarlo en la
+ruta pública.
 
 **Dependencias:** T08.
 
