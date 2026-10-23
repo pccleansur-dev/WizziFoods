@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(19);
+select plan(21);
 
 insert into auth.users (id)
 values
@@ -26,6 +26,12 @@ values
     'security-suspension',
     'Security Suspension',
     'active'
+  ),
+  (
+    'c7000000-0000-4000-8000-000000000007',
+    'draft-suspension',
+    'Draft Suspension',
+    'draft'
   );
 
 insert into public.staff_members (
@@ -257,6 +263,31 @@ select throws_ok(
   '22023',
   null,
   'unsupported suspension modes are rejected'
+);
+
+select results_eq(
+  $$
+    select mode, phase, tenant_status
+    from private.request_tenant_suspension(
+      'c7000000-0000-4000-8000-000000000007',
+      'c1000000-0000-4000-8000-000000000001',
+      'commercial',
+      'Draft subscription was cancelled',
+      'suspension-draft-001'
+    )
+  $$,
+  $$ values ('commercial'::text, 'suspended'::text, 'suspended'::text) $$,
+  'a draft commercial suspension completes without activating the tenant'
+);
+select is(
+  (
+    select count(*)::integer
+    from private.audit_events
+    where tenant_id = 'c7000000-0000-4000-8000-000000000007'
+      and action = 'tenant.suspension_completed'
+  ),
+  1,
+  'immediate draft completion is audited'
 );
 
 select * from finish();

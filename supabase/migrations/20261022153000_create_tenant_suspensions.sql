@@ -70,6 +70,7 @@ as $$
 declare
   requested_at_value timestamptz := statement_timestamp();
   tenant_status_value text;
+  should_complete_immediately boolean;
 begin
   if target_mode not in ('commercial', 'security') then
     raise exception 'unsupported tenant suspension mode'
@@ -115,6 +116,9 @@ begin
       using errcode = '22023';
   end if;
 
+  should_complete_immediately :=
+    target_mode = 'security' or tenant_status_value = 'draft';
+
   insert into private.tenant_suspensions (
     tenant_id,
     mode,
@@ -128,7 +132,7 @@ begin
     target_tenant_id,
     target_mode,
     case
-      when target_mode = 'security' then 'suspended'
+      when should_complete_immediately then 'suspended'
       else 'commercial_draining'
     end,
     btrim(target_reason),
@@ -136,7 +140,7 @@ begin
     target_correlation_id,
     requested_at_value,
     case
-      when target_mode = 'security' then requested_at_value
+      when should_complete_immediately then requested_at_value
       else null
     end
   )
@@ -150,17 +154,19 @@ begin
     requested_at = excluded.requested_at,
     completed_at = excluded.completed_at;
 
-  if target_mode = 'security' then
+  if should_complete_immediately then
     update public.tenants tenant
     set
       status = 'suspended',
       updated_at = requested_at_value
     where tenant.id = target_tenant_id;
 
-    update private.staff_sessions session
-    set revoked_at = requested_at_value
-    where session.tenant_id = target_tenant_id
-      and session.revoked_at is null;
+    if target_mode = 'security' then
+      update private.staff_sessions session
+      set revoked_at = requested_at_value
+      where session.tenant_id = target_tenant_id
+        and session.revoked_at is null;
+    end if;
 
     tenant_status_value := 'suspended';
   else
@@ -183,6 +189,19 @@ begin
     'tenant',
     target_tenant_id
   );
+
+  if target_mode = 'commercial' and should_complete_immediately then
+    perform private.append_audit_event(
+      target_tenant_id,
+      'platform_superadmin',
+      target_requested_by,
+      'tenant.suspension_completed',
+      btrim(target_reason),
+      target_correlation_id,
+      'tenant',
+      target_tenant_id
+    );
+  end if;
 
   return query
   select
