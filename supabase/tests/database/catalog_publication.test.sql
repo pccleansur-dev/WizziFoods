@@ -20,6 +20,16 @@ values
   ('e3000000-0000-4000-8000-000000000003', 'e1000000-0000-4000-8000-000000000001', 'admin'),
   ('e4000000-0000-4000-8000-000000000004', 'e2000000-0000-4000-8000-000000000002', 'admin');
 
+select *
+from private.save_business_profile_draft(
+  'e3000000-0000-4000-8000-000000000003',
+  (select id from public.locations where tenant_id = 'e3000000-0000-4000-8000-000000000003'),
+  'e1000000-0000-4000-8000-000000000001',
+  'Catalog One', '', '', '', '', array['es'],
+  'visual', 'serif', '#1F2937', '#F9FAFB', '#D97706',
+  null, null, '{}'::uuid[]
+);
+
 select has_table('private', 'catalog_drafts', 'catalog drafts are private');
 select has_table('private', 'published_catalogs', 'published versions are immutable rows');
 select has_table(

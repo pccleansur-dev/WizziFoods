@@ -20,6 +20,16 @@ values
   ('f3000000-0000-4000-8000-000000000003', 'f1000000-0000-4000-8000-000000000001', 'admin'),
   ('f4000000-0000-4000-8000-000000000004', 'f2000000-0000-4000-8000-000000000002', 'admin');
 
+select *
+from private.save_business_profile_draft(
+  'f3000000-0000-4000-8000-000000000003',
+  (select id from public.locations where tenant_id = 'f3000000-0000-4000-8000-000000000003'),
+  'f1000000-0000-4000-8000-000000000001',
+  'Catalog Read One', '', '', '', '', array['es'],
+  'visual', 'serif', '#1F2937', '#F9FAFB', '#D97706',
+  null, null, '{}'::uuid[]
+);
+
 select ok(
   has_function_privilege(
     'authenticator',
