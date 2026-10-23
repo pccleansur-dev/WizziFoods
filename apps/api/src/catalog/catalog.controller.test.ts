@@ -66,4 +66,26 @@ describe("catalog controllers", () => {
       })
     ).rejects.toBeInstanceOf(ConflictException);
   });
+
+  it("maps unmet publication requirements without leaking database details", async () => {
+    const controller = new CatalogAdminController({
+      publish: () =>
+        Promise.reject({
+          code: "22023",
+          message: "catalog publication requirements missing: BUSINESS_IDENTITY"
+        })
+    } as never);
+
+    const error = await controller
+      .publish({ tenantAdminContext: {} } as never, { expectedDraftRevision: 1 })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect((error as BadRequestException).getResponse()).toEqual({
+      error: {
+        code: "CATALOG_NOT_READY",
+        message: "Completá los requisitos mínimos antes de publicar."
+      }
+    });
+  });
 });

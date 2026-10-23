@@ -56,6 +56,25 @@ function rethrowConflict(error: unknown): void {
   }
 }
 
+function rethrowPublicationRequirements(error: unknown): void {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "22023" &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    error.message.startsWith("catalog publication requirements missing:")
+  ) {
+    throw new BadRequestException({
+      error: {
+        code: "CATALOG_NOT_READY",
+        message: "Completá los requisitos mínimos antes de publicar."
+      }
+    });
+  }
+}
+
 @Controller("v1/tenant/catalog")
 @UseGuards(AdminAuthGuard, TenantHostGuard, TenantAdminScopeGuard)
 export class CatalogAdminController {
@@ -108,6 +127,7 @@ export class CatalogAdminController {
       };
     } catch (error) {
       rethrowConflict(error);
+      rethrowPublicationRequirements(error);
       throw error;
     }
   }
