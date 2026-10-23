@@ -31,8 +31,13 @@ export type WebAuthConfig = {
 };
 
 export type WorkerRuntimeConfig = BaseRuntimeConfig & {
+  databaseUrl: string;
   heartbeatMs: number;
   metricsPort: number;
+  pollMs: number;
+  supabaseSecretKey: string;
+  supabaseUrl: string;
+  visibilityTimeoutSeconds: number;
 };
 
 function required(source: EnvironmentSource, key: string): string {
@@ -289,10 +294,31 @@ export function readWorkerConfig(
     assertRequired(source, [
       "APP_ENV",
       "LOG_LEVEL",
+      "DATABASE_URL",
+      "SUPABASE_URL",
+      "SUPABASE_SECRET_KEY",
       "WORKER_HEARTBEAT_MS",
-      "WORKER_METRICS_PORT"
+      "WORKER_METRICS_PORT",
+      "WORKER_POLL_MS",
+      "WORKER_VISIBILITY_TIMEOUT_SECONDS"
     ]);
     const base = readBaseConfig(source);
+    const databaseUrl = readUrl(
+      source,
+      "DATABASE_URL",
+      ["postgres:", "postgresql:"],
+      "an absolute PostgreSQL URL"
+    );
+    const supabaseUrl = readUrl(
+      source,
+      "SUPABASE_URL",
+      ["http:", "https:"],
+      "an absolute HTTP(S) URL"
+    );
+    const supabaseSecretKey = required(source, "SUPABASE_SECRET_KEY");
+    if (!supabaseSecretKey.startsWith("sb_secret_")) {
+      throw new Error("SUPABASE_SECRET_KEY must be a server secret key");
+    }
     const heartbeatMs = readInteger(
       source,
       "WORKER_HEARTBEAT_MS",
@@ -300,7 +326,23 @@ export function readWorkerConfig(
       3_600_000
     );
     const metricsPort = readInteger(source, "WORKER_METRICS_PORT", 1, 65_535);
+    const pollMs = readInteger(source, "WORKER_POLL_MS", 100, 60_000);
+    const visibilityTimeoutSeconds = readInteger(
+      source,
+      "WORKER_VISIBILITY_TIMEOUT_SECONDS",
+      1,
+      3_600
+    );
 
-    return { ...base, heartbeatMs, metricsPort };
+    return {
+      ...base,
+      databaseUrl,
+      heartbeatMs,
+      metricsPort,
+      pollMs,
+      supabaseSecretKey,
+      supabaseUrl,
+      visibilityTimeoutSeconds
+    };
   });
 }

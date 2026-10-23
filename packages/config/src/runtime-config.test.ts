@@ -142,18 +142,64 @@ describe("runtime configuration", () => {
     ).toThrow("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be publishable");
   });
 
-  it("parses the worker heartbeat interval", () => {
+  it("fails with all missing worker variables named", () => {
+    expect(() => readWorkerConfig({})).toThrow(
+      "Configuración inválida para worker: APP_ENV is required; LOG_LEVEL is required; DATABASE_URL is required; SUPABASE_URL is required; SUPABASE_SECRET_KEY is required; WORKER_HEARTBEAT_MS is required; WORKER_METRICS_PORT is required; WORKER_POLL_MS is required; WORKER_VISIBILITY_TIMEOUT_SECONDS is required"
+    );
+  });
+
+  it("parses the worker queue and storage boundary", () => {
     expect(
       readWorkerConfig({
         ...baseEnvironment,
+        DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+        SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+        SUPABASE_URL: "http://supabase.local:8000",
         WORKER_METRICS_PORT: "9465",
-        WORKER_HEARTBEAT_MS: "60000"
+        WORKER_HEARTBEAT_MS: "60000",
+        WORKER_POLL_MS: "1000",
+        WORKER_VISIBILITY_TIMEOUT_SECONDS: "120"
       })
     ).toEqual({
+      databaseUrl: "postgresql://authenticator:secret@db:5432/postgres",
       environment: "test",
       heartbeatMs: 60_000,
       logLevel: "info",
-      metricsPort: 9465
+      metricsPort: 9465,
+      pollMs: 1_000,
+      supabaseSecretKey: "sb_secret_server-only-example",
+      supabaseUrl: "http://supabase.local:8000",
+      visibilityTimeoutSeconds: 120
     });
+  });
+
+  it("rejects an unsafe worker secret", () => {
+    expect(() =>
+      readWorkerConfig({
+        ...baseEnvironment,
+        DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+        SUPABASE_SECRET_KEY: "public-key",
+        SUPABASE_URL: "http://supabase.local:8000",
+        WORKER_METRICS_PORT: "9465",
+        WORKER_HEARTBEAT_MS: "60000",
+        WORKER_POLL_MS: "0",
+        WORKER_VISIBILITY_TIMEOUT_SECONDS: "3601"
+      })
+    ).toThrow("SUPABASE_SECRET_KEY must be a server secret key");
+  });
+
+  it("rejects unsafe worker queue timing", () => {
+    expect(() =>
+      readWorkerConfig({
+        ...baseEnvironment,
+        DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+        SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+        SUPABASE_URL: "http://supabase.local:8000",
+        WORKER_METRICS_PORT: "9465",
+        WORKER_HEARTBEAT_MS: "60000",
+        WORKER_POLL_MS: "0",
+        WORKER_VISIBILITY_TIMEOUT_SECONDS: "3601"
+      })
+    ).toThrow("WORKER_POLL_MS must be an integer between 100 and 60000");
   });
 });
