@@ -9,12 +9,20 @@ import {
   addCatalogCategory,
   addCatalogProduct,
   addCatalogSector,
+  addCatalogVariant,
   createEmptyCatalogDraft,
   formatPrice,
   normalizeProductPositions,
   parsePriceToCents,
-  removeCatalogCategory
+  removeCatalogCategory,
+  removeCatalogVariant,
+  synchronizeCatalogLanguages,
+  updateCatalogLocalizedContent
 } from "./catalog-editor-state";
+import {
+  CatalogLocalizedFields,
+  catalogLanguageName
+} from "./catalog-localized-fields";
 import { CatalogPreview } from "./catalog-preview";
 import type { SavedCatalogDraft } from "./catalog";
 import { BusinessMediaUploadField } from "./business-media-upload-field";
@@ -28,37 +36,20 @@ const initialActionState = (
   status: "idle"
 });
 
-function localizedUpdate(
-  draft: CatalogDraft,
-  type: "category" | "product",
-  id: string,
-  field: "description" | "title",
-  value: string
-): CatalogDraft {
-  const key = type === "category" ? "categories" : "products";
-  return {
-    ...draft,
-    [key]: draft[key].map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            content: item.content.map((content, index) =>
-              index === 0 ? { ...content, [field]: value } : content
-            )
-          }
-        : item
-    )
-  } as CatalogDraft;
-}
-
 export function CatalogEditor({
-  catalog
+  catalog,
+  languages
 }: {
   catalog: SavedCatalogDraft | null;
+  languages: string[];
 }) {
-  const initialDraft = catalog?.draft ?? createEmptyCatalogDraft();
+  const initialDraft = synchronizeCatalogLanguages(
+    catalog?.draft ?? createEmptyCatalogDraft(),
+    languages
+  );
   const [draft, setDraft] = useState(initialDraft);
   const draftRef = useRef(initialDraft);
+  const [previewLanguage, setPreviewLanguage] = useState(languages[0] ?? "es");
   const [dirty, setDirty] = useState(false);
   const [saveState, saveAction, saving] = useActionState(
     async (previousState: CatalogActionState, formData: FormData) => {
@@ -147,7 +138,25 @@ export function CatalogEditor({
             >
               + Agregar producto
             </button>
+            <label className="catalog-language-picker">
+              <span>Idioma de vista previa</span>
+              <select
+                onChange={(event) => setPreviewLanguage(event.target.value)}
+                value={previewLanguage}
+              >
+                {languages.map((language) => (
+                  <option key={language} value={language}>
+                    {catalogLanguageName(language)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
+
+          <p className="catalog-language-note">
+            <strong>Contenido por idioma.</strong> Nombre y descripción se
+            publican por separado; precio, imagen y disponibilidad se comparten.
+          </p>
 
           <div className="catalog-editor__groups">
             <div className="catalog-card">
@@ -162,25 +171,22 @@ export function CatalogEditor({
               ) : (
                 draft.categories.map((category) => (
                   <div className="catalog-inline-row" key={category.id}>
-                    <label className="field-group">
-                      <span>Nombre</span>
-                      <input
-                        maxLength={120}
-                        onChange={(event) =>
-                          change((current) =>
-                            localizedUpdate(
-                              current,
-                              "category",
-                              category.id,
-                              "title",
-                              event.target.value
-                            )
+                    <CatalogLocalizedFields
+                      content={category.content}
+                      languages={languages}
+                      legend="Contenido de la categoría"
+                      onChange={(language, field, value) =>
+                        change((current) =>
+                          updateCatalogLocalizedContent(
+                            current,
+                            { id: category.id, type: "category" },
+                            language,
+                            field,
+                            value
                           )
-                        }
-                        required
-                        value={category.content[0]?.title ?? ""}
-                      />
-                    </label>
+                        )
+                      }
+                    />
                     <button
                       aria-label={`Eliminar ${category.content[0]?.title ?? "categoría"}`}
                       className="catalog-remove"
@@ -294,24 +300,6 @@ export function CatalogEditor({
                     </div>
                     <div className="catalog-product__fields">
                       <label className="field-group">
-                        <span>Nombre del producto</span>
-                        <input
-                          maxLength={120}
-                          onChange={(event) =>
-                            change((current) =>
-                              localizedUpdate(
-                                current,
-                                "product",
-                                product.id,
-                                "title",
-                                event.target.value
-                              )
-                            )
-                          }
-                          value={product.content[0]?.title ?? ""}
-                        />
-                      </label>
-                      <label className="field-group">
                         <span>Precio en pesos</span>
                         <input
                           inputMode="decimal"
@@ -330,25 +318,6 @@ export function CatalogEditor({
                           }}
                           pattern="[0-9]+(?:,[0-9]{1,2})?"
                           value={formatPrice(product.priceCents)}
-                        />
-                      </label>
-                      <label className="field-group catalog-product__description">
-                        <span>Descripción</span>
-                        <textarea
-                          maxLength={1000}
-                          onChange={(event) =>
-                            change((current) =>
-                              localizedUpdate(
-                                current,
-                                "product",
-                                product.id,
-                                "description",
-                                event.target.value
-                              )
-                            )
-                          }
-                          rows={3}
-                          value={product.content[0]?.description ?? ""}
                         />
                       </label>
                       <label className="field-group">
@@ -401,6 +370,22 @@ export function CatalogEditor({
                         </select>
                       </label>
                     </div>
+                    <CatalogLocalizedFields
+                      content={product.content}
+                      languages={languages}
+                      legend="Contenido del producto"
+                      onChange={(language, field, value) =>
+                        change((current) =>
+                          updateCatalogLocalizedContent(
+                            current,
+                            { id: product.id, type: "product" },
+                            language,
+                            field,
+                            value
+                          )
+                        )
+                      }
+                    />
                     <BusinessMediaUploadField
                       hasAsset={Boolean(product.imageAssetId)}
                       help="Se mostrará junto al producto cuando la carta esté publicada."
@@ -417,6 +402,108 @@ export function CatalogEditor({
                         }))
                       }
                     />
+                    <div className="catalog-variants">
+                      <div className="catalog-card__heading">
+                        <div>
+                          <h4>Variantes</h4>
+                          <p>Ejemplo: tamaño, presentación o acompañamiento.</p>
+                        </div>
+                        <button
+                          className="button button--secondary"
+                          disabled={product.variants.length >= 30}
+                          onClick={() =>
+                            change((current) =>
+                              addCatalogVariant(
+                                current,
+                                product.id,
+                                undefined,
+                                languages
+                              )
+                            )
+                          }
+                          type="button"
+                        >
+                          + Agregar variante
+                        </button>
+                      </div>
+                      {product.variants.map((variant) => (
+                        <div className="catalog-variant" key={variant.id}>
+                          <div className="catalog-product__heading">
+                            <strong>
+                              {variant.content.find(
+                                ({ language }) => language === previewLanguage
+                              )?.title || "Variante sin nombre"}
+                            </strong>
+                            <button
+                              className="catalog-remove"
+                              onClick={() =>
+                                change((current) =>
+                                  removeCatalogVariant(
+                                    current,
+                                    product.id,
+                                    variant.id
+                                  )
+                                )
+                              }
+                              type="button"
+                            >
+                              Eliminar variante
+                            </button>
+                          </div>
+                          <label className="field-group catalog-variant__price">
+                            <span>Adicional en pesos</span>
+                            <input
+                              inputMode="decimal"
+                              onChange={(event) => {
+                                const cents = parsePriceToCents(
+                                  event.target.value
+                                );
+                                if (cents !== null) {
+                                  change((current) => ({
+                                    ...current,
+                                    products: current.products.map((value) =>
+                                      value.id === product.id
+                                        ? {
+                                            ...value,
+                                            variants: value.variants.map(
+                                              (item) =>
+                                                item.id === variant.id
+                                                  ? {
+                                                      ...item,
+                                                      priceDeltaCents: cents
+                                                    }
+                                                  : item
+                                            )
+                                          }
+                                        : value
+                                    )
+                                  }));
+                                }
+                              }}
+                              pattern="[0-9]+(?:,[0-9]{1,2})?"
+                              value={formatPrice(variant.priceDeltaCents)}
+                            />
+                          </label>
+                          <CatalogLocalizedFields
+                            content={variant.content}
+                            languages={languages}
+                            legend="Contenido de la variante"
+                            onChange={(language, field, value) =>
+                              change((current) =>
+                                updateCatalogLocalizedContent(
+                                  current,
+                                  { id: variant.id, type: "variant" },
+                                  language,
+                                  field,
+                                  value
+                                )
+                              )
+                            }
+                            showDescription={false}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </article>
                 ))
               )}
@@ -465,7 +552,11 @@ export function CatalogEditor({
             ) : null
           )}
         </div>
-        <CatalogPreview draft={draft} publishedRevision={publishedRevision} />
+        <CatalogPreview
+          draft={draft}
+          language={previewLanguage}
+          publishedRevision={publishedRevision}
+        />
       </div>
     </section>
   );

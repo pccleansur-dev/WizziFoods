@@ -1,4 +1,7 @@
-import type { CatalogDraft } from "@platform/contracts";
+import type {
+  CatalogDraft,
+  LocalizedCatalogContent
+} from "@platform/contracts";
 
 function price(cents: number) {
   return new Intl.NumberFormat("es-AR", {
@@ -10,11 +13,18 @@ function price(cents: number) {
 
 export function CatalogPreview({
   draft,
+  language,
   publishedRevision
 }: {
   draft: CatalogDraft;
+  language: string;
   publishedRevision: number | null;
 }) {
+  const localized = (item: {
+    content: LocalizedCatalogContent[];
+  }): LocalizedCatalogContent | undefined =>
+    item.content.find((content) => content.language === language) ??
+    item.content[0];
   return (
     <aside className="catalog-preview" aria-label="Vista previa de la carta">
       <div className="catalog-preview__heading">
@@ -33,7 +43,7 @@ export function CatalogPreview({
       ) : (
         <div className="catalog-menu-preview">
           {draft.categories.map((category) => {
-            const categoryContent = category.content[0];
+            const categoryContent = localized(category);
             const products = draft.products.filter(
               ({ categoryId }) => categoryId === category.id
             );
@@ -51,7 +61,7 @@ export function CatalogPreview({
                   </p>
                 ) : (
                   products.map((product) => {
-                    const content = product.content[0];
+                    const content = localized(product);
                     return (
                       <article key={product.id} className="catalog-menu-item">
                         <div>
@@ -60,7 +70,15 @@ export function CatalogPreview({
                             <p>{content.description}</p>
                           ) : null}
                         </div>
-                        <strong>{price(product.priceCents)}</strong>
+                        <div className="catalog-menu-item__price">
+                          <strong>{price(product.priceCents)}</strong>
+                          {product.variants.map((variant) => (
+                            <span key={variant.id}>
+                              {localized(variant)?.title}: +
+                              {price(variant.priceDeltaCents)}
+                            </span>
+                          ))}
+                        </div>
                       </article>
                     );
                   })

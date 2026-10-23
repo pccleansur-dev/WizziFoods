@@ -77,6 +77,70 @@ describe("PanelContent", () => {
           },
           identity
         }}
+        businessProfile={{
+          address: "San Martín 120",
+          contactPhone: "+54 11 5555 5555",
+          coverAssetId: null,
+          description: "Cocina porteña",
+          displayName: "Bodegón del Centro",
+          languages: ["es", "en"],
+          logoAssetId: null,
+          openingHours: "Todos los días",
+          referenceAssetIds: [],
+          revision: 1,
+          updatedAt: "2026-10-23T15:00:00.000Z",
+          visual: {
+            accentColor: "#D97706",
+            headingStyle: "serif",
+            layout: "visual",
+            primaryColor: "#1F2937",
+            secondaryColor: "#F9FAFB"
+          }
+        }}
+        catalog={{
+          basePublishedRevision: null,
+          draft: {
+            baseRevision: null,
+            categories: [
+              {
+                content: [
+                  { description: "", language: "es", title: "Principales" }
+                ],
+                id: "20000000-0000-4000-8000-000000000002",
+                position: 0
+              }
+            ],
+            products: [
+              {
+                categoryId: "20000000-0000-4000-8000-000000000002",
+                content: [
+                  {
+                    description: "Con papas",
+                    language: "es",
+                    title: "Milanesa"
+                  }
+                ],
+                id: "30000000-0000-4000-8000-000000000003",
+                imageAssetId: null,
+                position: 0,
+                priceCents: 125000,
+                sectorId: "40000000-0000-4000-8000-000000000004",
+                variants: []
+              }
+            ],
+            sectors: [
+              {
+                id: "40000000-0000-4000-8000-000000000004",
+                kind: "kitchen",
+                name: "Cocina",
+                position: 0
+              }
+            ]
+          },
+          isDirty: true,
+          revision: 1,
+          updatedAt: "2026-10-23T15:00:00.000Z"
+        }}
       />
     );
 
@@ -91,6 +155,8 @@ describe("PanelContent", () => {
     expect(markup).toContain("Carta y productos");
     expect(markup).toContain("Vista previa de la carta");
     expect(markup).toContain("Agregar categoría");
+    expect(markup).toContain("Contenido por idioma");
+    expect(markup).toContain("Agregar variante");
     expect(markup).not.toContain("Crear y entregar negocios");
   });
 });

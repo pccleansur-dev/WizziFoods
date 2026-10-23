@@ -104,7 +104,7 @@ export function PanelContent({
         <strong>{context.tenant.status}</strong>.
       </p>
       <BusinessProfileForm draft={editableProfile} />
-      <CatalogEditor catalog={catalog} />
+      <CatalogEditor catalog={catalog} languages={editableProfile.languages} />
       <div className="panel-module-list" aria-label="Módulos administrativos">
         <div>
           <span>Identidad y menú</span>
