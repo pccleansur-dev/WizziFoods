@@ -45,7 +45,7 @@ export function CatalogAvailabilityControl({
         value={String(nextAvailability)}
       />
       <button
-        aria-pressed={!state.isAvailable}
+        aria-pressed={state.isAvailable}
         className="button button--secondary"
         disabled={pending}
         type="submit"

@@ -17,6 +17,6 @@ describe("CatalogAvailabilityControl", () => {
     expect(markup).toContain("No disponible");
     expect(markup).toContain("Marcar disponible");
     expect(markup).toContain('name="expectedVersion" value="2"');
-    expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain('aria-pressed="false"');
   });
 });
