@@ -24,7 +24,7 @@ export class BusinessMediaService {
     return {
       assetId: result.id,
       kind: result.kind,
-      status: result.status
+      status: result.status === "reserved" ? "processing" : result.status
     };
   }
 

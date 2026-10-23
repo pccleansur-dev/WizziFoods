@@ -1,5 +1,6 @@
 import type {
   BusinessMediaRepository,
+  GetBusinessMediaStatusInput,
   QueueBusinessMediaInput
 } from "@platform/database";
 import { describe, expect, it } from "vitest";
@@ -20,7 +21,7 @@ describe("BusinessMediaService", () => {
   it("reads status using only the authenticated tenant scope", async () => {
     const received: unknown[] = [];
     const repository = {
-      getStatus: async (input) => {
+      getStatus: async (input: GetBusinessMediaStatusInput) => {
         received.push(input);
         return {
           id: "e6000000-0000-4000-8000-000000000006",
@@ -28,7 +29,7 @@ describe("BusinessMediaService", () => {
           status: "ready" as const
         };
       }
-    } as BusinessMediaRepository;
+    } as unknown as BusinessMediaRepository;
     const service = new BusinessMediaService(repository, {} as never);
 
     await expect(
@@ -45,6 +46,21 @@ describe("BusinessMediaService", () => {
         scope: context.scope
       }
     ]);
+  });
+
+  it("presents a reserved asset as processing", async () => {
+    const repository = {
+      getStatus: async () => ({
+        id: "e6000000-0000-4000-8000-000000000006",
+        kind: "cover" as const,
+        status: "reserved" as const
+      })
+    } as unknown as BusinessMediaRepository;
+    const service = new BusinessMediaService(repository, {} as never);
+
+    await expect(
+      service.getStatus(context, "e6000000-0000-4000-8000-000000000006")
+    ).resolves.toMatchObject({ status: "processing" });
   });
 
   it("queues an uploaded asset using only the authenticated tenant scope", async () => {
