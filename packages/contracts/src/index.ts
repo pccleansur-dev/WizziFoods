@@ -14,6 +14,16 @@ export {
   type BusinessProfileLayout
 } from "./business-profile.js";
 export {
+  parseCatalogDraft,
+  type CatalogCategory,
+  type CatalogDraft,
+  type CatalogProduct,
+  type CatalogSector,
+  type CatalogSectorKind,
+  type CatalogVariant,
+  type LocalizedCatalogContent
+} from "./catalog.js";
+export {
   createServiceStatus,
   type ServiceName,
   type ServiceStatus
