@@ -1,12 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import type { AdministrativeAccess } from "../../auth/admin-access";
+import type { PlatformOperations } from "./platform-operations";
+import { PlatformOperationsPanel } from "./platform-operations-panel";
 import { TenantProvisioningForm } from "./tenant-provisioning-form";
 
 export function PanelContent({
-  administrativeAccess
+  administrativeAccess,
+  platformOperations = null
 }: {
   administrativeAccess: AdministrativeAccess;
+  platformOperations?: PlatformOperations | null;
 }) {
   const { access } = administrativeAccess;
 
@@ -38,6 +42,7 @@ export function PanelContent({
             <TenantProvisioningForm idempotencyKey={randomUUID()} />
           </div>
         </div>
+        <PlatformOperationsPanel operations={platformOperations} />
       </div>
     );
   }

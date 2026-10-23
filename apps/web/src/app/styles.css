@@ -173,7 +173,9 @@ dd {
   font-weight: 700;
 }
 
-.field-group input {
+.field-group input,
+.field-group select,
+.field-group textarea {
   width: 100%;
   min-height: 3rem;
   padding: 0.75rem 0.875rem;
@@ -185,6 +187,11 @@ dd {
 }
 
 .field-group input:focus-visible,
+.field-group select:focus-visible,
+.field-group textarea:focus-visible,
+.suspension-mode-group input:focus-visible,
+.suspension-confirmation input:focus-visible,
+.audit-table-scroll:focus-visible,
 .button:focus-visible,
 .recovery-panel summary:focus-visible {
   outline: 3px solid #d09a52;
@@ -502,6 +509,217 @@ dd {
   margin-top: 0.5rem;
 }
 
+.platform-operations {
+  width: 100%;
+  margin-top: clamp(2.5rem, 7vw, 5rem);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border-radius: 0.75rem;
+  box-shadow: none;
+}
+
+.operations-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #d8d2c7;
+}
+
+.operations-heading h2,
+.operations-card h3,
+.audit-panel h3 {
+  margin: 0;
+}
+
+.operations-heading h2 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.operations-heading > p,
+.operations-card > p,
+.audit-panel > div > p {
+  margin: 0.5rem 0 0;
+  color: #625b51;
+  font-size: 0.875rem;
+}
+
+.operations-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.operations-card,
+.audit-panel {
+  padding: 1.25rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.625rem;
+  background: #ffffff;
+}
+
+.suspension-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.suspension-mode-group {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.suspension-mode-group legend {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.suspension-mode-group label {
+  display: grid;
+  min-height: 4.5rem;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.875rem;
+  border: 1px solid #cfc8bc;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.suspension-mode-group input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0.15rem 0 0;
+  accent-color: #253b32;
+}
+
+.suspension-mode-group span,
+.suspension-mode-group small {
+  display: block;
+}
+
+.suspension-mode-group small {
+  margin-top: 0.25rem;
+  color: #625b51;
+  line-height: 1.45;
+}
+
+.suspension-confirmation {
+  display: grid;
+  min-height: 2.75rem;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.suspension-confirmation input {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: #253b32;
+}
+
+.button--danger {
+  border-color: #8c2f23;
+  background: #8c2f23;
+  color: #ffffff;
+}
+
+.panel-empty-state {
+  margin: 1rem 0 0;
+  padding: 1rem;
+  border-left: 3px solid #80613d;
+  background: #f7f4ee;
+  color: #49443d;
+}
+
+.tenant-status-list {
+  display: grid;
+  gap: 0;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tenant-status-list li {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid #ded9d0;
+}
+
+.tenant-status-list li > div,
+.tenant-status-list li span {
+  display: block;
+}
+
+.tenant-status-list li > div > span {
+  margin-top: 0.25rem;
+  color: #746d62;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: #4f665a;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.status-pill--draft {
+  color: #76582f;
+}
+
+.status-pill--suspended {
+  color: #8c2f23;
+}
+
+.audit-panel {
+  margin-top: 1rem;
+}
+
+.audit-table-scroll {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.audit-panel table {
+  width: 100%;
+  min-width: 52rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.audit-panel th,
+.audit-panel td {
+  padding: 0.75rem;
+  border-top: 1px solid #ded9d0;
+  vertical-align: top;
+  font-size: 0.8125rem;
+}
+
+.audit-panel th {
+  color: #625b51;
+  font-weight: 750;
+}
+
+.audit-panel code {
+  overflow-wrap: anywhere;
+}
+
 @media (min-width: 42rem) {
   .panel-module-list {
     grid-template-columns: repeat(3, 1fr);
@@ -512,6 +730,10 @@ dd {
   .provisioning-workspace {
     grid-template-columns: minmax(0, 1.05fr) minmax(22rem, 0.95fr);
     gap: clamp(2rem, 6vw, 5rem);
+  }
+
+  .operations-grid {
+    grid-template-columns: minmax(22rem, 0.9fr) minmax(0, 1.1fr);
   }
 }
 

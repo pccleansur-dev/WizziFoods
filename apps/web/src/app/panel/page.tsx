@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { loadAdministrativeAccess } from "../../auth/load-admin-access";
 import { signOutAction } from "./actions";
 import { PanelContent } from "./panel-content";
+import { loadPlatformOperations } from "./platform-operations";
 
 export default async function PanelPage() {
   const result = await loadAdministrativeAccess();
@@ -10,6 +11,12 @@ export default async function PanelPage() {
   if (result.status === "unauthenticated") {
     redirect("/acceso/continuar");
   }
+
+  const platformOperations =
+    result.status === "ready" &&
+    result.data.access.type === "platform_superadmin"
+      ? await loadPlatformOperations()
+      : null;
 
   return (
     <main className="panel-shell">
@@ -22,7 +29,14 @@ export default async function PanelPage() {
         </form>
       </header>
       {result.status === "ready" ? (
-        <PanelContent administrativeAccess={result.data} />
+        <PanelContent
+          administrativeAccess={result.data}
+          platformOperations={
+            platformOperations?.status === "ready"
+              ? platformOperations.data
+              : null
+          }
+        />
       ) : (
         <section className="panel-content" role="alert">
           <p className="eyebrow">Servicio temporalmente no disponible</p>
