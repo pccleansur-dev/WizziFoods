@@ -1,4 +1,7 @@
-import type { CatalogDraft } from "@platform/contracts";
+import type {
+  CatalogDraft,
+  LocalizedCatalogContent
+} from "@platform/contracts";
 
 type IdFactory = () => string;
 
@@ -68,6 +71,153 @@ export function addCatalogProduct(
         variants: []
       }
     ]
+  };
+}
+
+function localizedFallback(
+  content: LocalizedCatalogContent[],
+  language: string
+): LocalizedCatalogContent {
+  const fallback = content[0] ?? { description: "", title: "" };
+  return {
+    description: fallback.description,
+    language,
+    title: fallback.title
+  };
+}
+
+function synchronizeContent(
+  content: LocalizedCatalogContent[],
+  languages: string[]
+): LocalizedCatalogContent[] {
+  const configured = languages.filter(
+    (language, index) => languages.indexOf(language) === index
+  );
+  return [
+    ...content,
+    ...configured
+      .filter((language) => !content.some((item) => item.language === language))
+      .map((language) => localizedFallback(content, language))
+  ];
+}
+
+export function synchronizeCatalogLanguages(
+  draft: CatalogDraft,
+  languages: string[]
+): CatalogDraft {
+  return {
+    ...draft,
+    categories: draft.categories.map((category) => ({
+      ...category,
+      content: synchronizeContent(category.content, languages)
+    })),
+    products: draft.products.map((product) => ({
+      ...product,
+      content: synchronizeContent(product.content, languages),
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        content: synchronizeContent(variant.content, languages)
+      }))
+    }))
+  };
+}
+
+export function addCatalogVariant(
+  draft: CatalogDraft,
+  productId: string,
+  createId: IdFactory = () => crypto.randomUUID(),
+  languages: string[] = ["es"]
+): CatalogDraft {
+  const content = synchronizeContent(
+    [
+      {
+        description: "",
+        language: languages[0] ?? "es",
+        title: "Nueva variante"
+      }
+    ],
+    languages
+  );
+  return {
+    ...draft,
+    products: draft.products.map((product) =>
+      product.id === productId
+        ? {
+            ...product,
+            variants: [
+              ...product.variants,
+              {
+                content,
+                id: createId(),
+                position: product.variants.length,
+                priceDeltaCents: 0
+              }
+            ]
+          }
+        : product
+    )
+  };
+}
+
+export function removeCatalogVariant(
+  draft: CatalogDraft,
+  productId: string,
+  variantId: string
+): CatalogDraft {
+  return {
+    ...draft,
+    products: draft.products.map((product) =>
+      product.id === productId
+        ? {
+            ...product,
+            variants: product.variants
+              .filter(({ id }) => id !== variantId)
+              .map((variant, position) => ({ ...variant, position }))
+          }
+        : product
+    )
+  };
+}
+
+export function updateCatalogLocalizedContent(
+  draft: CatalogDraft,
+  target: { id: string; type: "category" | "product" | "variant" },
+  language: string,
+  field: "description" | "title",
+  value: string
+): CatalogDraft {
+  const update = (content: LocalizedCatalogContent[]) =>
+    content.map((item) =>
+      item.language === language ? { ...item, [field]: value } : item
+    );
+  if (target.type === "category") {
+    return {
+      ...draft,
+      categories: draft.categories.map((category) =>
+        category.id === target.id
+          ? { ...category, content: update(category.content) }
+          : category
+      )
+    };
+  }
+  return {
+    ...draft,
+    products: draft.products.map((product) => {
+      if (target.type === "product" && product.id === target.id) {
+        return { ...product, content: update(product.content) };
+      }
+      if (target.type === "variant") {
+        return {
+          ...product,
+          variants: product.variants.map((variant) =>
+            variant.id === target.id
+              ? { ...variant, content: update(variant.content) }
+              : variant
+          )
+        };
+      }
+      return product;
+    })
   };
 }
 
