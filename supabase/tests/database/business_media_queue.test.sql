@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(13);
+select plan(14);
 
 insert into auth.users (id)
 values
@@ -58,6 +58,24 @@ select throws_ok(
   null,
   'an administrator from another tenant cannot enqueue the asset'
 );
+
+select throws_ok(
+  $$
+    select * from private.enqueue_business_media_processing(
+      'f3000000-0000-4000-8000-000000000003',
+      (select location_id from reserved_asset),
+      'f1000000-0000-4000-8000-000000000001',
+      (select id from reserved_asset)
+    )
+  $$,
+  '22023',
+  null,
+  'a reservation cannot be queued before its object exists'
+);
+
+insert into storage.objects (bucket_id, name)
+select 'business-media', object_path
+from reserved_asset;
 
 create temporary table queued_asset on commit drop as
 select *

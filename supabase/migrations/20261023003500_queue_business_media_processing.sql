@@ -60,6 +60,17 @@ begin
     raise exception 'business media reservation is not active'
       using errcode = '22023';
   end if;
+  if not exists (
+    select 1
+    from storage.objects object
+    where object.bucket_id = 'business-media'
+      and object.name = current_asset.object_path
+      and object.archived_at is null
+      and object.is_delete_marker = false
+  ) then
+    raise exception 'business media object has not been uploaded'
+      using errcode = '22023';
+  end if;
 
   select sent_message_id
   into message_id
