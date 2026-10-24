@@ -56,7 +56,12 @@ export async function POST(request: Request) {
         })
       : { accepted: false as const };
   if (
-    !(kind === "cover" || kind === "logo" || kind === "reference") ||
+    !(
+      kind === "cover" ||
+      kind === "logo" ||
+      kind === "product" ||
+      kind === "reference"
+    ) ||
     !file ||
     !(file instanceof File) ||
     !decision.accepted

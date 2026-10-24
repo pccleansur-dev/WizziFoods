@@ -70,6 +70,42 @@ describe("business media routes reach the API through tenantFetch", () => {
     expect(init.headers.authorization).toBe("Bearer session-token");
   });
 
+  it("accepts every media kind of the contract, including product photos", async () => {
+    tenantFetch.mockResolvedValue(new Response("{}", { status: 404 }));
+    for (const kind of ["cover", "logo", "product", "reference"]) {
+      tenantFetch.mockClear();
+      const form = new FormData();
+      form.set("kind", kind);
+      form.set(
+        "file",
+        new File([new Uint8Array(8)], "foto.png", { type: "image/png" })
+      );
+      const response = await POST(
+        new Request(`http://${hostname}/api/business-media`, {
+          body: form,
+          headers: { host: hostname, origin: `http://${hostname}` },
+          method: "POST"
+        })
+      );
+      expect(response.status, kind).toBe(502);
+      expect(tenantFetch, kind).toHaveBeenCalledTimes(1);
+    }
+    const form = new FormData();
+    form.set("kind", "avatar");
+    form.set(
+      "file",
+      new File([new Uint8Array(8)], "x.png", { type: "image/png" })
+    );
+    const rejected = await POST(
+      new Request(`http://${hostname}/api/business-media`, {
+        body: form,
+        headers: { host: hostname, origin: `http://${hostname}` },
+        method: "POST"
+      })
+    );
+    expect(rejected.status).toBe(400);
+  });
+
   it("queues processing without a JSON content type, since it has no body", async () => {
     const assetUuid = "a2000000-0000-4000-8000-000000000002";
     const reservation = {
