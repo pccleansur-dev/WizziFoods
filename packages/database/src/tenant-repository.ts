@@ -19,6 +19,10 @@ import {
   type CatalogRepository
 } from "./catalog-repository.js";
 import {
+  createFloorPlanRepository,
+  type FloorPlanRepository
+} from "./floor-plan-repository.js";
+import {
   createCatalogImportRepository,
   type CatalogImportRepository
 } from "./catalog-import-repository.js";
@@ -86,6 +90,7 @@ export type TenantDatabase = {
   catalogImportRepository: CatalogImportRepository;
   catalogRepository: CatalogRepository;
   close(): Promise<void>;
+  floorPlanRepository: FloorPlanRepository;
   identityAccessRepository: IdentityAccessRepository;
   staffAuthRepository: StaffAuthRepository;
   supportAccessRepository: SupportAccessRepository;
@@ -160,6 +165,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     catalogImportRepository: createCatalogImportRepository(client),
     catalogRepository: createCatalogRepository(client),
     close: async () => client.end(),
+    floorPlanRepository: createFloorPlanRepository(client),
     identityAccessRepository: {
       async resolveForIdentity(
         userId: string,

@@ -39,6 +39,17 @@ export {
   type QueuedCatalogImportJob
 } from "./catalog-import-repository.js";
 export {
+  createFloorPlanRepository,
+  type FloorPlanReadiness,
+  type FloorPlanRecord,
+  type FloorPlanRepository,
+  type FloorPlanSaveRecord,
+  type FloorTableQrCode,
+  type FloorTableQrResolution,
+  type RotateFloorTableQrInput,
+  type SaveFloorPlanInput
+} from "./floor-plan-repository.js";
+export {
   type AppendAuditEventInput,
   type AuditActorType,
   type AuditRepository
