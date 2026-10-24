@@ -3,7 +3,9 @@
 El Mozo (y el Encargado) ven el salón en vivo, toman los llamados que dejó T18, validan
 o rechazan la intención del comensal y cargan comandas manuales. **Confirmar un pedido
 no cobra, no abre la cuenta de la mesa y no lo envía a producción**: esas
-responsabilidades siguen en T22–T24 (cuenta, ledger y cobros) y T20 (producción).
+responsabilidades siguen en T22–T24 (cuenta, ledger y cobros). Desde T20 un pedido
+confirmado sí llega a Cocina y Barra (`docs/runbooks/produccion-por-sector.md`), sin que el
+salón haga nada más.
 
 ## Identidad y alcance
 

@@ -352,3 +352,30 @@ Punto de partida para T20–T22:
   `order_intents` impide que lo haga un Mozo.
 - Pendientes: llamado genérico del comensal, apagar la disponibilidad con stock cero y
   Realtime en lugar de polling (T31).
+
+## Estado de T20 — producción por sector
+
+Hecho: ver `docs/runbooks/produccion-por-sector.md`. Migración
+`20261024100000_create_production.sql` (rollback en `supabase/rollbacks`, pgTap
+`production.test.sql`, 47 aserciones). La API vive en `apps/api/src/production`
+(`GET /v1/staff/production`, `POST …/orders/:orderId/items/:lineId/status`), el
+repositorio en `packages/database/src/production-repository.ts`, los contratos en
+`packages/contracts/src/production.ts` y la web en
+`apps/web/src/app/interno/[tenantSlug]/operacion/produccion`.
+
+Punto de partida para T21–T22:
+
+- T21 debe agregar «Entregado» y las excepciones **sin tocar** `confirmed_*`: el estado de
+  ítem vive en `private.production_items` (sólo avanza `queued → preparing → ready`; su
+  trigger `guard_production_item_change` hay que ampliar con cuidado, nunca borrar filas)
+  y su historial en `production_item_events` (append-only, una fila por paso real). El
+  orden derivado está en `private.production_status_of`; un estado nuevo debe entrar ahí
+  y en el contrato `ProductionItemStatus`.
+- Los avances reutilizan `private.claim_waiter_command` / `finish_waiter_command`
+  (`waiter_commands`, por empleado): T21 puede hacer lo mismo para ser idempotente.
+- Los ítems de sectores `other` quedan en cola sin pantalla; el Encargado no tiene
+  pantalla de producción ni capacidad (`production.*` sólo existe para Cocina y Barra).
+- T22 sigue sin tener cuenta ni ledger; nada de T20 los toca.
+- Los tests de integración que limpian tablas con triggers append-only deben usar una
+  transacción con `set local session_replication_role = replica` (no `ALTER TABLE …
+  DISABLE TRIGGER`): el segundo es global y rompe a otros archivos en paralelo.

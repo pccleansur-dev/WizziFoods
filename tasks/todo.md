@@ -633,20 +633,34 @@ del comensal y apagar la disponibilidad al llegar a stock cero.
 
 **Tamaño:** M.
 
-### T20. Producir por sector y estado de ítem
+### T20. Producir por sector y estado de ítem — completada
 
 **Descripción:** Distribuir cada ítem confirmado al KDS correspondiente y derivar el estado general.
 
 **Criterios de aceptación:**
 
-- [ ] Cocina/Barra sólo ven sectores asignados y nunca pedidos sin confirmar.
-- [ ] Ítems avanzan En cola → En preparación → Listo; orden deriva su estado.
-- [ ] Reintentos o reconexiones no duplican comandas.
+- [x] Cocina/Barra sólo ven sectores asignados y nunca pedidos sin confirmar.
+- [x] Ítems avanzan En cola → En preparación → Listo; orden deriva su estado.
+- [x] Reintentos o reconexiones no duplican comandas.
 
 **Verificación:**
 
-- [ ] Pruebas de enrutamiento, permisos e idempotencia.
-- [ ] E2E pedido con ítems de dos sectores.
+- [x] Pruebas de enrutamiento, permisos e idempotencia.
+- [x] E2E pedido con ítems de dos sectores.
+
+**Resultado:** Cocina y Barra usan `/interno/<negocio>/operacion/produccion`: ven sólo las
+comandas de su sector (el sector sale de la sesión), nunca un pedido sin confirmar, y
+avanzan cada ítem En cola → En preparación → Listo; el estado del pedido completo se
+deriva de sus ítems. Los pedidos confirmados siguen siendo append-only: los estados
+viven en `production_items` (una fila por ítem, creada por trigger y con la clave del
+ítem, por lo que ningún reintento duplica comandas) y su historial en
+`production_item_events`. Avanzar es idempotente (mismo comando, otro comando con el
+mismo destino y bloqueo de fila), sólo hacia adelante y auditado. Verificado con 47
+aserciones pgTap (dos negocios), 13 pruebas de contrato nuevas, 4 de repositorio, 16 de
+API, 8 de web, 6 de integración HTTP y 6 recorridos Playwright (móvil 375 px y
+escritorio, 3100/3101; 50 en total). Runbook: `docs/runbooks/produccion-por-sector.md`.
+Pendientes: entregar, faltantes y cancelaciones (T21); pantalla para sectores
+`other`; Realtime en lugar de polling (T31).
 
 **Dependencias:** T19.
 
