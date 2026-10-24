@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 import {
+  addFloor,
   addSector,
   addTable,
   clampZoom,
@@ -21,6 +22,11 @@ import {
   seatPositions,
   stepZoom,
   tableLabelForIssue,
+  ensureDefaultFloor,
+  moveTableToFloor,
+  planForFloor,
+  removeFloor,
+  renameFloor,
   ungroupTables,
   updateTable,
   wheelZoom
@@ -32,10 +38,12 @@ const ids = (() => {
 })();
 
 function planWithTables(count = 3): FloorPlanDraft {
-  let plan = addSector(createEmptyFloorPlan(), "Salón", ids());
+  let plan = addFloor(createEmptyFloorPlan(), "Planta baja", ids());
+  plan = addSector(plan, "Salón", ids());
   const sectorId = plan.sectors[0]!.id;
+  const floorId = plan.floors[0]!.id;
   for (let index = 0; index < count; index += 1) {
-    plan = addTable(plan, { id: ids(), sectorId, shape: "square" });
+    plan = addTable(plan, { floorId, id: ids(), sectorId, shape: "square" });
   }
   return plan;
 }
@@ -68,6 +76,7 @@ describe("floor plan editor state", () => {
     let plan = planWithTables(3);
     plan = removeTable(plan, plan.tables[1]!.id);
     plan = addTable(plan, {
+      floorId: plan.floors[0]!.id,
       id: ids(),
       sectorId: plan.sectors[0]!.id,
       shape: "round"
@@ -350,5 +359,164 @@ describe("plan zoom", () => {
     expect(wheelZoom(1, -100)).toBeGreaterThan(1);
     expect(wheelZoom(1, 100)).toBeLessThan(1);
     expect(wheelZoom(4, -100)).toBe(4);
+  });
+});
+
+describe("floors in the editor", () => {
+  it("creates the default ground floor when a plan has none", () => {
+    const plan = ensureDefaultFloor(createEmptyFloorPlan(), ids());
+    expect(plan.floors).toEqual([
+      expect.objectContaining({
+        name: "Planta baja",
+        position: 0,
+        shortName: null
+      })
+    ]);
+    expect(ensureDefaultFloor(plan, ids())).toBe(plan);
+  });
+
+  it("adds floors with a position, a trimmed name and an optional short name", () => {
+    let plan = addFloor(createEmptyFloorPlan(), " Planta alta ", ids(), " PA ");
+    expect(plan.floors[0]).toMatchObject({
+      name: "Planta alta",
+      position: 0,
+      shortName: "PA"
+    });
+    plan = addFloor(plan, "Terraza", ids());
+    expect(plan.floors[1]).toMatchObject({ position: 1, shortName: null });
+  });
+
+  it("rejects blank, repeated (any case) and surplus floors", () => {
+    const plan = addFloor(createEmptyFloorPlan(), "Planta baja", ids());
+    expect(addFloor(plan, "   ", ids())).toBe(plan);
+    expect(addFloor(plan, "planta BAJA", ids())).toBe(plan);
+    let full = createEmptyFloorPlan();
+    for (let index = 0; index < FLOOR_PLAN_LIMITS.maxFloors; index += 1) {
+      full = addFloor(full, `Piso ${index}`, ids());
+    }
+    expect(full.floors).toHaveLength(FLOOR_PLAN_LIMITS.maxFloors);
+    expect(addFloor(full, "Otro", ids())).toBe(full);
+  });
+
+  it("renames a floor and clears an empty short name", () => {
+    const plan = addFloor(createEmptyFloorPlan(), "Planta baja", ids(), "PB");
+    const renamed = renameFloor(plan, plan.floors[0]!.id, "Piso 0", "");
+    expect(renamed.floors[0]).toMatchObject({
+      name: "Piso 0",
+      shortName: null
+    });
+  });
+
+  it("removes only an empty floor and never the last one", () => {
+    let plan = planWithTables(1);
+    const ground = plan.floors[0]!.id;
+    expect(removeFloor(plan, ground)).toBe(plan);
+    plan = addFloor(plan, "Planta alta", ids());
+    const upper = plan.floors[1]!.id;
+    const without = removeFloor(plan, upper);
+    expect(without.floors.map(({ id }) => id)).toEqual([ground]);
+    expect(without.floors[0]!.position).toBe(0);
+    const onlyOne = addFloor(createEmptyFloorPlan(), "Unica", ids());
+    expect(removeFloor(onlyOne, onlyOne.floors[0]!.id)).toBe(onlyOne);
+  });
+
+  it("places a new table on the chosen floor, ignoring tables on other floors", () => {
+    let plan = planWithTables(1);
+    plan = addFloor(plan, "Planta alta", ids());
+    const upper = plan.floors[1]!.id;
+    const before = plan.tables[0]!;
+    plan = addTable(plan, {
+      floorId: upper,
+      id: ids(),
+      sectorId: plan.sectors[0]!.id,
+      shape: "square"
+    });
+    const added = plan.tables[1]!;
+    expect(added.floorId).toBe(upper);
+    expect({ x: added.x, y: added.y }).toEqual({ x: before.x, y: before.y });
+    expect(parseFloorPlanDraft(plan).ok).toBe(true);
+  });
+
+  it("refuses a table on a floor that does not exist", () => {
+    const plan = planWithTables(1);
+    expect(
+      addTable(plan, {
+        floorId: "a9999999-0000-4000-8000-000000000000",
+        id: ids(),
+        sectorId: plan.sectors[0]!.id,
+        shape: "square"
+      })
+    ).toBe(plan);
+  });
+
+  it("moves a table to another floor keeping its identity and label, and leaves its group", () => {
+    let plan = planWithTables(3);
+    plan = addFloor(plan, "Planta alta", ids());
+    const upper = plan.floors[1]!.id;
+    const [a, b, c] = plan.tables;
+    plan = groupTables(plan, [a!.id, b!.id, c!.id], ids(), "Familia");
+    const moved = moveTableToFloor(plan, b!.id, upper);
+    const table = moved.tables.find(({ id }) => id === b!.id)!;
+    expect(table.floorId).toBe(upper);
+    expect(table.label).toBe(b!.label);
+    expect(moved.groups[0]!.tableIds).toEqual([a!.id, c!.id]);
+    expect(parseFloorPlanDraft(moved).ok).toBe(true);
+  });
+
+  it("drops a group that falls below two tables when one of them changes floor", () => {
+    let plan = planWithTables(2);
+    plan = addFloor(plan, "Planta alta", ids());
+    const [a, b] = plan.tables;
+    plan = groupTables(plan, [a!.id, b!.id], ids(), "Pareja");
+    const moved = moveTableToFloor(plan, a!.id, plan.floors[1]!.id);
+    expect(moved.groups).toEqual([]);
+  });
+
+  it("finds a free spot on the destination floor when the same place is taken", () => {
+    let plan = planWithTables(1);
+    plan = addFloor(plan, "Planta alta", ids());
+    const upper = plan.floors[1]!.id;
+    plan = addTable(plan, {
+      floorId: upper,
+      id: ids(),
+      sectorId: plan.sectors[0]!.id,
+      shape: "square"
+    });
+    const moved = moveTableToFloor(plan, plan.tables[0]!.id, upper);
+    const [first, second] = [moved.tables[0]!, moved.tables[1]!];
+    expect(first.floorId).toBe(upper);
+    expect(`${first.x},${first.y}`).not.toBe(`${second.x},${second.y}`);
+  });
+
+  it("only groups tables that share a floor", () => {
+    let plan = planWithTables(2);
+    plan = addFloor(plan, "Planta alta", ids());
+    const mixed = moveTableToFloor(
+      plan,
+      plan.tables[1]!.id,
+      plan.floors[1]!.id
+    );
+    expect(
+      groupTables(
+        mixed,
+        [mixed.tables[0]!.id, mixed.tables[1]!.id],
+        ids(),
+        "Mixta"
+      )
+    ).toBe(mixed);
+  });
+
+  it("shows only the tables and groups of the active floor", () => {
+    let plan = planWithTables(3);
+    plan = addFloor(plan, "Planta alta", ids());
+    const [a, b, c] = plan.tables;
+    plan = groupTables(plan, [a!.id, b!.id], ids(), "Pareja");
+    plan = moveTableToFloor(plan, c!.id, plan.floors[1]!.id);
+    const ground = planForFloor(plan, plan.floors[0]!.id);
+    expect(ground.tables.map(({ id }) => id)).toEqual([a!.id, b!.id]);
+    expect(ground.groups).toHaveLength(1);
+    const upper = planForFloor(plan, plan.floors[1]!.id);
+    expect(upper.tables.map(({ id }) => id)).toEqual([c!.id]);
+    expect(upper.groups).toEqual([]);
   });
 });

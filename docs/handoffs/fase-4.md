@@ -152,6 +152,14 @@ Decisiones:
   `parseReadinessView` (reconstruye textos desde la matriz y comprueba `ready`) y llama
   con `tenantFetch` vía `admin-api.ts`.
 
+### Plantas en el plano (posterior a T15)
+
+El plano ahora admite varias plantas (`private.floor_levels`, `floor_tables.level_id`).
+Decisiones y reglas en `docs/runbooks/plano-salon.md` (sección «Plantas»): planta y sector
+son distintos, las agrupaciones no cruzan plantas, mover una mesa de planta conserva su id y su
+QR, y los planos existentes quedaron en una «Planta baja». T16 debería mostrar el nombre de la
+planta al resolver el QR (`FloorPlanRepository.resolveQr` aún no la devuelve).
+
 ### Punto de partida para T16
 
 - Las tablas de pedidos reales no deben leer ni escribir `sandbox_*`; toda métrica,

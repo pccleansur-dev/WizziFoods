@@ -7,11 +7,14 @@ import type { FloorPlanActionState } from "./floor-plan";
 const sectorId = "f1000000-0000-4000-8000-000000000001";
 const tableId = "f2000000-0000-4000-8000-000000000002";
 const noop = () => Promise.resolve({} as FloorPlanActionState);
+const floorId = "f9000000-0000-4000-8000-000000000009";
 const plan = {
+  floors: [{ id: floorId, name: "Planta baja", position: 0, shortName: "PB" }],
   groups: [],
   sectors: [{ id: sectorId, name: "Salón", position: 0 }],
   tables: [
     {
+      floorId,
       height: 100,
       id: tableId,
       label: "7",
@@ -67,7 +70,7 @@ describe("FloorPlanEditor", () => {
 
   it("guides the first step when there are no sectors", () => {
     const markup = render({
-      initialPlan: { groups: [], sectors: [], tables: [] },
+      initialPlan: { floors: [], groups: [], sectors: [], tables: [] },
       initialVersion: 0
     });
     expect(markup).toContain("Empezá creando un sector");
@@ -88,5 +91,17 @@ describe("FloorPlanEditor", () => {
     expect(markup).toContain("Descargar QR");
     expect(markup).toContain("Código QR de la mesa 7");
     expect(markup).not.toContain("https://x.example/m/abc");
+  });
+});
+
+describe("FloorPlanEditor floors", () => {
+  it("shows a tab per floor with its table count and the floors panel", () => {
+    const markup = render();
+    expect(markup).toContain('role="tablist"');
+    expect(markup).toContain('role="tab"');
+    expect(markup).toContain("Planta baja (PB)");
+    expect(markup).toContain("1 mesa");
+    expect(markup).toContain("Nueva planta");
+    expect(markup).toContain("Corto");
   });
 });

@@ -1,5 +1,6 @@
 import {
   FLOOR_PLAN_LIMITS,
+  type FloorLevel,
   type FloorPlanDraft,
   type FloorSeatLayout,
   type FloorTable,
@@ -11,7 +12,7 @@ const GRID_STEP = 180;
 const GRID_ORIGIN = 40;
 
 export function createEmptyFloorPlan(): FloorPlanDraft {
-  return { groups: [], sectors: [], tables: [] };
+  return { floors: [], groups: [], sectors: [], tables: [] };
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -71,6 +72,163 @@ export function removeSector(
   };
 }
 
+function cleanShortName(value: string | null | undefined): string | null {
+  const trimmed = (value ?? "")
+    .trim()
+    .slice(0, FLOOR_PLAN_LIMITS.maxShortNameLength);
+  return trimmed ? trimmed : null;
+}
+
+function floorNameTaken(plan: FloorPlanDraft, name: string): boolean {
+  const wanted = name.toLocaleLowerCase("es");
+  return plan.floors.some(
+    (floor) => floor.name.toLocaleLowerCase("es") === wanted
+  );
+}
+
+/** Un local siempre tiene al menos una planta: se crea «Planta baja» si no hay ninguna. */
+export function ensureDefaultFloor(
+  plan: FloorPlanDraft,
+  id: string
+): FloorPlanDraft {
+  return plan.floors.length > 0
+    ? plan
+    : {
+        ...plan,
+        floors: [{ id, name: "Planta baja", position: 0, shortName: null }]
+      };
+}
+
+export function addFloor(
+  plan: FloorPlanDraft,
+  name: string,
+  id: string,
+  shortName?: string | null
+): FloorPlanDraft {
+  const trimmed = name.trim().slice(0, 60);
+  if (
+    !trimmed ||
+    plan.floors.length >= FLOOR_PLAN_LIMITS.maxFloors ||
+    floorNameTaken(plan, trimmed)
+  ) {
+    return plan;
+  }
+  const floor: FloorLevel = {
+    id,
+    name: trimmed,
+    position: plan.floors.length,
+    shortName: cleanShortName(shortName)
+  };
+  return { ...plan, floors: [...plan.floors, floor] };
+}
+
+export function renameFloor(
+  plan: FloorPlanDraft,
+  floorId: string,
+  name: string,
+  shortName?: string | null
+): FloorPlanDraft {
+  return {
+    ...plan,
+    floors: plan.floors.map((floor) =>
+      floor.id === floorId
+        ? {
+            ...floor,
+            name: name.slice(0, 60),
+            shortName: cleanShortName(shortName)
+          }
+        : floor
+    )
+  };
+}
+
+/** Una planta solo se quita vacía, y siempre queda al menos una. */
+export function removeFloor(
+  plan: FloorPlanDraft,
+  floorId: string
+): FloorPlanDraft {
+  if (
+    plan.floors.length <= 1 ||
+    plan.tables.some((table) => table.floorId === floorId)
+  ) {
+    return plan;
+  }
+  return {
+    ...plan,
+    floors: plan.floors
+      .filter((floor) => floor.id !== floorId)
+      .map((floor, position) => ({ ...floor, position }))
+  };
+}
+
+/** Lo que muestra el lienzo: las mesas y agrupaciones de una sola planta. */
+export function planForFloor(
+  plan: FloorPlanDraft,
+  floorId: string
+): FloorPlanDraft {
+  const tables = plan.tables.filter((table) => table.floorId === floorId);
+  const ids = new Set(tables.map(({ id }) => id));
+  return {
+    ...plan,
+    groups: plan.groups.filter((group) =>
+      group.tableIds.every((id) => ids.has(id))
+    ),
+    tables
+  };
+}
+
+function withoutTableFromGroups(
+  plan: FloorPlanDraft,
+  tableId: string
+): FloorPlanDraft {
+  return {
+    ...plan,
+    groups: plan.groups
+      .map((group) => ({
+        ...group,
+        tableIds: group.tableIds.filter((id) => id !== tableId)
+      }))
+      .filter(
+        (group) => group.tableIds.length >= FLOOR_PLAN_LIMITS.groupMinTables
+      )
+  };
+}
+
+/**
+ * Pasa una mesa a otra planta sin cambiar su identidad ni su QR. Sale de su
+ * agrupación (que no puede cruzar plantas) y busca un lugar libre en la nueva.
+ */
+export function moveTableToFloor(
+  plan: FloorPlanDraft,
+  tableId: string,
+  floorId: string
+): FloorPlanDraft {
+  const table = plan.tables.find(({ id }) => id === tableId);
+  if (
+    !table ||
+    table.floorId === floorId ||
+    !plan.floors.some(({ id }) => id === floorId)
+  ) {
+    return plan;
+  }
+  const target = planForFloor(
+    { ...plan, tables: plan.tables.filter(({ id }) => id !== tableId) },
+    floorId
+  );
+  const spot = overlaps(target, table.x, table.y, table.width, table.height)
+    ? freeSpot(target, table.width, table.height)
+    : { x: table.x, y: table.y };
+  const withoutGroup = withoutTableFromGroups(plan, tableId);
+  return {
+    ...withoutGroup,
+    tables: withoutGroup.tables.map((item) =>
+      item.id === tableId
+        ? fitInsideCanvas({ ...item, floorId, ...spot })
+        : item
+    )
+  };
+}
+
 function nextLabel(plan: FloorPlanDraft): string {
   const used = new Set(plan.tables.map(({ label }) => label.toLowerCase()));
   for (let candidate = 1; ; candidate += 1) {
@@ -123,11 +281,17 @@ function freeSpot(
 
 export function addTable(
   plan: FloorPlanDraft,
-  input: { id: string; sectorId: string; shape: FloorTableShape }
+  input: {
+    floorId: string;
+    id: string;
+    sectorId: string;
+    shape: FloorTableShape;
+  }
 ): FloorPlanDraft {
   if (
     plan.tables.length >= FLOOR_PLAN_LIMITS.maxTables ||
-    !plan.sectors.some(({ id }) => id === input.sectorId)
+    !plan.sectors.some(({ id }) => id === input.sectorId) ||
+    !plan.floors.some(({ id }) => id === input.floorId)
   ) {
     return plan;
   }
@@ -135,6 +299,7 @@ export function addTable(
   const width = rectangle ? 160 : 100;
   const height = rectangle ? 90 : 100;
   const table: FloorTable = {
+    floorId: input.floorId,
     height,
     id: input.id,
     label: nextLabel(plan),
@@ -144,7 +309,7 @@ export function addTable(
     sectorId: input.sectorId,
     shape: input.shape,
     width,
-    ...freeSpot(plan, width, height)
+    ...freeSpot(planForFloor(plan, input.floorId), width, height)
   };
   return { ...plan, tables: [...plan.tables, table] };
 }
@@ -344,7 +509,10 @@ export function groupTables(
     plan.groups.length >= FLOOR_PLAN_LIMITS.maxGroups ||
     unique.some(
       (id) => grouped.has(id) || !plan.tables.some((table) => table.id === id)
-    )
+    ) ||
+    new Set(
+      unique.map((id) => plan.tables.find((table) => table.id === id)?.floorId)
+    ).size > 1
   ) {
     return plan;
   }

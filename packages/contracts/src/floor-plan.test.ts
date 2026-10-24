@@ -304,10 +304,12 @@ describe("floors (plantas)", () => {
   });
 
   it("requires the floors list and the floor of each table", () => {
-    const { floors: _floors, ...withoutFloors } = validPlan();
+    const withoutFloors: Record<string, unknown> = { ...validPlan() };
+    delete withoutFloors.floors;
     expect(issueCodes(withoutFloors)).toContain("INVALID_STRUCTURE");
     const base = validPlan();
-    const { floorId: _floorId, ...bare } = base.tables[0]!;
+    const bare: Record<string, unknown> = { ...base.tables[0] };
+    delete bare.floorId;
     expect(issueCodes({ ...base, tables: [bare, base.tables[1]] })).toContain(
       "INVALID_STRUCTURE"
     );

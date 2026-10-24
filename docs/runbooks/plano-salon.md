@@ -55,3 +55,32 @@ pnpm --filter @platform/api exec vitest run src/floor-plan/local-floor-plan.inte
 
 Para revertir se usa `supabase/rollbacks/20261024010000_create_floor_plan.down.sql`
 (elimina las tablas y los QR emitidos).
+
+## Plantas (pisos)
+
+Un local puede tener varias plantas («Planta baja», «Planta alta», «Terraza»…). Migración
+`20261024060000_create_floor_levels.sql` (rollback en `supabase/rollbacks`, pgTap
+`floor_levels.test.sql`).
+
+- **Planta ≠ sector.** La planta es el piso físico; el sector es la zona de servicio. Una
+  mesa tiene **una planta y un sector**, y se cambian por separado. Los sectores siguen
+  siendo del local completo.
+- **Plano.** `plan.floors` (`id`, `name`, `position`, `shortName` opcional de hasta 10
+  caracteres, por ejemplo «PB») y `table.floorId`. Hasta 10 plantas por local; el nombre
+  es único sin distinguir mayúsculas. Cada mesa referencia una planta que exista en el
+  mismo plano (`UNKNOWN_FLOOR`).
+- **Agrupaciones.** Todas las mesas de una agrupación están en la misma planta
+  (`MIXED_FLOORS`); la base lo vuelve a comprobar. Al pasar una mesa a otra planta sale de
+  su agrupación.
+- **Identidad y QR.** Pasar una mesa de planta no cambia su id ni su QR (lo verifican
+  pgTap y la integración HTTP con dos tenants). El nombre de mesa sigue siendo único en
+  todo el local.
+- **Migración de datos.** Cada plano existente recibe una «Planta baja» y todas sus mesas
+  activas quedan en ella. Una mesa retirada no tiene planta (como no tiene sector).
+- **Editor.** Pestañas sobre el plano (una por planta, con su cantidad de mesas), panel
+  «Plantas» para agregar, renombrar (con nombre corto) y quitar; sólo se quita una planta
+  sin mesas y siempre queda una. La mesa seleccionada tiene un selector de **Planta**. El
+  lienzo y su zoom muestran una sola planta. Si el local no tiene plantas, «Planta baja» se
+  crea con la primera mesa.
+- **Rollback.** Revertir la migración descarta las plantas y restaura las funciones de T13
+  con una sola planta implícita.

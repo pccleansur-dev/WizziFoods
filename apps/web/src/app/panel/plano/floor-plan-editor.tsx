@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  FLOOR_PLAN_LIMITS,
   parseFloorPlanDraft,
   type FloorPlanDraft,
   type FloorPlanIssue,
@@ -11,13 +12,19 @@ import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { FloorPlanCanvas, SECTOR_COLORS } from "./floor-plan-canvas";
 import {
+  addFloor,
   addSector,
   addTable,
+  ensureDefaultFloor,
   groupTables,
   moveTable,
+  moveTableToFloor,
   nudgeTable,
+  planForFloor,
   planIsDirty,
+  removeFloor,
   removeSector,
+  renameFloor,
   removeTable,
   renameSector,
   resizeTable,
@@ -71,6 +78,8 @@ export function FloorPlanEditor({
   const [newShape, setNewShape] = useState<FloorTableShape>("square");
   const [targetSector, setTargetSector] = useState("");
   const [zoom, setZoom] = useState(1);
+  const [activeFloor, setActiveFloor] = useState("");
+  const [newFloor, setNewFloor] = useState({ name: "", shortName: "" });
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<FloorPlanActionState | null>(null);
   const pending = useRef<PendingCommand | null>(null);
@@ -82,6 +91,10 @@ export function FloorPlanEditor({
   }, [plan]);
   const serverIssues = outcome?.status === "invalid" ? outcome.issues : [];
   const shownIssues = localIssues.length > 0 ? localIssues : serverIssues;
+  const floorId = plan.floors.some(({ id }) => id === activeFloor)
+    ? activeFloor
+    : (plan.floors[0]?.id ?? "");
+  const visiblePlan = planForFloor(plan, floorId);
   const sectorId = plan.sectors.some(({ id }) => id === targetSector)
     ? targetSector
     : (plan.sectors[0]?.id ?? "");
@@ -332,6 +345,32 @@ export function FloorPlanEditor({
 
       <div className="floor-plan-layout">
         <div className="floor-plan-stage">
+          <div aria-label="Plantas" className="floor-plan-tabs" role="tablist">
+            {plan.floors.map((floor) => {
+              const count = plan.tables.filter(
+                (table) => table.floorId === floor.id
+              ).length;
+              return (
+                <button
+                  aria-selected={floor.id === floorId}
+                  className="floor-plan-tab"
+                  key={floor.id}
+                  onClick={() => {
+                    setActiveFloor(floor.id);
+                    setSelected([]);
+                  }}
+                  role="tab"
+                  type="button"
+                >
+                  {floor.name}
+                  {floor.shortName ? ` (${floor.shortName})` : ""}
+                  <small>
+                    {count} {count === 1 ? "mesa" : "mesas"}
+                  </small>
+                </button>
+              );
+            })}
+          </div>
           <div
             className="floor-plan-toolbar"
             role="toolbar"
@@ -374,7 +413,22 @@ export function FloorPlanEditor({
               disabled={busy || plan.sectors.length === 0}
               onClick={() => {
                 const id = crypto.randomUUID();
-                edit(addTable(plan, { id, sectorId, shape: newShape }));
+                // Un local siempre tiene una planta: se crea «Planta baja» con la primera mesa.
+                const base = ensureDefaultFloor(plan, crypto.randomUUID());
+                const target = base.floors.some(
+                  ({ id: value }) => value === floorId
+                )
+                  ? floorId
+                  : (base.floors[0]?.id ?? "");
+                edit(
+                  addTable(base, {
+                    floorId: target,
+                    id,
+                    sectorId,
+                    shape: newShape
+                  })
+                );
+                setActiveFloor(target);
                 setSelected([id]);
               }}
               type="button"
@@ -395,7 +449,7 @@ export function FloorPlanEditor({
             onMove={(tableId, x, y) => edit(moveTable(plan, tableId, x, y))}
             onSelect={select}
             onZoom={setZoom}
-            plan={plan}
+            plan={visiblePlan}
             selected={selected}
             zoom={zoom}
           />
@@ -407,6 +461,123 @@ export function FloorPlanEditor({
         </div>
 
         <aside className="floor-plan-side">
+          <section aria-labelledby="floor-levels-title">
+            <h2 id="floor-levels-title">Plantas</h2>
+            <form
+              className="floor-plan-inline floor-plan-inline--floor"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const id = crypto.randomUUID();
+                const next = addFloor(
+                  plan,
+                  newFloor.name,
+                  id,
+                  newFloor.shortName
+                );
+                edit(next);
+                if (next !== plan) {
+                  setActiveFloor(id);
+                  setSelected([]);
+                  setNewFloor({ name: "", shortName: "" });
+                }
+              }}
+            >
+              <label className="floor-plan-field floor-plan-field--grow">
+                <span>Nueva planta</span>
+                <input
+                  disabled={busy}
+                  maxLength={60}
+                  onChange={(event) =>
+                    setNewFloor({
+                      ...newFloor,
+                      name: event.currentTarget.value
+                    })
+                  }
+                  value={newFloor.name}
+                />
+              </label>
+              <label className="floor-plan-field floor-plan-field--short">
+                <span>Corto</span>
+                <input
+                  disabled={busy}
+                  maxLength={FLOOR_PLAN_LIMITS.maxShortNameLength}
+                  onChange={(event) =>
+                    setNewFloor({
+                      ...newFloor,
+                      shortName: event.currentTarget.value
+                    })
+                  }
+                  placeholder="PB"
+                  value={newFloor.shortName}
+                />
+              </label>
+              <button
+                className="button button--secondary"
+                disabled={
+                  busy ||
+                  newFloor.name.trim() === "" ||
+                  plan.floors.length >= FLOOR_PLAN_LIMITS.maxFloors
+                }
+                type="submit"
+              >
+                Agregar
+              </button>
+            </form>
+            <ul className="floor-plan-list floor-plan-list--floors">
+              {plan.floors.map((floor) => (
+                <li key={floor.id}>
+                  <input
+                    aria-label={`Nombre de la planta ${floor.name}`}
+                    disabled={busy}
+                    maxLength={60}
+                    onChange={(event) =>
+                      edit(
+                        renameFloor(
+                          plan,
+                          floor.id,
+                          event.currentTarget.value,
+                          floor.shortName
+                        )
+                      )
+                    }
+                    value={floor.name}
+                  />
+                  <input
+                    aria-label={`Nombre corto de la planta ${floor.name}`}
+                    className="floor-plan-short"
+                    disabled={busy}
+                    maxLength={FLOOR_PLAN_LIMITS.maxShortNameLength}
+                    onChange={(event) =>
+                      edit(
+                        renameFloor(
+                          plan,
+                          floor.id,
+                          floor.name,
+                          event.currentTarget.value
+                        )
+                      )
+                    }
+                    placeholder="Corto"
+                    value={floor.shortName ?? ""}
+                  />
+                  <button
+                    className="button button--secondary"
+                    disabled={
+                      busy ||
+                      plan.floors.length <= 1 ||
+                      plan.tables.some((t) => t.floorId === floor.id)
+                    }
+                    onClick={() => edit(removeFloor(plan, floor.id))}
+                    title="Sólo se puede quitar una planta sin mesas"
+                    type="button"
+                  >
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+
           <section aria-labelledby="floor-sectors-title">
             <h2 id="floor-sectors-title">Sectores</h2>
             <form
@@ -490,6 +661,24 @@ export function FloorPlanEditor({
                     }
                     value={selectedTable.label}
                   />
+                </label>
+                <label className="floor-plan-field">
+                  <span>Planta</span>
+                  <select
+                    disabled={busy}
+                    onChange={(event) => {
+                      const target = event.currentTarget.value;
+                      edit(moveTableToFloor(plan, selectedTable.id, target));
+                      setActiveFloor(target);
+                    }}
+                    value={selectedTable.floorId}
+                  >
+                    {plan.floors.map((floor) => (
+                      <option key={floor.id} value={floor.id}>
+                        {floor.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="floor-plan-field">
                   <span>Sector</span>

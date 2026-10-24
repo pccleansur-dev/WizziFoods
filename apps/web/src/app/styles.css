@@ -2929,3 +2929,87 @@ dd {
   font-weight: 750;
   text-align: center;
 }
+
+/* Plantas: pestañas sobre el plano y panel lateral. */
+.floor-plan-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #cfc8bc;
+}
+
+.floor-plan-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  margin-bottom: -1px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #d8d2c7;
+  border-bottom-color: #cfc8bc;
+  border-radius: 0.6rem 0.6rem 0 0;
+  background: #f1ece2;
+  color: #5f584f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.floor-plan-tab small {
+  color: #8a8377;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.floor-plan-tab[aria-selected="true"] {
+  border-color: #cfc8bc;
+  border-bottom-color: #fff;
+  background: #fff;
+  color: #221f1a;
+}
+
+.floor-plan-tab:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: -3px;
+}
+
+.floor-plan-field--short {
+  max-width: 6rem;
+}
+
+.floor-plan-list--floors li {
+  grid-template-columns: minmax(0, 1fr) 5.5rem auto;
+}
+
+.floor-plan-short {
+  min-width: 0;
+}
+
+.floor-plan-inline--floor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.floor-plan-inline--floor .floor-plan-field--grow {
+  grid-column: 1 / -1;
+}
+
+.floor-plan-inline--floor .floor-plan-field--short {
+  max-width: none;
+}
+
+.floor-plan-list--floors li {
+  flex-wrap: nowrap;
+}
+
+.floor-plan-list--floors li > input {
+  min-width: 0;
+}
+
+.floor-plan-list--floors li > .floor-plan-short {
+  flex: 0 0 5.5rem;
+}

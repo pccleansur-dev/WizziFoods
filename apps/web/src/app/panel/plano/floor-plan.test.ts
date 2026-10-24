@@ -6,7 +6,7 @@ import {
   parseFloorPlanSaveResponse
 } from "./floor-plan";
 
-const empty = { groups: [], sectors: [], tables: [] };
+const empty = { floors: [], groups: [], sectors: [], tables: [] };
 const tableId = "a2000000-0000-4000-8000-000000000002";
 
 describe("floor plan responses", () => {
