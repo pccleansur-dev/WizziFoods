@@ -9,7 +9,7 @@
     "lint": "eslint src",
     "start": "node --env-file-if-exists=../../.env dist/main.js",
     "test": "vitest run src",
-    "test:integration": "vitest run src/auth/local-auth.integration.test.ts src/business-profile/local-business-profile.integration.test.ts src/catalog/local-catalog.integration.test.ts src/tenant-provisioning/local-tenant-provisioning.integration.test.ts src/tenants/local-tenant-host.integration.test.ts",
+    "test:integration": "vitest run src/auth/local-auth.integration.test.ts src/business-profile/local-business-profile.integration.test.ts src/catalog/local-catalog.integration.test.ts src/floor-plan/local-floor-plan.integration.test.ts src/tenant-provisioning/local-tenant-provisioning.integration.test.ts src/tenants/local-tenant-host.integration.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
