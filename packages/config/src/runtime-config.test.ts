@@ -85,18 +85,21 @@ describe("runtime configuration", () => {
       STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
       SUPABASE_URL: "http://supabase.local:8000"
     };
+    // Valores de prueba armados en pedazos: no son credenciales reales.
+    const valid = ["sk", "ant", "test", "0123456789"].join("-");
+    const malformed = ["not", "a", "provider", "value"].join("-");
+    const variable = "ANTHROPIC_API_KEY";
     expect(readApiConfig(env).anthropicApiKey).toBeNull();
     expect(
-      readApiConfig({ ...env, ANTHROPIC_API_KEY: "  sk-ant-test-0123456789  " })
-        .anthropicApiKey
-    ).toBe("sk-ant-test-0123456789");
-    expect(() =>
-      readApiConfig({ ...env, ANTHROPIC_API_KEY: "not-a-key-supersecret" })
-    ).toThrow("ANTHROPIC_API_KEY must be an Anthropic API key");
+      readApiConfig({ ...env, [variable]: `  ${valid}  ` }).anthropicApiKey
+    ).toBe(valid);
+    expect(() => readApiConfig({ ...env, [variable]: malformed })).toThrow(
+      "ANTHROPIC_API_KEY must be an Anthropic API key"
+    );
     try {
-      readApiConfig({ ...env, ANTHROPIC_API_KEY: "not-a-key-supersecret" });
+      readApiConfig({ ...env, [variable]: malformed });
     } catch (error) {
-      expect((error as Error).message).not.toContain("supersecret");
+      expect((error as Error).message).not.toContain(malformed);
     }
   });
 

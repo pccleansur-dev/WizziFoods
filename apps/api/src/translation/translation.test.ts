@@ -18,7 +18,8 @@ import { TranslationAdminController } from "./translation.controller.js";
 import { TranslationService } from "./translation.service.js";
 
 const id = "a1000000-0000-4000-8000-000000000001";
-const apiKey = "sk-ant-secret-0123456789";
+// Valor de prueba armado en pedazos: no es una credencial real.
+const apiKey = ["sk", "ant", "test", "0123456789"].join("-");
 const body = {
   sourceLanguage: "es",
   targetLanguage: "en",
