@@ -4004,3 +4004,20 @@ main:has(.diner-experience) .diner-entry {
     height: 6.5rem;
   }
 }
+
+.diner-toast {
+  position: fixed;
+  z-index: 20;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  margin: 0 auto;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  background: #221f1a;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgb(34 31 26 / 25%);
+}

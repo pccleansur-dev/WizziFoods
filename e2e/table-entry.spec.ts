@@ -135,6 +135,7 @@ test("the diner navigates the menu and keeps a private draft per device", async 
   await page.getByLabel("Napolitana").check();
   await page.getByLabel("Cantidad", { exact: true }).fill("2");
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
+  await page.getByRole("button", { name: /^Mi pedido/u }).click();
   await expect(page.getByRole("heading", { name: "Mi pedido" })).toBeVisible();
   await expect(page.getByText("Napolitana", { exact: true })).toBeVisible();
   await expect(page.locator(".diner-total")).toContainText("300,00");
@@ -162,6 +163,7 @@ test("a concurrent availability change marks the draft and blocks continuation",
   await scan(page, "5");
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
+  await page.getByRole("button", { name: /^Mi pedido/u }).click();
   await expect(page.getByRole("button", { name: "Continuar" })).toBeEnabled();
   await business.setProductAvailable(false);
   try {
@@ -179,6 +181,7 @@ async function addMilanesa(page: import("@playwright/test").Page) {
   await scan(page, "5");
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
+  await page.getByRole("button", { name: /^Mi pedido/u }).click();
   await page.getByRole("button", { name: "Continuar" }).click();
 }
 

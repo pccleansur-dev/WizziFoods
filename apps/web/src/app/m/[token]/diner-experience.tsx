@@ -14,6 +14,7 @@ import {
   parseStoredDraft,
   setDraftQuantity
 } from "./diner-draft";
+import { catalogTitle } from "./diner-catalog-format";
 import { DinerMenu } from "./diner-menu";
 import { DinerOrder } from "./diner-order";
 import {
@@ -48,6 +49,8 @@ export function DinerExperience({
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [view, setView] = useState<"menu" | "order" | "checkout">("menu");
+  const [added, setAdded] = useState<string | null>(null);
+  const addedTimer = useRef<number | undefined>(undefined);
   const lastSubmission = useRef<{
     commandId: string;
     payload: string;
@@ -145,7 +148,10 @@ export function DinerExperience({
         variantId
       })
     );
-    setView("order");
+    // Stay on the menu so the diner keeps browsing; just confirm what was added.
+    setAdded(`${quantity} × ${catalogTitle(product.content)}`);
+    window.clearTimeout(addedTimer.current);
+    addedTimer.current = window.setTimeout(() => setAdded(null), 2500);
   };
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const submitIntent = (value: DinerCheckoutValue) => {
@@ -208,6 +214,11 @@ export function DinerExperience({
           <span aria-label={`${itemCount} unidades`}>{itemCount}</span>
         </button>
       </nav>
+      {added ? (
+        <p className="diner-toast" role="status">
+          Agregaste {added}
+        </p>
+      ) : null}
       {view === "menu" ? (
         <DinerMenu catalog={catalog} onAdd={add} />
       ) : view === "order" ? (

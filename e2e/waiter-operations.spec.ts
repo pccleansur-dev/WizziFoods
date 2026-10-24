@@ -61,6 +61,7 @@ async function dinerSends(
   await page.goto(`${origin}/m/${business.tokens.get(label)!}`);
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
+  await page.getByRole("button", { name: /^Mi pedido/u }).click();
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByLabel("Tu nombre").fill(dinerName);
   if (method === "Mercado Pago") await page.getByLabel("Mercado Pago").check();
