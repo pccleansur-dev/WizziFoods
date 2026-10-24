@@ -10,6 +10,7 @@ import {
   removeCatalogVariant,
   updateCatalogLocalizedContent
 } from "./catalog-editor-state";
+import { invalidFieldKeys, type CatalogIssueView } from "./catalog-issues";
 import { CatalogLocalizedFields } from "./catalog-localized-fields";
 
 /**
@@ -18,16 +19,22 @@ import { CatalogLocalizedFields } from "./catalog-localized-fields";
  */
 export function ProductVariants({
   change,
+  issues,
   languages,
   previewLanguage,
   product
 }: {
   change: (update: (current: CatalogDraft) => CatalogDraft) => void;
+  issues: CatalogIssueView[];
   languages: string[];
   previewLanguage: string;
   product: CatalogProduct;
 }) {
-  const [open, setOpen] = useState(false);
+  const [manualOpen, setOpen] = useState(false);
+  // Si una variante tiene un error, se muestra aunque el bloque esté plegado.
+  const open =
+    manualOpen ||
+    product.variants.some(({ id }) => issues.some((issue) => issue.id === id));
 
   return (
     <div className="catalog-variants">
@@ -66,7 +73,14 @@ export function ProductVariants({
             <span />
           </div>
           {product.variants.map((variant) => (
-            <div className="catalog-variant" key={variant.id}>
+            <div
+              className="catalog-variant"
+              data-invalid={
+                invalidFieldKeys(issues, variant.id).size > 0 || undefined
+              }
+              id={`catalog-row-${variant.id}`}
+              key={variant.id}
+            >
               <div className="catalog-product__heading">
                 <strong>
                   {variant.content.find(
@@ -88,6 +102,11 @@ export function ProductVariants({
               <label className="field-group catalog-variant__price">
                 <span>Adicional en pesos</span>
                 <input
+                  aria-invalid={
+                    invalidFieldKeys(issues, variant.id).has(
+                      ":priceDeltaCents"
+                    ) || undefined
+                  }
                   inputMode="decimal"
                   onChange={(event) => {
                     const cents = parsePriceToCents(event.target.value);
@@ -118,6 +137,7 @@ export function ProductVariants({
               </label>
               <CatalogLocalizedFields
                 content={variant.content}
+                invalid={invalidFieldKeys(issues, variant.id)}
                 languages={languages}
                 legend="Contenido de la variante"
                 onChange={(language, field, value) =>

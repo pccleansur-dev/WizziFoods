@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   catalogPublicationIssues,
+  explainCatalogDraft,
   parseCatalogDraft,
   type CatalogDraft
 } from "./catalog.js";
@@ -158,5 +159,110 @@ describe("catalog publication readiness", () => {
     };
 
     expect(catalogPublicationIssues(translated, ["es", "en"])).toEqual([]);
+  });
+});
+
+describe("catalog drafts with unfinished translations", () => {
+  const withBlankEnglish = JSON.parse(
+    JSON.stringify(validDraft)
+  ) as CatalogDraft;
+  withBlankEnglish.categories[0]!.content.push({
+    description: "",
+    language: "en",
+    title: ""
+  });
+  withBlankEnglish.products[0]!.content.push({
+    description: "",
+    language: "en",
+    title: ""
+  });
+
+  it("saves a draft whose translations are still empty", () => {
+    expect(parseCatalogDraft(withBlankEnglish)).not.toBeNull();
+  });
+
+  it("still refuses to publish until every language has a name", () => {
+    expect(catalogPublicationIssues(withBlankEnglish, ["es", "en"])).toContain(
+      "MISSING_LOCALIZED_CONTENT"
+    );
+    expect(catalogPublicationIssues(withBlankEnglish, ["es"])).toEqual([]);
+  });
+});
+
+describe("explainCatalogDraft", () => {
+  const clone = () => JSON.parse(JSON.stringify(validDraft)) as CatalogDraft;
+
+  it("reports nothing for a valid draft", () => {
+    expect(explainCatalogDraft(validDraft)).toEqual([]);
+  });
+
+  it("points at the entity, field and language of each problem", () => {
+    const draft = clone();
+    draft.products[0]!.content[0]!.title = "x".repeat(121);
+    draft.sectors[0]!.name = "";
+    draft.products[0]!.variants[0]!.priceDeltaCents = -5;
+    expect(explainCatalogDraft(draft)).toEqual([
+      {
+        code: "MISSING_NAME",
+        entity: "sector",
+        field: "name",
+        id: sectorId,
+        index: 0,
+        language: null
+      },
+      {
+        code: "TOO_LONG",
+        entity: "product",
+        field: "title",
+        id: productId,
+        index: 0,
+        language: "es"
+      },
+      {
+        code: "INVALID_PRICE",
+        entity: "variant",
+        field: "priceDeltaCents",
+        id: variantId,
+        index: 0,
+        language: null
+      }
+    ]);
+  });
+
+  it("flags unknown references and repeated positions", () => {
+    const draft = clone();
+    draft.products[0]!.categoryId = "c9000000-0000-4000-8000-000000000009";
+    draft.products[0]!.sectorId = "c8000000-0000-4000-8000-000000000008";
+    const codes = explainCatalogDraft(draft).map(({ code }) => code);
+    expect(codes).toContain("UNKNOWN_CATEGORY");
+    expect(codes).toContain("UNKNOWN_SECTOR");
+  });
+
+  it("explains every draft the contract refuses", () => {
+    const broken: unknown[] = [
+      null,
+      "nope",
+      { ...clone(), extra: 1 },
+      { ...clone(), categories: "x" },
+      (() => {
+        const draft = clone();
+        draft.products[0]!.priceCents = 1.5;
+        return draft;
+      })(),
+      (() => {
+        const draft = clone();
+        draft.categories[0]!.content = [];
+        return draft;
+      })(),
+      (() => {
+        const draft = clone();
+        draft.sectors[0]!.kind = "cellar" as never;
+        return draft;
+      })()
+    ];
+    for (const draft of broken) {
+      expect(parseCatalogDraft(draft)).toBeNull();
+      expect(explainCatalogDraft(draft).length).toBeGreaterThan(0);
+    }
   });
 });

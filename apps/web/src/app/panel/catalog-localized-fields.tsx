@@ -12,12 +12,15 @@ export function catalogLanguageName(language: string): string {
 export function CatalogLocalizedFields({
   content,
   languages,
+  invalid,
   legend,
   onChange,
   showDescription = true
 }: {
   content: LocalizedCatalogContent[];
   languages: string[];
+  /** Claves `idioma:campo` con error, para marcarlos en rojo. */
+  invalid?: ReadonlySet<string> | undefined;
   legend: string;
   onChange: (
     language: string,
@@ -37,6 +40,7 @@ export function CatalogLocalizedFields({
             <label className="field-group">
               <span>Nombre</span>
               <input
+                aria-invalid={invalid?.has(`${language}:title`) || undefined}
                 lang={language}
                 maxLength={120}
                 onChange={(event) =>
@@ -51,6 +55,9 @@ export function CatalogLocalizedFields({
               <label className="field-group catalog-product__description">
                 <span>Descripción</span>
                 <textarea
+                  aria-invalid={
+                    invalid?.has(`${language}:description`) || undefined
+                  }
                   lang={language}
                   maxLength={1000}
                   onChange={(event) =>

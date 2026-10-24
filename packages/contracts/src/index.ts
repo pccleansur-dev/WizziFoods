@@ -15,7 +15,10 @@ export {
 } from "./business-profile.js";
 export {
   catalogPublicationIssues,
+  explainCatalogDraft,
   parseCatalogDraft,
+  type CatalogDraftIssue,
+  type CatalogDraftIssueCode,
   type CatalogCategory,
   type CatalogDraft,
   type CatalogProduct,

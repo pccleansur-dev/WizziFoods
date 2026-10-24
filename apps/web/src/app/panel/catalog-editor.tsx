@@ -22,6 +22,8 @@ import {
   catalogLanguageName
 } from "./catalog-localized-fields";
 import { CatalogPreview } from "./catalog-preview";
+import { CatalogIssueList } from "./catalog-issue-list";
+import { describeCatalogIssues, invalidFieldKeys } from "./catalog-issues";
 import { ProductVariants } from "./catalog-product-variants";
 import { CatalogTranslateButton } from "./catalog-translate-button";
 import { translateCatalogAction } from "./translate-actions";
@@ -106,6 +108,7 @@ export function CatalogEditor({
   const draftRevision = saveState.draftRevision ?? catalog?.revision ?? null;
   const publishedRevision =
     publishState.publishedRevision ?? catalog?.basePublishedRevision ?? null;
+  const issues = describeCatalogIssues(draft);
   const readyToPublish = catalogIsReadyToPublish(
     draft,
     languages,
@@ -181,11 +184,17 @@ export function CatalogEditor({
                   {draft.categories.map((category) => (
                     <div
                       className="catalog-inline-row catalog-inline-row--category"
+                      data-invalid={
+                        invalidFieldKeys(issues, category.id).size > 0 ||
+                        undefined
+                      }
+                      id={`catalog-row-${category.id}`}
                       key={category.id}
                     >
                       <CatalogLocalizedFields
                         content={category.content}
                         languages={languages}
+                        invalid={invalidFieldKeys(issues, category.id)}
                         legend="Contenido de la categoría"
                         onChange={(language, field, value) =>
                           change((current) =>
@@ -251,11 +260,20 @@ export function CatalogEditor({
                   {draft.sectors.map((sector) => (
                     <div
                       className="catalog-inline-row catalog-inline-row--sector"
+                      data-invalid={
+                        invalidFieldKeys(issues, sector.id).size > 0 ||
+                        undefined
+                      }
+                      id={`catalog-row-${sector.id}`}
                       key={sector.id}
                     >
                       <label className="field-group">
                         <span>Nombre</span>
                         <input
+                          aria-invalid={
+                            invalidFieldKeys(issues, sector.id).has(":name") ||
+                            undefined
+                          }
                           maxLength={80}
                           onChange={(event) =>
                             change((current) => ({
@@ -330,7 +348,15 @@ export function CatalogEditor({
                     <span />
                   </div>
                   {draft.products.map((product) => (
-                    <article className="catalog-product" key={product.id}>
+                    <article
+                      className="catalog-product"
+                      data-invalid={
+                        invalidFieldKeys(issues, product.id).size > 0 ||
+                        undefined
+                      }
+                      id={`catalog-row-${product.id}`}
+                      key={product.id}
+                    >
                       <div className="catalog-product__heading">
                         <strong>
                           {product.content[0]?.title || "Producto sin nombre"}
@@ -356,6 +382,11 @@ export function CatalogEditor({
                         <label className="field-group">
                           <span>Precio en pesos</span>
                           <input
+                            aria-invalid={
+                              invalidFieldKeys(issues, product.id).has(
+                                ":priceCents"
+                              ) || undefined
+                            }
                             inputMode="decimal"
                             onChange={(event) => {
                               const cents = parsePriceToCents(
@@ -429,6 +460,7 @@ export function CatalogEditor({
                       <CatalogLocalizedFields
                         content={product.content}
                         languages={languages}
+                        invalid={invalidFieldKeys(issues, product.id)}
                         legend="Contenido del producto"
                         onChange={(language, field, value) =>
                           change((current) =>
@@ -471,6 +503,7 @@ export function CatalogEditor({
                       />
                       <ProductVariants
                         change={change}
+                        issues={issues}
                         languages={languages}
                         previewLanguage={previewLanguage}
                         product={product}
@@ -504,6 +537,7 @@ export function CatalogEditor({
             </div>
           </div>
 
+          <CatalogIssueList issues={issues} />
           <CatalogPublicationReadiness
             draft={draft}
             hasBusinessProfile={hasBusinessProfile}

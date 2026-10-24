@@ -2611,3 +2611,42 @@ dd {
 .catalog-translate__message--error {
   color: #8b241d;
 }
+
+/* Errores de la carta marcados donde ocurren. */
+.catalog-issues {
+  margin: 0.75rem 0;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #8b241d;
+  background: #fff0ee;
+  color: #6f1d18;
+  font-size: 0.9rem;
+}
+
+.catalog-issues strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.catalog-issues ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.catalog-issues a {
+  color: inherit;
+  font-weight: 750;
+}
+
+.catalog-product[data-invalid="true"],
+.catalog-inline-row[data-invalid="true"],
+.catalog-variant[data-invalid="true"] {
+  box-shadow: inset 3px 0 0 #b3261e;
+}
+
+.field-group input[aria-invalid="true"],
+.field-group select[aria-invalid="true"],
+.field-group textarea[aria-invalid="true"] {
+  border-color: #b3261e;
+  background: #fff7f6;
+  box-shadow: 0 0 0 1px #b3261e;
+}

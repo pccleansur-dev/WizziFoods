@@ -104,7 +104,7 @@ function parseContent(input: unknown): LocalizedCatalogContent[] | null {
       !hasExactKeys(candidate, ["description", "language", "title"]) ||
       typeof candidate.language !== "string" ||
       !languagePattern.test(candidate.language) ||
-      !boundedString(candidate.title, 1, 120) ||
+      !boundedString(candidate.title, 0, 120) ||
       !boundedString(candidate.description, 0, 1_000)
     ) {
       return null;
@@ -322,4 +322,279 @@ export function parseCatalogDraft(input: unknown): CatalogDraft | null {
     products,
     sectors
   };
+}
+
+export type CatalogDraftIssueCode =
+  | "DUPLICATE_ID"
+  | "DUPLICATE_LANGUAGE"
+  | "DUPLICATE_POSITION"
+  | "INVALID_ID"
+  | "INVALID_KIND"
+  | "INVALID_LANGUAGE"
+  | "INVALID_POSITION"
+  | "INVALID_PRICE"
+  | "INVALID_STRUCTURE"
+  | "LIMIT_EXCEEDED"
+  | "MISSING_CONTENT"
+  | "MISSING_NAME"
+  | "TOO_LONG"
+  | "UNKNOWN_CATEGORY"
+  | "UNKNOWN_SECTOR"
+  | "UNTRIMMED";
+
+export type CatalogDraftIssue = {
+  code: CatalogDraftIssueCode;
+  entity: "category" | "draft" | "product" | "sector" | "variant";
+  field: string;
+  /** Identificador de la entidad afectada, si el borrador lo trae válido. */
+  id: string | null;
+  /** Posición (desde 0) de la entidad dentro de su lista. */
+  index: number | null;
+  language: string | null;
+};
+
+/**
+ * Explica por qué `parseCatalogDraft` rechaza un borrador: devuelve cada
+ * problema con la entidad, el campo y el idioma. Recorre en el mismo orden que
+ * la pantalla: categorías, sectores y productos con sus variantes. Siempre
+ * devuelve al menos un problema si el borrador no es válido.
+ */
+export function explainCatalogDraft(input: unknown): CatalogDraftIssue[] {
+  const issues: CatalogDraftIssue[] = [];
+  const add = (
+    code: CatalogDraftIssueCode,
+    entity: CatalogDraftIssue["entity"],
+    field: string,
+    id: unknown,
+    index: number | null,
+    language: string | null = null
+  ) =>
+    issues.push({
+      code,
+      entity,
+      field,
+      id: uuid(id) ? id : null,
+      index,
+      language
+    });
+
+  const root = record(input);
+  if (
+    !root ||
+    !hasExactKeys(root, ["baseRevision", "categories", "products", "sectors"])
+  ) {
+    add("INVALID_STRUCTURE", "draft", "draft", null, null);
+    return issues;
+  }
+  if (!(
+    root.baseRevision === null ||
+    (Number.isSafeInteger(root.baseRevision) &&
+      (root.baseRevision as number) > 0)
+  )) {
+    add("INVALID_STRUCTURE", "draft", "baseRevision", null, null);
+  }
+  const lists = [
+    ["categories", "category", 50],
+    ["sectors", "sector", 20],
+    ["products", "product", 500]
+  ] as const;
+  for (const [key, entity, max] of lists) {
+    const list = root[key];
+    if (!Array.isArray(list)) {
+      add("INVALID_STRUCTURE", "draft", key, null, null);
+    } else if (list.length > max) {
+      add("LIMIT_EXCEEDED", entity, key, null, null);
+    }
+  }
+  if (
+    !Array.isArray(root.categories) ||
+    !Array.isArray(root.sectors) ||
+    !Array.isArray(root.products)
+  ) {
+    return issues;
+  }
+
+  const checkContent = (
+    value: unknown,
+    entity: CatalogDraftIssue["entity"],
+    id: unknown,
+    index: number,
+    withDescription: boolean
+  ) => {
+    if (!Array.isArray(value) || value.length < 1 || value.length > 5) {
+      add("MISSING_CONTENT", entity, "content", id, index);
+      return;
+    }
+    const languages = new Set<string>();
+    for (const entry of value) {
+      const item = record(entry);
+      const language =
+        item && typeof item.language === "string" ? item.language : null;
+      if (
+        !item ||
+        !hasExactKeys(item, ["description", "language", "title"]) ||
+        language === null ||
+        !languagePattern.test(language)
+      ) {
+        add("INVALID_LANGUAGE", entity, "content", id, index, language);
+        continue;
+      }
+      if (languages.has(language)) {
+        add("DUPLICATE_LANGUAGE", entity, "content", id, index, language);
+      }
+      languages.add(language);
+      const fields: [string, number][] = [["title", 120]];
+      if (withDescription) fields.push(["description", 1_000]);
+      for (const [field, max] of fields) {
+        const text = item[field];
+        if (typeof text !== "string") {
+          add("INVALID_STRUCTURE", entity, field, id, index, language);
+        } else if (text !== text.trim()) {
+          add("UNTRIMMED", entity, field, id, index, language);
+        } else if (text.length > max) {
+          add("TOO_LONG", entity, field, id, index, language);
+        }
+      }
+    }
+  };
+
+  const seenIds = new Set<string>();
+  const checkId = (
+    item: Record<string, unknown>,
+    entity: CatalogDraftIssue["entity"],
+    index: number
+  ) => {
+    if (!uuid(item.id)) add("INVALID_ID", entity, "id", null, index);
+    else if (seenIds.has(item.id)) {
+      add("DUPLICATE_ID", entity, "id", item.id, index);
+    } else seenIds.add(item.id);
+  };
+  const checkPosition = (
+    item: Record<string, unknown>,
+    entity: CatalogDraftIssue["entity"],
+    index: number,
+    positions: Set<string>,
+    scope = ""
+  ) => {
+    if (!position(item.position)) {
+      add("INVALID_POSITION", entity, "position", item.id, index);
+      return;
+    }
+    const marker = `${scope}:${item.position}`;
+    if (positions.has(marker)) {
+      add("DUPLICATE_POSITION", entity, "position", item.id, index);
+    }
+    positions.add(marker);
+  };
+
+  const categoryIds = new Set<string>();
+  const categoryPositions = new Set<string>();
+  root.categories.forEach((value, index) => {
+    const category = record(value);
+    if (!category || !hasExactKeys(category, ["content", "id", "position"])) {
+      add("INVALID_STRUCTURE", "category", "category", null, index);
+      return;
+    }
+    checkId(category, "category", index);
+    if (uuid(category.id)) categoryIds.add(category.id);
+    checkPosition(category, "category", index, categoryPositions);
+    checkContent(category.content, "category", category.id, index, true);
+  });
+
+  const sectorIds = new Set<string>();
+  const sectorPositions = new Set<string>();
+  root.sectors.forEach((value, index) => {
+    const sector = record(value);
+    if (!sector || !hasExactKeys(sector, ["id", "kind", "name", "position"])) {
+      add("INVALID_STRUCTURE", "sector", "sector", null, index);
+      return;
+    }
+    checkId(sector, "sector", index);
+    if (uuid(sector.id)) sectorIds.add(sector.id);
+    checkPosition(sector, "sector", index, sectorPositions);
+    if (!["bar", "kitchen", "other"].includes(String(sector.kind))) {
+      add("INVALID_KIND", "sector", "kind", sector.id, index);
+    }
+    if (typeof sector.name !== "string" || sector.name.length === 0) {
+      add("MISSING_NAME", "sector", "name", sector.id, index);
+    } else if (sector.name !== sector.name.trim()) {
+      add("UNTRIMMED", "sector", "name", sector.id, index);
+    } else if (sector.name.length > 80) {
+      add("TOO_LONG", "sector", "name", sector.id, index);
+    }
+  });
+
+  const productPositions = new Set<string>();
+  root.products.forEach((value, index) => {
+    const product = record(value);
+    if (
+      !product ||
+      !hasExactKeys(product, [
+        "categoryId",
+        "content",
+        "id",
+        "imageAssetId",
+        "position",
+        "priceCents",
+        "sectorId",
+        "variants"
+      ])
+    ) {
+      add("INVALID_STRUCTURE", "product", "product", null, index);
+      return;
+    }
+    checkId(product, "product", index);
+    checkPosition(
+      product,
+      "product",
+      index,
+      productPositions,
+      String(product.categoryId)
+    );
+    if (!uuid(product.categoryId) || !categoryIds.has(product.categoryId)) {
+      add("UNKNOWN_CATEGORY", "product", "categoryId", product.id, index);
+    }
+    if (!uuid(product.sectorId) || !sectorIds.has(product.sectorId)) {
+      add("UNKNOWN_SECTOR", "product", "sectorId", product.id, index);
+    }
+    if (!(product.imageAssetId === null || uuid(product.imageAssetId))) {
+      add("INVALID_ID", "product", "imageAssetId", product.id, index);
+    }
+    if (!money(product.priceCents)) {
+      add("INVALID_PRICE", "product", "priceCents", product.id, index);
+    }
+    checkContent(product.content, "product", product.id, index, true);
+    if (!Array.isArray(product.variants) || product.variants.length > 30) {
+      add("LIMIT_EXCEEDED", "product", "variants", product.id, index);
+      return;
+    }
+    const variantPositions = new Set<string>();
+    product.variants.forEach((rawVariant, variantIndex) => {
+      const variant = record(rawVariant);
+      if (
+        !variant ||
+        !hasExactKeys(variant, ["content", "id", "position", "priceDeltaCents"])
+      ) {
+        add("INVALID_STRUCTURE", "variant", "variant", null, variantIndex);
+        return;
+      }
+      checkId(variant, "variant", variantIndex);
+      checkPosition(variant, "variant", variantIndex, variantPositions);
+      if (!money(variant.priceDeltaCents)) {
+        add(
+          "INVALID_PRICE",
+          "variant",
+          "priceDeltaCents",
+          variant.id,
+          variantIndex
+        );
+      }
+      checkContent(variant.content, "variant", variant.id, variantIndex, false);
+    });
+  });
+
+  if (issues.length === 0 && parseCatalogDraft(input) === null) {
+    add("INVALID_STRUCTURE", "draft", "draft", null, null);
+  }
+  return issues;
 }
