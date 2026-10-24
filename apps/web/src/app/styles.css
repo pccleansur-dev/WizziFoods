@@ -2552,3 +2552,43 @@ dd {
 .catalog-card__actions > span {
   white-space: nowrap;
 }
+
+/* Fila "+ Agregar" al final de cada tabla, como la última fila de una planilla. */
+.catalog-add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1.15rem;
+  border: 0;
+  border-top: 1px dashed #cfc8bc;
+  background: transparent;
+  color: #5f584f;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.catalog-add-row:hover:not(:disabled),
+.catalog-add-row:focus-visible {
+  background: #fff;
+  color: #221f1a;
+}
+
+.catalog-add-row:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: -3px;
+}
+
+.catalog-add-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.catalog-card:not(.catalog-card--table):not(.catalog-card--products)
+  > .catalog-add-row {
+  padding-inline: 0;
+}

@@ -154,22 +154,7 @@ export function CatalogEditor({
             <div className="catalog-card catalog-card--table">
               <div className="catalog-card__heading">
                 <h3>Categorías</h3>
-                <div className="catalog-card__actions">
-                  <span>{draft.categories.length} de 50</span>
-                  <button
-                    aria-label="Agregar categoría"
-                    className="button button--secondary catalog-card__add"
-                    disabled={draft.categories.length >= 50}
-                    onClick={() =>
-                      change((current) =>
-                        addCatalogCategory(current, undefined, languages)
-                      )
-                    }
-                    type="button"
-                  >
-                    + Agregar
-                  </button>
-                </div>
+                <span>{draft.categories.length} de 50</span>
               </div>
               {draft.categories.length === 0 ? (
                 <p className="catalog-helper">
@@ -222,23 +207,25 @@ export function CatalogEditor({
                   ))}
                 </>
               )}
+              <button
+                aria-label="Agregar categoría"
+                className="catalog-add-row"
+                disabled={draft.categories.length >= 50}
+                onClick={() =>
+                  change((current) =>
+                    addCatalogCategory(current, undefined, languages)
+                  )
+                }
+                type="button"
+              >
+                <span aria-hidden="true">+</span> Agregar categoría
+              </button>
             </div>
 
             <div className="catalog-card catalog-card--table">
               <div className="catalog-card__heading">
                 <h3>Sectores de preparación</h3>
-                <div className="catalog-card__actions">
-                  <span>{draft.sectors.length} de 20</span>
-                  <button
-                    aria-label="Agregar sector"
-                    className="button button--secondary catalog-card__add"
-                    disabled={draft.sectors.length >= 20}
-                    onClick={() => change(addCatalogSector)}
-                    type="button"
-                  >
-                    + Agregar
-                  </button>
-                </div>
+                <span>{draft.sectors.length} de 20</span>
               </div>
               {draft.sectors.length === 0 ? (
                 <p className="catalog-helper">
@@ -303,36 +290,21 @@ export function CatalogEditor({
                   ))}
                 </>
               )}
+              <button
+                aria-label="Agregar sector"
+                className="catalog-add-row"
+                disabled={draft.sectors.length >= 20}
+                onClick={() => change(addCatalogSector)}
+                type="button"
+              >
+                <span aria-hidden="true">+</span> Agregar sector
+              </button>
             </div>
 
             <div className="catalog-card catalog-card--products">
               <div className="catalog-card__heading">
                 <h3>Productos</h3>
-                <div className="catalog-card__actions">
-                  <span>{draft.products.length} de 500</span>
-                  <button
-                    aria-label="Agregar producto"
-                    className="button button--secondary catalog-card__add"
-                    disabled={
-                      !draft.categories.length ||
-                      !draft.sectors.length ||
-                      draft.products.length >= 500
-                    }
-                    onClick={() =>
-                      change((current) =>
-                        addCatalogProduct(current, undefined, languages)
-                      )
-                    }
-                    title={
-                      draft.categories.length && draft.sectors.length
-                        ? undefined
-                        : "Agregá una categoría y un sector primero"
-                    }
-                    type="button"
-                  >
-                    + Agregar
-                  </button>
-                </div>
+                <span>{draft.products.length} de 500</span>
               </div>
               {draft.products.length === 0 ? (
                 <p className="catalog-helper">
@@ -499,6 +471,28 @@ export function CatalogEditor({
                   ))}
                 </>
               )}
+              <button
+                aria-label="Agregar producto"
+                className="catalog-add-row"
+                disabled={
+                  !draft.categories.length ||
+                  !draft.sectors.length ||
+                  draft.products.length >= 500
+                }
+                onClick={() =>
+                  change((current) =>
+                    addCatalogProduct(current, undefined, languages)
+                  )
+                }
+                title={
+                  draft.categories.length && draft.sectors.length
+                    ? undefined
+                    : "Agregá una categoría y un sector primero"
+                }
+                type="button"
+              >
+                <span aria-hidden="true">+</span> Agregar producto
+              </button>
             </div>
           </div>
 
