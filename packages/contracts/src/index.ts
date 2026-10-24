@@ -26,6 +26,25 @@ export {
   type LocalizedCatalogContent
 } from "./catalog.js";
 export {
+  CATALOG_IMPORT_MAX_BYTES,
+  evaluateCatalogImportUpload,
+  parseCatalogImportDraft,
+  parseCatalogImportRequest,
+  type CatalogImportDraft,
+  type CatalogImportDraftItem,
+  type CatalogImportError,
+  type CatalogImportField,
+  type CatalogImportFileKind,
+  type CatalogImportFileSource,
+  type CatalogImportManualRow,
+  type CatalogImportRequest,
+  type CatalogImportSource,
+  type CatalogImportSourceKind,
+  type CatalogImportStatus,
+  type CatalogImportUploadDecision,
+  type CatalogImportUploadRejection
+} from "./catalog-import.js";
+export {
   createServiceStatus,
   type ServiceName,
   type ServiceStatus
