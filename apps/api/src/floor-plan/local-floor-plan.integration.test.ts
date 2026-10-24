@@ -43,6 +43,7 @@ const two: Fixture = {
   userId: "fc000000-0000-4000-8000-000000000021"
 };
 
+const groundFloor = "fc100000-0000-4000-8000-0000000000f1";
 const salon = "fc100000-0000-4000-8000-000000000001";
 const terraza = "fc100000-0000-4000-8000-000000000002";
 const tableA = "fc200000-0000-4000-8000-000000000001";
@@ -58,6 +59,7 @@ function table(
   shape: "rectangle" | "round" | "square" = "square"
 ) {
   return {
+    floorId: groundFloor,
     height: 100,
     id,
     label,
@@ -77,6 +79,9 @@ function plan(
   groups: { id: string; name: string; tableIds: string[] }[] = []
 ) {
   return {
+    floors: [
+      { id: groundFloor, name: "Planta baja", position: 0, shortName: "PB" }
+    ],
     groups,
     sectors: [
       { id: salon, name: "Salón", position: 0 },
@@ -196,7 +201,10 @@ describeWithLocalStack("floor plan with local Supabase", () => {
   it("runs create → move → group → save → reload → ungroup → download QR", async () => {
     const empty = await call(one, "GET", "");
     expect(empty.json()).toEqual({
-      data: { plan: { groups: [], sectors: [], tables: [] }, version: 0 }
+      data: {
+        plan: { floors: [], groups: [], sectors: [], tables: [] },
+        version: 0
+      }
     });
 
     const created = plan([
@@ -336,7 +344,7 @@ describeWithLocalStack("floor plan with local Supabase", () => {
   it("keeps tenants isolated for plan, QR download and verification", async () => {
     const otherPlan = await call(two, "GET", "");
     expect(otherPlan.json().data).toEqual({
-      plan: { groups: [], sectors: [], tables: [] },
+      plan: { floors: [], groups: [], sectors: [], tables: [] },
       version: 0
     });
     expect((await call(two, "GET", "/qr")).json().data).toEqual([]);
@@ -398,5 +406,94 @@ describeWithLocalStack("floor plan with local Supabase", () => {
     );
     const stale = await call(one, "POST", "/qr/verify", { token: oldToken });
     expect(stale.json().data).toEqual({ valid: false });
+  });
+  it("splits the plan into floors, moves a table between them and keeps its QR", async () => {
+    const upperFloor = "fc100000-0000-4000-8000-0000000000f2";
+    const read = async () =>
+      (await call(one, "GET", "")).json().data as {
+        plan: ReturnType<typeof plan>;
+        version: number;
+      };
+    const qrOf = async (id: string) =>
+      (
+        (await call(one, "GET", "/qr")).json().data as {
+          tableId: string;
+          url: string;
+        }[]
+      ).find(({ tableId }) => tableId === id)?.url;
+
+    const current = await read();
+    expect(current.plan.floors).toHaveLength(1);
+    const before = await qrOf(tableA);
+
+    const floors = [
+      ...current.plan.floors,
+      { id: upperFloor, name: "Planta alta", position: 1, shortName: "PA" }
+    ];
+    const moved = await call(one, "PUT", "", {
+      commandId: "fc400000-0000-4000-8000-000000000031",
+      expectedVersion: current.version,
+      plan: {
+        ...current.plan,
+        floors,
+        tables: current.plan.tables.map((item) =>
+          item.id === tableA ? { ...item, floorId: upperFloor } : item
+        )
+      }
+    });
+    expect(moved.statusCode, moved.body).toBe(200);
+    const stored = moved.json().data.plan;
+    expect(stored.floors.map((floor: { name: string }) => floor.name)).toEqual([
+      "Planta baja",
+      "Planta alta"
+    ]);
+    expect(
+      stored.tables.find((item: { id: string }) => item.id === tableA).floorId
+    ).toBe(upperFloor);
+    expect(await qrOf(tableA)).toBe(before);
+
+    // A group cannot mix floors, and a table cannot use a floor that does not exist.
+    const mixed = await call(one, "PUT", "", {
+      commandId: "fc400000-0000-4000-8000-000000000032",
+      expectedVersion: (await read()).version,
+      plan: {
+        ...stored,
+        groups: [{ id: group, name: "Mixta", tableIds: [tableA, tableB] }]
+      }
+    });
+    expect(mixed.statusCode).toBe(400);
+    expect(JSON.stringify(mixed.json())).toContain("MIXED_FLOORS");
+    const unknown = await call(one, "PUT", "", {
+      commandId: "fc400000-0000-4000-8000-000000000033",
+      expectedVersion: (await read()).version,
+      plan: {
+        ...stored,
+        tables: stored.tables.map((item: { id: string }) =>
+          item.id === tableB
+            ? { ...item, floorId: "fc100000-0000-4000-8000-0000000000f9" }
+            : item
+        )
+      }
+    });
+    expect(unknown.statusCode).toBe(400);
+    expect(JSON.stringify(unknown.json())).toContain("UNKNOWN_FLOOR");
+
+    // The other tenant has none of these floors and cannot use them.
+    const other = (await call(two, "GET", "")).json().data.plan;
+    expect(other.floors.map((floor: { id: string }) => floor.id)).not.toContain(
+      upperFloor
+    );
+    const crossUse = await call(two, "PUT", "", {
+      commandId: "fc400000-0000-4000-8000-000000000034",
+      expectedVersion: (await call(two, "GET", "")).json().data.version,
+      plan: {
+        floors: [],
+        groups: [],
+        sectors: [{ id: salon, name: "Salón", position: 0 }],
+        tables: [table(tableA, "9", 40)]
+      }
+    });
+    expect(crossUse.statusCode).toBe(400);
+    expect(JSON.stringify(crossUse.json())).toContain("UNKNOWN_FLOOR");
   });
 });

@@ -12,6 +12,7 @@ import { FloorPlanService } from "./floor-plan.service.js";
 const commandId = "f5000000-0000-4000-8000-000000000005";
 const sectorId = "f1000000-0000-4000-8000-000000000001";
 const plan = {
+  floors: [],
   groups: [],
   sectors: [{ id: sectorId, name: "Salón", position: 0 }],
   tables: []

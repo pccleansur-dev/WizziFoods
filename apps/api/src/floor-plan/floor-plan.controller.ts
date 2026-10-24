@@ -71,7 +71,7 @@ function mapSaveFailure(error: unknown): never {
     throw new UnprocessableEntityException({
       error: {
         code: "FLOOR_PLAN_DUPLICATE_LABEL",
-        message: "Dos mesas tienen el mismo nombre o número."
+        message: "Dos mesas o dos plantas tienen el mismo nombre."
       }
     });
   }

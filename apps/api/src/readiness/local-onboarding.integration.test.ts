@@ -118,14 +118,20 @@ function catalogDraft(extraTitle?: string) {
   };
 }
 
+const groundFloorId = "fe100000-0000-4000-8000-0000000000f1";
+
 const floorPlan = (version: number, command: string) => ({
   commandId: command,
   expectedVersion: version,
   plan: {
+    floors: [
+      { id: groundFloorId, name: "Planta baja", position: 0, shortName: null }
+    ],
     groups: [],
     sectors: [{ id: salonId, name: "Salón", position: 0 }],
     tables: [
       {
+        floorId: groundFloorId,
         height: 80,
         id: tableId,
         label: "1",
@@ -496,7 +502,7 @@ describeWithLocalStack("sign-up journey with local Supabase", () => {
       writerLocked();
       await released;
       await transaction`
-        update private.floor_tables set retired_at = now(), sector_id = null
+        update private.floor_tables set retired_at = now(), sector_id = null, level_id = null
         where tenant_id = ${one.tenantId} and retired_at is null
       `;
     });
@@ -522,10 +528,19 @@ describeWithLocalStack("sign-up journey with local Supabase", () => {
       commandId: "fe200000-0000-4000-8000-000000000002",
       expectedVersion: 1,
       plan: {
+        floors: [
+          {
+            id: groundFloorId,
+            name: "Planta baja",
+            position: 0,
+            shortName: null
+          }
+        ],
         groups: [],
         sectors: [{ id: salonId, name: "Salón", position: 0 }],
         tables: [
           {
+            floorId: groundFloorId,
             height: 80,
             id: "fe100000-0000-4000-8000-000000000007",
             label: "2",

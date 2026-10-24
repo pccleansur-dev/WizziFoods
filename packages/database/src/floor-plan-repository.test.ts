@@ -9,13 +9,16 @@ const scope = {
 const requesterId = "a1000000-0000-4000-8000-000000000001";
 const tableId = "a2000000-0000-4000-8000-000000000002";
 const sectorId = "a5000000-0000-4000-8000-000000000005";
+const floorId = "a6000000-0000-4000-8000-000000000006";
 const commandId = "a9000000-0000-4000-8000-000000000009";
 const token = "ab".repeat(32);
 const plan = {
+  floors: [{ id: floorId, name: "Planta baja", position: 0, shortName: null }],
   groups: [],
   sectors: [{ id: sectorId, name: "Salón", position: 0 }],
   tables: [
     {
+      floorId,
       height: 80,
       id: tableId,
       label: "1",
