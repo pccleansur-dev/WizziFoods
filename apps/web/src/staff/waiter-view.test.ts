@@ -93,6 +93,10 @@ describe("waiter salon view helpers", () => {
     expect(waiterErrorMessage("INTENT_NOT_CONFIRMABLE")).toContain(
       "pago online"
     );
+    expect(waiterErrorMessage("PRODUCTION_TRANSITION_INVALID")).toContain(
+      "Actualizá"
+    );
+    expect(waiterErrorMessage("PRODUCTION_ITEM_NOT_FOUND")).toContain("sector");
     expect(waiterErrorMessage("SOMETHING_ELSE")).toBe(
       "No pudimos completar la operación. Intentá nuevamente."
     );

@@ -3876,3 +3876,26 @@ dd {
     align-items: center;
   }
 }
+
+.production-tickets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.production-ticket-title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.production-tickets .waiter-lines li {
+  flex-wrap: wrap;
+}
+
+.production-tickets .waiter-lines .button {
+  min-height: 2.75rem;
+}
+
+.production-tickets [data-status="ready"] {
+  opacity: 0.8;
+}

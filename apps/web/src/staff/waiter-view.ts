@@ -67,6 +67,9 @@ const errorMessages: Record<string, string> = {
     "Los precios de la carta cambiaron. Pedí al comensal que revise el pedido.",
   ORDER_ITEMS_CHANGED:
     "La disponibilidad de la carta cambió. Revisá el pedido.",
+  PRODUCTION_ITEM_NOT_FOUND: "No encontramos ese ítem en tu sector.",
+  PRODUCTION_TRANSITION_INVALID:
+    "El ítem no puede pasar a ese estado. Actualizá la pantalla.",
   STAFF_FORBIDDEN: "Tu rol no puede realizar esta operación.",
   STAFF_SESSION_INVALID:
     "Tu sesión venció. Volvé a ingresar con tu usuario y PIN.",

@@ -12,6 +12,13 @@ describe("staff operation modules", () => {
     ).toEqual(["Cocina"]);
   });
 
+  it("links kitchen and bar to the production screen", () => {
+    for (const role of ["kitchen", "bar"] as const) {
+      const [module] = operationModulesFor(role, STAFF_ROLE_CAPABILITIES[role]);
+      expect(module?.path).toBe("produccion");
+    }
+  });
+
   it("shows the daily floor modules to a waiter", () => {
     expect(
       operationModulesFor("waiter", STAFF_ROLE_CAPABILITIES.waiter).map(

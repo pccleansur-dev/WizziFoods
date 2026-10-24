@@ -38,11 +38,13 @@ const modules: readonly StaffOperationModule[] = [
   },
   {
     description: "Cola de preparación y estados de cocina.",
+    path: "produccion",
     requiredCapability: "production.kitchen.manage",
     title: "Cocina"
   },
   {
     description: "Cola de preparación y estados de barra.",
+    path: "produccion",
     requiredCapability: "production.bar.manage",
     title: "Barra"
   }
