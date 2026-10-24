@@ -60,6 +60,7 @@ export function CatalogEditor({
   const draftRef = useRef(initialDraft);
   const [previewLanguage, setPreviewLanguage] = useState(languages[0] ?? "es");
   const [dirty, setDirty] = useState(false);
+  const [previews, setPreviews] = useState<Record<string, string>>({});
   const [saveState, saveAction, saving] = useActionState(
     async (previousState: CatalogActionState, formData: FormData) => {
       const submittedDraft = formData.get("catalog");
@@ -447,7 +448,13 @@ export function CatalogEditor({
                         help="Se mostrará junto al producto cuando la carta esté publicada."
                         kind="product"
                         label="Foto del producto"
-                        onReady={(imageAssetId) =>
+                        onReady={(imageAssetId, thumbnail) => {
+                          if (thumbnail) {
+                            setPreviews((current) => ({
+                              ...current,
+                              [imageAssetId]: thumbnail
+                            }));
+                          }
                           change((current) => ({
                             ...current,
                             products: current.products.map((value) =>
@@ -455,7 +462,12 @@ export function CatalogEditor({
                                 ? { ...value, imageAssetId }
                                 : value
                             )
-                          }))
+                          }));
+                        }}
+                        previewUrl={
+                          product.imageAssetId
+                            ? previews[product.imageAssetId]
+                            : undefined
                         }
                       />
                       <div className="catalog-variants">
@@ -624,6 +636,7 @@ export function CatalogEditor({
         <CatalogPreview
           draft={draft}
           language={previewLanguage}
+          previews={previews}
           publishedRevision={publishedRevision}
         />
       </div>

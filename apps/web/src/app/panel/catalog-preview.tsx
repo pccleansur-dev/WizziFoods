@@ -11,13 +11,24 @@ function price(cents: number) {
   }).format(cents / 100);
 }
 
+function thumbnailFor(
+  assetId: string | null,
+  previews: Record<string, string>
+): string | undefined {
+  const url = assetId ? previews[assetId] : undefined;
+  return url?.startsWith("blob:") ? url : undefined;
+}
+
 export function CatalogPreview({
   draft,
   language,
+  previews = {},
   publishedRevision
 }: {
   draft: CatalogDraft;
   language: string;
+  /** Miniaturas locales (blob:) por id de imagen, de las subidas de esta sesión. */
+  previews?: Record<string, string> | undefined;
   publishedRevision: number | null;
 }) {
   const localized = (item: {
@@ -64,6 +75,14 @@ export function CatalogPreview({
                     const content = localized(product);
                     return (
                       <article key={product.id} className="catalog-menu-item">
+                        {thumbnailFor(product.imageAssetId, previews) ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- miniatura local (blob:)
+                          <img
+                            alt=""
+                            className="catalog-menu-item__thumb"
+                            src={thumbnailFor(product.imageAssetId, previews)}
+                          />
+                        ) : null}
                         <div>
                           <h5>{content?.title || "Producto sin nombre"}</h5>
                           {content?.description ? (

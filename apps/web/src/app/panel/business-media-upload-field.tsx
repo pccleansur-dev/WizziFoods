@@ -14,7 +14,8 @@ export function BusinessMediaUploadField({
   help,
   kind,
   label,
-  onReady
+  onReady,
+  previewUrl
 }: {
   currentCount?: number;
   disabled?: boolean;
@@ -22,7 +23,9 @@ export function BusinessMediaUploadField({
   help: string;
   kind: BusinessMediaKind;
   label: string;
-  onReady: (assetId: string) => void;
+  onReady: (assetId: string, previewUrl?: string) => void;
+  /** Miniatura local (blob:) de una imagen ya subida en esta sesión. */
+  previewUrl?: string | undefined;
 }) {
   const inputId = useId();
   const [message, setMessage] = useState(
@@ -31,6 +34,8 @@ export function BusinessMediaUploadField({
   const [status, setStatus] = useState<UploadState>(
     hasAsset ? "ready" : "idle"
   );
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const shown = localPreview ?? previewUrl;
   const working = status === "uploading" || status === "processing";
 
   return (
@@ -44,6 +49,10 @@ export function BusinessMediaUploadField({
           </span>
         ) : null}
       </div>
+      {shown?.startsWith("blob:") ? (
+        // eslint-disable-next-line @next/next/no-img-element -- miniatura local (blob:)
+        <img alt="" className="media-upload-field__thumb" src={shown} />
+      ) : null}
       <label
         aria-disabled={disabled || working}
         className="button button--secondary media-upload-field__button"
@@ -60,6 +69,9 @@ export function BusinessMediaUploadField({
           const file = event.currentTarget.files?.[0];
           event.currentTarget.value = "";
           if (!file) return;
+          // Miniatura inmediata, antes de que termine la subida. Sólo blob: locales.
+          const thumbnail = URL.createObjectURL(file);
+          setLocalPreview(thumbnail);
           setMessage(`Subiendo ${file.name}…`);
           setStatus("uploading");
           try {
@@ -69,7 +81,7 @@ export function BusinessMediaUploadField({
                 setStatus("processing");
               }
             });
-            onReady(assetId);
+            onReady(assetId, thumbnail);
             setMessage("Imagen lista para guardar en el borrador.");
             setStatus("ready");
           } catch (error) {
@@ -79,6 +91,8 @@ export function BusinessMediaUploadField({
                 : "No pudimos cargar la imagen."
             );
             setStatus("error");
+            URL.revokeObjectURL(thumbnail);
+            setLocalPreview(null);
           }
         }}
         type="file"
