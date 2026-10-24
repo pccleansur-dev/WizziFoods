@@ -32,25 +32,25 @@ type Fixture = {
 const one: Fixture = {
   hostname: "production-one.plataforma.test",
   slug: "production-it-1",
-  tenantId: "fd000000-0000-4000-8000-000000000013",
-  userId: "fd000000-0000-4000-8000-000000000011"
+  tenantId: "ee000000-0000-4000-8000-000000000013",
+  userId: "ee000000-0000-4000-8000-000000000011"
 };
 const two: Fixture = {
   hostname: "production-two.plataforma.test",
   slug: "production-it-2",
-  tenantId: "fd000000-0000-4000-8000-000000000023",
-  userId: "fd000000-0000-4000-8000-000000000021"
+  tenantId: "ee000000-0000-4000-8000-000000000023",
+  userId: "ee000000-0000-4000-8000-000000000021"
 };
 
-const level = "fd100000-0000-4000-8000-0000000000f1";
-const sectorSalon = "fd100000-0000-4000-8000-000000000001";
-const tableMain = "fd200000-0000-4000-8000-000000000001";
-const tableOther = "fd200000-0000-4000-8000-000000000009";
-const categoryId = "fd300000-0000-4000-8000-000000000003";
-const kitchenSector = "fd300000-0000-4000-8000-000000000002";
-const barSector = "fd300000-0000-4000-8000-000000000004";
-const milanesa = "fd300000-0000-4000-8000-000000000001";
-const cerveza = "fd300000-0000-4000-8000-000000000005";
+const level = "ee100000-0000-4000-8000-0000000000f1";
+const sectorSalon = "ee100000-0000-4000-8000-000000000001";
+const tableMain = "ee200000-0000-4000-8000-000000000001";
+const tableOther = "ee200000-0000-4000-8000-000000000009";
+const categoryId = "ee300000-0000-4000-8000-000000000003";
+const kitchenSector = "ee300000-0000-4000-8000-000000000002";
+const barSector = "ee300000-0000-4000-8000-000000000004";
+const milanesa = "ee300000-0000-4000-8000-000000000001";
+const cerveza = "ee300000-0000-4000-8000-000000000005";
 
 function uuid(seed: number): string {
   return `ff800000-0000-4000-8000-${String(seed).padStart(12, "0")}`;
