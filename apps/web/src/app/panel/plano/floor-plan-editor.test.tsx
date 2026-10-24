@@ -77,7 +77,7 @@ describe("FloorPlanEditor", () => {
     expect(markup).toMatch(/<button[^>]*disabled[^>]*>Agregar mesa/u);
   });
 
-  it("offers QR downloads only for saved tables and explains the rest", () => {
+  it("keeps the QR codes out of the plan screen and offers them as their own view", () => {
     const markup = render({
       initialQr: [
         {
@@ -88,9 +88,53 @@ describe("FloorPlanEditor", () => {
         }
       ]
     });
+    expect(markup).toContain("Códigos QR");
+    expect(markup).not.toContain("Descargar QR");
+    expect(markup).toContain('aria-label="Plano del salón"');
+  });
+
+  it("shows the QR view of the selected floor instead of the plan", () => {
+    const markup = render({
+      initialQr: [
+        {
+          label: "7",
+          svg: "<svg></svg>",
+          tableId,
+          url: "https://x.example/m/abc"
+        }
+      ],
+      initialView: "qr"
+    });
     expect(markup).toContain("Descargar QR");
     expect(markup).toContain("Código QR de la mesa 7");
     expect(markup).not.toContain("https://x.example/m/abc");
+    expect(markup).not.toContain('aria-label="Plano del salón"');
+  });
+
+  it("lists only the QR codes of the active floor", () => {
+    const upperFloor = "f9000000-0000-4000-8000-0000000000a0";
+    const otherTable = "f2000000-0000-4000-8000-0000000000b2";
+    const twoFloors = {
+      ...plan,
+      floors: [
+        ...plan.floors,
+        { id: upperFloor, name: "Planta alta", position: 1, shortName: null }
+      ],
+      tables: [
+        ...plan.tables,
+        { ...plan.tables[0]!, floorId: upperFloor, id: otherTable, label: "A1" }
+      ]
+    };
+    const markup = render({
+      initialPlan: twoFloors,
+      initialQr: [
+        { label: "7", svg: "<svg></svg>", tableId, url: "u1" },
+        { label: "A1", svg: "<svg></svg>", tableId: otherTable, url: "u2" }
+      ],
+      initialView: "qr"
+    });
+    expect(markup).toContain("Código QR de la mesa 7");
+    expect(markup).not.toContain("Código QR de la mesa A1");
   });
 });
 

@@ -60,12 +60,15 @@ export function FloorPlanEditor({
   initialPlan,
   initialQr,
   initialVersion,
+  initialView = "plan",
   onReload,
   onSave
 }: {
   initialPlan: FloorPlanDraft;
   initialQr: FloorPlanQr[];
   initialVersion: number;
+  /** Vista con la que abre: el plano o los códigos QR de la planta. */
+  initialView?: "plan" | "qr";
   onReload: () => Promise<FloorPlanActionState>;
   onSave: (serializedCommand: string) => Promise<FloorPlanActionState>;
 }) {
@@ -79,6 +82,7 @@ export function FloorPlanEditor({
   const [newShape, setNewShape] = useState<FloorTableShape>("square");
   const [targetSector, setTargetSector] = useState("");
   const [zoom, setZoom] = useState(1);
+  const [view, setView] = useState<"plan" | "qr">(initialView);
   const [activeFloor, setActiveFloor] = useState("");
   const [newFloor, setNewFloor] = useState({ name: "", shortName: "" });
   const [busy, setBusy] = useState(false);
@@ -96,6 +100,9 @@ export function FloorPlanEditor({
     ? activeFloor
     : (plan.floors[0]?.id ?? "");
   const visiblePlan = planForFloor(plan, floorId);
+  const floorQrGroups = qrEntriesByFloor(plan, savedPlan);
+  const floorQrEntries =
+    floorQrGroups.find((group) => group.floor.id === floorId)?.entries ?? [];
   const sectorId = plan.sectors.some(({ id }) => id === targetSector)
     ? targetSector
     : (plan.sectors[0]?.id ?? "");
@@ -372,93 +379,199 @@ export function FloorPlanEditor({
               );
             })}
           </div>
-          <div
-            className="floor-plan-toolbar"
-            role="toolbar"
-            aria-label="Herramientas del plano"
-          >
-            <label className="floor-plan-field">
-              <span>Forma</span>
-              <select
-                disabled={busy}
-                onChange={(event) =>
-                  setNewShape(event.currentTarget.value as FloorTableShape)
-                }
-                value={newShape}
-              >
-                {(Object.keys(SHAPE_LABELS) as FloorTableShape[]).map(
-                  (shape) => (
-                    <option key={shape} value={shape}>
-                      {SHAPE_LABELS[shape]}
-                    </option>
-                  )
-                )}
-              </select>
-            </label>
-            <label className="floor-plan-field">
-              <span>Sector</span>
-              <select
-                disabled={busy || plan.sectors.length === 0}
-                onChange={(event) => setTargetSector(event.currentTarget.value)}
-                value={sectorId}
-              >
-                {plan.sectors.map((sector) => (
-                  <option key={sector.id} value={sector.id}>
-                    {sector.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div aria-label="Vista" className="floor-plan-views" role="group">
             <button
-              className="button button--secondary"
-              disabled={busy || plan.sectors.length === 0}
-              onClick={() => {
-                const id = crypto.randomUUID();
-                // Un local siempre tiene una planta: se crea «Planta baja» con la primera mesa.
-                const base = ensureDefaultFloor(plan, crypto.randomUUID());
-                const target = base.floors.some(
-                  ({ id: value }) => value === floorId
-                )
-                  ? floorId
-                  : (base.floors[0]?.id ?? "");
-                edit(
-                  addTable(base, {
-                    floorId: target,
-                    id,
-                    sectorId,
-                    shape: newShape
-                  })
-                );
-                setActiveFloor(target);
-                setSelected([id]);
-              }}
+              aria-pressed={view === "plan"}
+              className="floor-plan-view"
+              onClick={() => setView("plan")}
               type="button"
             >
-              Agregar mesa
+              Plano
+            </button>
+            <button
+              aria-pressed={view === "qr"}
+              className="floor-plan-view"
+              onClick={() => setView("qr")}
+              type="button"
+            >
+              Códigos QR
+              <small>{floorQrEntries.length}</small>
             </button>
           </div>
+          {view === "plan" ? (
+            <>
+              <div
+                className="floor-plan-toolbar"
+                role="toolbar"
+                aria-label="Herramientas del plano"
+              >
+                <label className="floor-plan-field">
+                  <span>Forma</span>
+                  <select
+                    disabled={busy}
+                    onChange={(event) =>
+                      setNewShape(event.currentTarget.value as FloorTableShape)
+                    }
+                    value={newShape}
+                  >
+                    {(Object.keys(SHAPE_LABELS) as FloorTableShape[]).map(
+                      (shape) => (
+                        <option key={shape} value={shape}>
+                          {SHAPE_LABELS[shape]}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </label>
+                <label className="floor-plan-field">
+                  <span>Sector</span>
+                  <select
+                    disabled={busy || plan.sectors.length === 0}
+                    onChange={(event) =>
+                      setTargetSector(event.currentTarget.value)
+                    }
+                    value={sectorId}
+                  >
+                    {plan.sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  className="button button--secondary"
+                  disabled={busy || plan.sectors.length === 0}
+                  onClick={() => {
+                    const id = crypto.randomUUID();
+                    // Un local siempre tiene una planta: se crea «Planta baja» con la primera mesa.
+                    const base = ensureDefaultFloor(plan, crypto.randomUUID());
+                    const target = base.floors.some(
+                      ({ id: value }) => value === floorId
+                    )
+                      ? floorId
+                      : (base.floors[0]?.id ?? "");
+                    edit(
+                      addTable(base, {
+                        floorId: target,
+                        id,
+                        sectorId,
+                        shape: newShape
+                      })
+                    );
+                    setActiveFloor(target);
+                    setSelected([id]);
+                  }}
+                  type="button"
+                >
+                  Agregar mesa
+                </button>
+              </div>
 
-          {plan.sectors.length === 0 ? (
-            <p className="floor-plan-empty">
-              Empezá creando un sector (por ejemplo «Salón» o «Terraza») y
-              después agregá las mesas.
-            </p>
-          ) : null}
-          <FloorPlanCanvas
-            disabled={busy}
-            onKeyDown={onTableKeyDown}
-            onMove={(tableId, x, y) => edit(moveTable(plan, tableId, x, y))}
-            onSelect={select}
-            onZoom={setZoom}
-            plan={visiblePlan}
-            selected={selected}
-            zoom={zoom}
-          />
-          <p className="floor-plan-help" id="floor-plan-keyboard-help">
-            Teclado: Tab para elegir una mesa, flechas para moverla (con Mayús,
-            pasos grandes), Enter para seleccionarla, Espacio para sumar o
-            quitar de la selección, Supr para quitarla.
-          </p>
+              {plan.sectors.length === 0 ? (
+                <p className="floor-plan-empty">
+                  Empezá creando un sector (por ejemplo «Salón» o «Terraza») y
+                  después agregá las mesas.
+                </p>
+              ) : null}
+              <FloorPlanCanvas
+                disabled={busy}
+                onKeyDown={onTableKeyDown}
+                onMove={(tableId, x, y) => edit(moveTable(plan, tableId, x, y))}
+                onSelect={select}
+                onZoom={setZoom}
+                plan={visiblePlan}
+                selected={selected}
+                zoom={zoom}
+              />
+              <p className="floor-plan-help" id="floor-plan-keyboard-help">
+                Teclado: Tab para elegir una mesa, flechas para moverla (con
+                Mayús, pasos grandes), Enter para seleccionarla, Espacio para
+                sumar o quitar de la selección, Supr para quitarla.
+              </p>
+            </>
+          ) : (
+            <section
+              aria-labelledby="floor-qr-title"
+              className="floor-plan-qr-view"
+            >
+              <h2 id="floor-qr-title">
+                Códigos QR de{" "}
+                {plan.floors.find(({ id }) => id === floorId)?.name ??
+                  "la planta"}
+              </h2>
+              <p className="floor-plan-help">
+                Cada mesa física tiene un QR propio que no cambia al moverla,
+                pasarla de planta, editarla ni agruparla. Los QR de mesas nuevas
+                se generan al guardar.
+              </p>
+              <div className="floor-plan-qr-actions">
+                {floorQrEntries.filter(({ saved }) => saved).length > 1 ? (
+                  <button
+                    className="button button--secondary"
+                    onClick={() =>
+                      floorQrEntries.forEach(({ table }) => {
+                        const code = qrByTable.get(table.id);
+                        if (code) downloadSvg(code);
+                      })
+                    }
+                    type="button"
+                  >
+                    Descargar los QR de esta planta
+                  </button>
+                ) : null}
+                {qr.length > 1 && floorQrGroups.length > 1 ? (
+                  <button
+                    className="button button--secondary"
+                    onClick={() => qr.forEach(downloadSvg)}
+                    type="button"
+                  >
+                    Descargar los QR de todo el local
+                  </button>
+                ) : null}
+              </div>
+              {floorQrEntries.length === 0 ? (
+                <p className="floor-plan-empty">
+                  Esta planta todavía no tiene mesas.
+                </p>
+              ) : null}
+              <ul className="floor-plan-qr-grid">
+                {floorQrEntries.map(({ saved, table }) => {
+                  const code = saved ? qrByTable.get(table.id) : undefined;
+                  return (
+                    <li key={table.id}>
+                      {code ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          alt={`Código QR de la mesa ${table.label}`}
+                          className="floor-plan-qr"
+                          height="96"
+                          src={`data:image/svg+xml;utf8,${encodeURIComponent(code.svg)}`}
+                          width="96"
+                        />
+                      ) : null}
+                      <strong>Mesa {table.label}</strong>
+                      {!saved ? (
+                        <span className="floor-plan-help">
+                          Guardá para generar el QR
+                        </span>
+                      ) : code ? (
+                        <button
+                          className="button button--secondary"
+                          onClick={() => downloadSvg(code)}
+                          type="button"
+                        >
+                          Descargar QR
+                        </button>
+                      ) : (
+                        <span className="floor-plan-help">Sin QR</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
         </div>
 
         <aside className="floor-plan-side">
@@ -896,81 +1009,6 @@ export function FloorPlanEditor({
                 </li>
               ))}
             </ul>
-          </section>
-
-          <section aria-labelledby="floor-qr-title">
-            <h2 id="floor-qr-title">Códigos QR</h2>
-            <p className="floor-plan-help">
-              Cada mesa física tiene un QR propio que no cambia al moverla,
-              editarla ni agruparla. Los QR de mesas nuevas se generan al
-              guardar.
-            </p>
-            {qr.length > 1 && qrEntriesByFloor(plan, savedPlan).length > 1 ? (
-              <button
-                className="button button--secondary"
-                onClick={() => qr.forEach(downloadSvg)}
-                type="button"
-              >
-                Descargar todos
-              </button>
-            ) : null}
-            {qrEntriesByFloor(plan, savedPlan).map(({ entries, floor }) => (
-              <div className="floor-plan-qr-group" key={floor.id}>
-                <h3>
-                  {floor.name}
-                  {floor.shortName ? ` (${floor.shortName})` : ""}
-                </h3>
-                {entries.filter(({ saved }) => saved).length > 1 ? (
-                  <button
-                    className="button button--secondary"
-                    onClick={() =>
-                      entries.forEach(({ table }) => {
-                        const code = qrByTable.get(table.id);
-                        if (code) downloadSvg(code);
-                      })
-                    }
-                    type="button"
-                  >
-                    Descargar los QR de esta planta
-                  </button>
-                ) : null}
-                <ul className="floor-plan-list">
-                  {entries.map(({ saved, table }) => {
-                    const code = saved ? qrByTable.get(table.id) : undefined;
-                    return (
-                      <li key={table.id}>
-                        {code ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            alt={`Código QR de la mesa ${table.label}`}
-                            className="floor-plan-qr"
-                            height="56"
-                            src={`data:image/svg+xml;utf8,${encodeURIComponent(code.svg)}`}
-                            width="56"
-                          />
-                        ) : null}
-                        <span>Mesa {table.label}</span>
-                        {!saved ? (
-                          <span className="floor-plan-help">
-                            Guardá para generar el QR
-                          </span>
-                        ) : code ? (
-                          <button
-                            className="button button--secondary"
-                            onClick={() => downloadSvg(code)}
-                            type="button"
-                          >
-                            Descargar QR
-                          </button>
-                        ) : (
-                          <span className="floor-plan-help">Sin QR</span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
           </section>
         </aside>
       </div>
