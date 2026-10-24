@@ -42,6 +42,9 @@ import {
   StaffSessionController
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
+import { StaffSessionGuard } from "./staff-auth/staff-session.guard.js";
+import { WaiterController } from "./waiter/waiter.controller.js";
+import { WaiterService } from "./waiter/waiter.service.js";
 import { AnthropicTranslationGateway } from "./translation/anthropic-translation.gateway.js";
 import { TranslationAdminController } from "./translation/translation.controller.js";
 import { TranslationService } from "./translation/translation.service.js";
@@ -104,7 +107,8 @@ export class AppModule {
         TenantProvisioningController,
         TeamAdminController,
         TranslationAdminController,
-        TenantSuspensionController
+        TenantSuspensionController,
+        WaiterController
       ],
       module: AppModule,
       providers: [
@@ -267,7 +271,17 @@ export class AppModule {
               database.tenantSuspensionRepository
             )
         },
+        {
+          inject: [TENANT_DATABASE],
+          provide: WaiterService,
+          useFactory: (database: TenantDatabase) =>
+            new WaiterService(
+              database.waiterOperationsRepository,
+              database.catalogRepository
+            )
+        },
         AdminAuthGuard,
+        StaffSessionGuard,
         TenantHostGuard,
         TenantDatabaseLifecycle
       ]
