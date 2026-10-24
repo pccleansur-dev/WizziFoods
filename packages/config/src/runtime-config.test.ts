@@ -44,11 +44,34 @@ describe("runtime configuration", () => {
       logLevel: "info",
       metricsPort: 9464,
       platformBaseDomain: "plataforma.example.test",
+      paymentSecretKey: null,
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000"
     });
+  });
+
+  it("reads an optional payment secret key and rejects malformed ones", () => {
+    const env = {
+      ...baseEnvironment,
+      ...apiInvitationEnvironment,
+      API_METRICS_PORT: "9464",
+      API_PORT: "3001",
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+      SUPABASE_URL: "http://supabase.local:8000"
+    };
+    const key = Buffer.alloc(32, 7).toString("base64");
+    expect(
+      readApiConfig({ ...env, PAYMENT_SECRET_KEY: key }).paymentSecretKey
+    ).toEqual(Buffer.alloc(32, 7));
+    expect(readApiConfig(env).paymentSecretKey).toBeNull();
+    for (const bad of ["short", Buffer.alloc(16).toString("base64")]) {
+      expect(() => readApiConfig({ ...env, PAYMENT_SECRET_KEY: bad })).toThrow(
+        "PAYMENT_SECRET_KEY must be 32 random bytes in base64"
+      );
+    }
   });
 
   it("rejects unsafe or malformed API ports", () => {

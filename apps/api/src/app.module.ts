@@ -26,11 +26,16 @@ import { CatalogImportController } from "./catalog-import/catalog-import.control
 import { CatalogImportService } from "./catalog-import/catalog-import.service.js";
 import { FloorPlanAdminController } from "./floor-plan/floor-plan.controller.js";
 import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
+import { PaymentMethodsAdminController } from "./payment-methods/payment-methods.controller.js";
+import { PaymentMethodsService } from "./payment-methods/payment-methods.service.js";
+import { PaymentSecretSealer } from "./payment-methods/payment-secret-sealer.js";
 import {
   StaffAuthController,
   StaffSessionController
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
+import { TeamAdminController } from "./team/team.controller.js";
+import { TeamService } from "./team/team.service.js";
 import { SupportAccessController } from "./support-access/support-access.controller.js";
 import { SupportAccessService } from "./support-access/support-access.service.js";
 import { TenantContextController } from "./tenants/tenant-context.controller.js";
@@ -72,6 +77,7 @@ export class AppModule {
         CatalogImportController,
         CatalogAdminController,
         FloorPlanAdminController,
+        PaymentMethodsAdminController,
         PublicCatalogController,
         StaffAuthController,
         StaffSessionController,
@@ -81,6 +87,7 @@ export class AppModule {
         TenantContextController,
         TenantHostController,
         TenantProvisioningController,
+        TeamAdminController,
         TenantSuspensionController
       ],
       module: AppModule,
@@ -129,6 +136,23 @@ export class AppModule {
           provide: FloorPlanService,
           useFactory: (database: TenantDatabase) =>
             new FloorPlanService(database.floorPlanRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: PaymentMethodsService,
+          useFactory: (database: TenantDatabase) =>
+            new PaymentMethodsService(
+              database.paymentMethodsRepository,
+              config.paymentSecretKey
+                ? new PaymentSecretSealer(config.paymentSecretKey)
+                : null
+            )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: TeamService,
+          useFactory: (database: TenantDatabase) =>
+            new TeamService(database.teamRepository, config.staffPinPepper)
         },
         {
           inject: [TENANT_DATABASE],

@@ -29,6 +29,7 @@ describe("API authentication boundaries", () => {
       metricsPort: 9464,
       platformBaseDomain: "plataforma.test",
       port: 3001,
+      paymentSecretKey: null,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "https://auth.example.test"

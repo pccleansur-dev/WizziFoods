@@ -137,6 +137,7 @@ describeWithLocalStack("floor plan with local Supabase", () => {
       metricsPort: 9464,
       platformBaseDomain: "plataforma.test",
       port: 3001,
+      paymentSecretKey: null,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: supabaseSecretKey ?? "",
       supabaseUrl: supabaseUrl ?? ""

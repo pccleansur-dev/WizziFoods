@@ -14,6 +14,7 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   metricsPort: number;
   platformBaseDomain: string;
   port: number;
+  paymentSecretKey: Buffer | null;
   staffPinPepper: string;
   supabaseSecretKey: string;
   supabaseUrl: string;
@@ -203,6 +204,19 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
     if (staffPinPepper.length < 32) {
       throw new Error("STAFF_PIN_PEPPER must have at least 32 characters");
     }
+    // Optional so existing deployments keep booting; without it the API
+    // refuses to store provider credentials instead of storing them weakly.
+    const rawPaymentKey = source.PAYMENT_SECRET_KEY?.trim();
+    let paymentSecretKey: Buffer | null = null;
+    if (rawPaymentKey) {
+      paymentSecretKey = Buffer.from(rawPaymentKey, "base64");
+      if (
+        paymentSecretKey.length !== 32 ||
+        paymentSecretKey.toString("base64") !== rawPaymentKey
+      ) {
+        throw new Error("PAYMENT_SECRET_KEY must be 32 random bytes in base64");
+      }
+    }
 
     return {
       ...base,
@@ -211,6 +225,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       metricsPort,
       platformBaseDomain,
       port,
+      paymentSecretKey,
       staffPinPepper,
       supabaseSecretKey,
       supabaseUrl
