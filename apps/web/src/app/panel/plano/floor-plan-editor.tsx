@@ -38,6 +38,7 @@ import {
   updateTable
 } from "./floor-plan-editor-state";
 import type { FloorPlanActionState, FloorPlanQr } from "./floor-plan";
+import { newId } from "../../../lib/new-id";
 
 type PendingCommand = {
   commandId: string;
@@ -155,7 +156,7 @@ export function FloorPlanEditor({
       retained.serialized === serialized
         ? retained
         : {
-            commandId: crypto.randomUUID(),
+            commandId: newId(),
             expectedVersion: version,
             serialized
           };
@@ -444,9 +445,9 @@ export function FloorPlanEditor({
                   className="button button--secondary"
                   disabled={busy || plan.sectors.length === 0}
                   onClick={() => {
-                    const id = crypto.randomUUID();
+                    const id = newId();
                     // Un local siempre tiene una planta: se crea «Planta baja» con la primera mesa.
-                    const base = ensureDefaultFloor(plan, crypto.randomUUID());
+                    const base = ensureDefaultFloor(plan, newId());
                     const target = base.floors.some(
                       ({ id: value }) => value === floorId
                     )
@@ -592,7 +593,7 @@ export function FloorPlanEditor({
               className="floor-plan-inline floor-plan-inline--floor"
               onSubmit={(event) => {
                 event.preventDefault();
-                const id = crypto.randomUUID();
+                const id = newId();
                 const next = addFloor(
                   plan,
                   newFloor.name,
@@ -709,7 +710,7 @@ export function FloorPlanEditor({
               className="floor-plan-inline"
               onSubmit={(event) => {
                 event.preventDefault();
-                const id = crypto.randomUUID();
+                const id = newId();
                 edit(addSector(plan, sectorName, id));
                 setSectorName("");
               }}
@@ -979,7 +980,7 @@ export function FloorPlanEditor({
                 event.preventDefault();
                 const name =
                   groupName.trim() || `Agrupación ${plan.groups.length + 1}`;
-                edit(groupTables(plan, selected, crypto.randomUUID(), name));
+                edit(groupTables(plan, selected, newId(), name));
                 setGroupName("");
               }}
             >

@@ -68,6 +68,7 @@ export function EntryView({ result }: { result: TableEntryResult }) {
         </p>
       ) : null}
       <p className="diner-lead">{lead}</p>
+      <p className="diner-abilities-title">En esta mesa:</p>
       <ul className="diner-abilities">
         <li>Ver la carta</li>
         <li>

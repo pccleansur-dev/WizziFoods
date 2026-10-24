@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { WaiterMenuProduct } from "../../../../../staff/waiter-view";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
+import { newId } from "../../../../../lib/new-id";
 
 type Line = {
   key: string;
@@ -69,7 +70,7 @@ export function ManualOrderForm({
         ...current,
         {
           key,
-          lineId: crypto.randomUUID(),
+          lineId: newId(),
           productId: product.id,
           quantity: 1,
           variantId

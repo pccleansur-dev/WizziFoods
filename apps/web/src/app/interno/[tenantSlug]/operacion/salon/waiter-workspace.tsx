@@ -19,6 +19,7 @@ import { ConfirmedOrderPanel } from "./confirmed-order-panel";
 import { ManualOrderForm, type ManualOrderDraft } from "./manual-order-form";
 import { WaiterPending } from "./waiter-pending";
 import { WaiterTables } from "./waiter-tables";
+import { newId } from "../../../../../lib/new-id";
 
 const POLL_MS = 5_000;
 
@@ -60,7 +61,7 @@ export function WaiterWorkspace({
   const commandFor = useCallback((key: string) => {
     const existing = commands.current.get(key);
     if (existing) return existing;
-    const created = crypto.randomUUID();
+    const created = newId();
     commands.current.set(key, created);
     return created;
   }, []);

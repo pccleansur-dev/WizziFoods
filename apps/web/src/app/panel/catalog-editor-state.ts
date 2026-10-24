@@ -2,6 +2,7 @@ import type {
   CatalogDraft,
   LocalizedCatalogContent
 } from "@platform/contracts";
+import { newId } from "../../lib/new-id";
 
 type IdFactory = () => string;
 
@@ -11,7 +12,7 @@ export function createEmptyCatalogDraft(): CatalogDraft {
 
 export function addCatalogCategory(
   draft: CatalogDraft,
-  createId: IdFactory = () => crypto.randomUUID(),
+  createId: IdFactory = () => newId(),
   languages: string[] = ["es"]
 ): CatalogDraft {
   const content = synchronizeContent(
@@ -39,7 +40,7 @@ export function addCatalogCategory(
 
 export function addCatalogSector(
   draft: CatalogDraft,
-  createId: IdFactory = () => crypto.randomUUID()
+  createId: IdFactory = () => newId()
 ): CatalogDraft {
   return {
     ...draft,
@@ -57,7 +58,7 @@ export function addCatalogSector(
 
 export function addCatalogProduct(
   draft: CatalogDraft,
-  createId: IdFactory = () => crypto.randomUUID(),
+  createId: IdFactory = () => newId(),
   languages: string[] = ["es"]
 ): CatalogDraft {
   const category = draft.categories[0];
@@ -140,7 +141,7 @@ export function synchronizeCatalogLanguages(
 export function addCatalogVariant(
   draft: CatalogDraft,
   productId: string,
-  createId: IdFactory = () => crypto.randomUUID(),
+  createId: IdFactory = () => newId(),
   languages: string[] = ["es"]
 ): CatalogDraft {
   const content = synchronizeContent(

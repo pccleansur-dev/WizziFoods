@@ -3149,21 +3149,32 @@ dd {
   font-weight: 600;
 }
 
+.diner-abilities-title {
+  margin: 0;
+  color: #6c655b;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .diner-abilities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  gap: 0.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .diner-abilities li {
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  background: #efe7d6;
+  color: #4e4942;
   font-size: 0.9375rem;
-  font-weight: 600;
+}
+
+.diner-abilities li::before {
+  content: "✓ ";
+  color: #2f6b3f;
+  font-weight: 800;
 }
 
 .diner-experience {

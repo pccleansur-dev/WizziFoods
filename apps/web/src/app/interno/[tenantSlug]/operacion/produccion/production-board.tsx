@@ -14,6 +14,7 @@ import {
 } from "../../../../../staff/production-view";
 import { waiterErrorMessage } from "../../../../../staff/waiter-view";
 import { advanceProductionItemAction } from "../production-actions";
+import { newId } from "../../../../../lib/new-id";
 
 const POLL_MS = 5_000;
 
@@ -102,7 +103,7 @@ export function ProductionBoardView({
     const key = `${item.lineId}:${target}`;
     let commandId = commands.current.get(key);
     if (!commandId) {
-      commandId = crypto.randomUUID();
+      commandId = newId();
       commands.current.set(key, commandId);
     }
     setBusy(key);

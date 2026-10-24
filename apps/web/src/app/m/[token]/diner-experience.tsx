@@ -26,6 +26,7 @@ import {
   type OrderIntentPaymentMethod
 } from "./order-intent";
 import type { PublicCatalog } from "./public-catalog";
+import { newId } from "../../../lib/new-id";
 
 export function DinerExperience({
   catalog,
@@ -138,7 +139,7 @@ export function DinerExperience({
   ) => {
     setItems((current) =>
       addDraftItem(current, {
-        lineId: crypto.randomUUID(),
+        lineId: newId(),
         productId: product.id,
         quantity,
         variantId
@@ -161,7 +162,7 @@ export function DinerExperience({
     const commandId =
       lastSubmission.current?.payload === stablePayload
         ? lastSubmission.current.commandId
-        : crypto.randomUUID();
+        : newId();
     lastSubmission.current = { commandId, payload: stablePayload };
     setSubmitting(true);
     setCheckoutError(null);

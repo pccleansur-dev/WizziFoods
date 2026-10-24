@@ -8,6 +8,7 @@ import {
   discardCatalogImportAction
 } from "./actions";
 import type { CatalogImportActionState } from "./catalog-import-state";
+import { newId } from "../../lib/new-id";
 
 const idle = (idempotencyKey: string): CatalogImportActionState => ({
   idempotencyKey,
@@ -25,11 +26,11 @@ export function CatalogImportReview({
   const [draft, setDraft] = useState(initialDraft);
   const [approveState, approveAction, approving] = useActionState(
     approveCatalogImportAction,
-    idle(crypto.randomUUID())
+    idle(newId())
   );
   const [discardState, discardAction, discarding] = useActionState(
     discardCatalogImportAction,
-    idle(crypto.randomUUID())
+    idle(newId())
   );
 
   const update = (
