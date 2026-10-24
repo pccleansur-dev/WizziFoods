@@ -14,12 +14,14 @@ export function DinerOrder({
   error,
   items,
   loading,
+  onContinue,
   onQuantity,
   quote
 }: {
   error: string | null;
   items: DinerDraftItem[];
   loading: boolean;
+  onContinue(): void;
   onQuantity(lineId: string, quantity: number): void;
   quote: DinerDraftQuote | null;
 }) {
@@ -82,6 +84,7 @@ export function DinerOrder({
       <button
         className="button diner-primary"
         disabled={!quote?.canConfirm || loading}
+        onClick={onContinue}
         type="button"
       >
         Continuar

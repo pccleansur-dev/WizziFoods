@@ -5,7 +5,7 @@ import type {
   DinerDraftItem,
   DinerDraftQuote
 } from "@platform/contracts";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   addDraftItem,
@@ -16,13 +16,24 @@ import {
 } from "./diner-draft";
 import { DinerMenu } from "./diner-menu";
 import { DinerOrder } from "./diner-order";
+import {
+  DinerCheckout,
+  DinerIntentAccepted,
+  type DinerCheckoutValue
+} from "./diner-checkout";
+import {
+  parseOrderIntentResponse,
+  type OrderIntentPaymentMethod
+} from "./order-intent";
 import type { PublicCatalog } from "./public-catalog";
 
 export function DinerExperience({
   catalog,
+  paymentMethods,
   token
 }: {
   catalog: PublicCatalog | null;
+  paymentMethods: OrderIntentPaymentMethod[];
   token: string;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +41,16 @@ export function DinerExperience({
   const [items, setItems] = useState<DinerDraftItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [quote, setQuote] = useState<DinerDraftQuote | null>(null);
-  const [view, setView] = useState<"menu" | "order">("menu");
+  const [accepted, setAccepted] = useState<
+    "awaiting_waiter" | "payment_pending" | null
+  >(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [view, setView] = useState<"menu" | "order" | "checkout">("menu");
+  const lastSubmission = useRef<{
+    commandId: string;
+    payload: string;
+  } | null>(null);
   const storageKey = useMemo(
     () =>
       typeof window === "undefined"
@@ -127,6 +147,47 @@ export function DinerExperience({
     setView("order");
   };
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const submitIntent = (value: DinerCheckoutValue) => {
+    if (!quote?.canConfirm || submitting) return;
+    const stablePayload = JSON.stringify({
+      attribution: value.attribution,
+      dinerName: value.dinerName,
+      items,
+      paymentMethod: value.paymentMethod.method,
+      paymentPath: value.paymentMethod.paymentPath,
+      seatLabel: value.seatLabel,
+      token
+    });
+    const commandId =
+      lastSubmission.current?.payload === stablePayload
+        ? lastSubmission.current.commandId
+        : crypto.randomUUID();
+    lastSubmission.current = { commandId, payload: stablePayload };
+    setSubmitting(true);
+    setCheckoutError(null);
+    void fetch("/api/order-intents", {
+      body: JSON.stringify({ commandId, ...JSON.parse(stablePayload) }),
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    })
+      .then(async (response) =>
+        response.ok ? parseOrderIntentResponse(await response.json()) : null
+      )
+      .then((result) => {
+        if (!result) throw new Error("intent rejected");
+        window.localStorage.removeItem(storageKey);
+        setItems([]);
+        setAccepted(result.status);
+      })
+      .catch(() => {
+        setCheckoutError(
+          "No pudimos enviar el pedido. Tu selección sigue guardada; intentá nuevamente."
+        );
+      })
+      .finally(() => setSubmitting(false));
+  };
+
+  if (accepted) return <DinerIntentAccepted status={accepted} />;
   return (
     <div className="diner-experience">
       <nav aria-label="Carta y pedido" className="diner-nav">
@@ -138,7 +199,7 @@ export function DinerExperience({
           Carta
         </button>
         <button
-          aria-current={view === "order" ? "page" : undefined}
+          aria-current={view !== "menu" ? "page" : undefined}
           onClick={() => setView("order")}
           type="button"
         >
@@ -148,15 +209,24 @@ export function DinerExperience({
       </nav>
       {view === "menu" ? (
         <DinerMenu catalog={catalog} onAdd={add} />
-      ) : (
+      ) : view === "order" ? (
         <DinerOrder
           error={error}
           items={items}
           loading={loading}
+          onContinue={() => setView("checkout")}
           onQuantity={(lineId, quantity) =>
             setItems((current) => setDraftQuantity(current, lineId, quantity))
           }
           quote={quote}
+        />
+      ) : (
+        <DinerCheckout
+          error={checkoutError}
+          methods={paymentMethods}
+          onBack={() => setView("order")}
+          onSubmit={submitIntent}
+          submitting={submitting}
         />
       )}
     </div>

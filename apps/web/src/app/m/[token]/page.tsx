@@ -4,6 +4,7 @@ import { EntryRefresh } from "./entry-refresh";
 import { EntryView } from "./entry-view";
 import { DinerExperience } from "./diner-experience";
 import { loadPublicCatalog } from "./public-catalog";
+import { loadOrderIntentOptions } from "./order-intent";
 import { loadTableEntry } from "./table-entry";
 
 export const dynamic = "force-dynamic";
@@ -21,16 +22,21 @@ export default async function TableEntryPage({
 }) {
   const { token } = await params;
   const host = (await headers()).get("host") ?? "";
-  const [result, catalog] = await Promise.all([
+  const [result, catalog, paymentMethods] = await Promise.all([
     loadTableEntry(host, token),
-    loadPublicCatalog(host)
+    loadPublicCatalog(host),
+    loadOrderIntentOptions(host)
   ]);
   return (
     <main>
       <EntryView result={result} />
       {result.status === "ok" ? (
         <>
-          <DinerExperience catalog={catalog} token={token} />
+          <DinerExperience
+            catalog={catalog}
+            paymentMethods={paymentMethods}
+            token={token}
+          />
           <EntryRefresh />
         </>
       ) : null}
