@@ -22,6 +22,8 @@ import {
   PublicCatalogController
 } from "./catalog/catalog.controller.js";
 import { CatalogService } from "./catalog/catalog.service.js";
+import { CatalogImportController } from "./catalog-import/catalog-import.controller.js";
+import { CatalogImportService } from "./catalog-import/catalog-import.service.js";
 import {
   StaffAuthController,
   StaffSessionController
@@ -65,6 +67,7 @@ export class AppModule {
         AppController,
         BusinessMediaController,
         BusinessProfileController,
+        CatalogImportController,
         CatalogAdminController,
         PublicCatalogController,
         StaffAuthController,
@@ -85,6 +88,15 @@ export class AppModule {
         },
         TenantAdminScopeGuard,
         TenantAdminScopeService,
+        {
+          inject: [TENANT_DATABASE],
+          provide: CatalogImportService,
+          useFactory: (database: TenantDatabase) =>
+            new CatalogImportService(
+              database.catalogImportRepository,
+              database.catalogRepository
+            )
+        },
         {
           inject: [TENANT_DATABASE],
           provide: BusinessMediaService,
