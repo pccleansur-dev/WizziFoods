@@ -58,7 +58,8 @@ function mapFailure(error: unknown): never {
       throw new ConflictException({
         error: {
           code: "WAITER_COMMAND_REUSED",
-          message: "Esa operación ya se usó con otros datos. Volvé a intentarlo."
+          message:
+            "Esa operación ya se usó con otros datos. Volvé a intentarlo."
         }
       });
     case "PT200":

@@ -73,7 +73,12 @@ function table(id: string, label: string) {
   };
 }
 
-function product(id: string, title: string, sectorId: string, position: number) {
+function product(
+  id: string,
+  title: string,
+  sectorId: string,
+  position: number
+) {
   return {
     categoryId,
     content: [{ description: "", language: "es", title }],
@@ -95,39 +100,30 @@ describeWithLocalStack("production with local Supabase", () => {
   let counter = 100;
   const next = () => uuid(counter++);
 
+  // Triggers stay enabled for everyone else: other integration files assert the
+  // append-only guards at the same time, so only this transaction skips them.
+  // Tenant cascades are triggers too, so the tenants go in a normal statement.
   async function cleanup() {
     for (const fixture of [one, two]) {
-      await admin`delete from private.waiter_calls where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.production_item_events disable trigger production_item_events_append_only`;
-      await admin`alter table private.production_items disable trigger production_items_guard_change`;
-      await admin`delete from private.production_item_events where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.production_items where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.production_item_events enable trigger production_item_events_append_only`;
-      await admin`alter table private.production_items enable trigger production_items_guard_change`;
-      await admin`alter table private.confirmed_orders disable trigger confirmed_orders_append_only`;
-      await admin`alter table private.confirmed_orders disable trigger confirmed_orders_no_truncate`;
-      await admin`alter table private.confirmed_order_items disable trigger confirmed_order_items_append_only`;
-      await admin`alter table private.confirmed_order_items disable trigger confirmed_order_items_no_truncate`;
-      await admin`delete from private.confirmed_order_items where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.confirmed_orders where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.confirmed_orders enable trigger confirmed_orders_append_only`;
-      await admin`alter table private.confirmed_orders enable trigger confirmed_orders_no_truncate`;
-      await admin`alter table private.confirmed_order_items enable trigger confirmed_order_items_append_only`;
-      await admin`alter table private.confirmed_order_items enable trigger confirmed_order_items_no_truncate`;
-      await admin`alter table private.order_intent_decisions disable trigger order_intent_decisions_append_only`;
-      await admin`delete from private.order_intent_decisions where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.order_intent_decisions enable trigger order_intent_decisions_append_only`;
-      await admin`delete from private.waiter_commands where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.order_intent_items where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.order_intents disable trigger order_intents_guard_change`;
-      await admin`delete from private.order_intents where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.order_intents enable trigger order_intents_guard_change`;
-      await admin`delete from private.order_intent_commands where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.product_operational_stock where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.audit_events where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.published_catalogs where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.location_publications where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from public.tenants where id = ${fixture.tenantId}`;
+      const tenant = fixture.tenantId;
+      await admin.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from private.production_item_events where tenant_id = ${tenant}`;
+        await tx`delete from private.production_items where tenant_id = ${tenant}`;
+        await tx`delete from private.confirmed_order_items where tenant_id = ${tenant}`;
+        await tx`delete from private.confirmed_orders where tenant_id = ${tenant}`;
+        await tx`delete from private.order_intent_decisions where tenant_id = ${tenant}`;
+        await tx`delete from private.order_intent_items where tenant_id = ${tenant}`;
+        await tx`delete from private.order_intents where tenant_id = ${tenant}`;
+      });
+      await admin`delete from private.waiter_commands where tenant_id = ${tenant}`;
+      await admin`delete from private.waiter_calls where tenant_id = ${tenant}`;
+      await admin`delete from private.order_intent_commands where tenant_id = ${tenant}`;
+      await admin`delete from private.product_operational_stock where tenant_id = ${tenant}`;
+      await admin`delete from private.audit_events where tenant_id = ${tenant}`;
+      await admin`delete from private.published_catalogs where tenant_id = ${tenant}`;
+      await admin`delete from private.location_publications where tenant_id = ${tenant}`;
+      await admin`delete from public.tenants where id = ${tenant}`;
       await admin`delete from auth.users where id = ${fixture.userId}`;
     }
   }
@@ -190,7 +186,12 @@ describeWithLocalStack("production with local Supabase", () => {
       commandId,
       dinerName: null,
       items: [
-        { lineId: kitchenLine, productId: milanesa, quantity: 2, variantId: null },
+        {
+          lineId: kitchenLine,
+          productId: milanesa,
+          quantity: 2,
+          variantId: null
+        },
         { lineId: barLine, productId: cerveza, quantity: 1, variantId: null }
       ],
       seatLabel: null,
@@ -215,7 +216,16 @@ describeWithLocalStack("production with local Supabase", () => {
       { commandId, status }
     );
   const ticketOf = (
-    body: { data: { tickets: { orderId: string }[] } },
+    body: {
+      data: {
+        tickets: {
+          items: { title: string }[];
+          orderId: string;
+          orderStatus: string;
+          status: string;
+        }[];
+      };
+    },
     orderId: string
   ) => body.data.tickets.find((ticket) => ticket.orderId === orderId);
 
@@ -257,7 +267,9 @@ describeWithLocalStack("production with local Supabase", () => {
         select private.save_floor_plan(
           ${fixture.tenantId}::uuid, ${location}::uuid, ${fixture.userId}::uuid,
           ${uuid(fixture === one ? 1 : 2)}::uuid, 0, ${admin.json({
-            floors: [{ id: level, name: "Salón", position: 0, shortName: null }],
+            floors: [
+              { id: level, name: "Salón", position: 0, shortName: null }
+            ],
             groups: [],
             sectors: [{ id: sectorSalon, name: "Salón", position: 0 }],
             tables: [tableRow]
@@ -380,7 +392,12 @@ describeWithLocalStack("production with local Supabase", () => {
           commandId: next(),
           dinerName: "Valentín",
           items: [
-            { lineId: next(), productId: milanesa, quantity: 1, variantId: null }
+            {
+              lineId: next(),
+              productId: milanesa,
+              quantity: 1,
+              variantId: null
+            }
           ],
           paymentMethod: "cash",
           paymentPath: "in_person",
@@ -409,7 +426,9 @@ describeWithLocalStack("production with local Supabase", () => {
       `
     )[0]!.line_id;
 
-    expect((await advance("coco", orderId, kitchenLine, "ready")).status).toBe(409);
+    expect((await advance("coco", orderId, kitchenLine, "ready")).status).toBe(
+      409
+    );
     const started = await advance("coco", orderId, kitchenLine, "preparing");
     expect(started.status).toBe(200);
     expect(started.body.data).toMatchObject({
@@ -417,9 +436,10 @@ describeWithLocalStack("production with local Supabase", () => {
       orderStatus: "in_preparation",
       status: "preparing"
     });
-    expect((await advance("coco", orderId, kitchenLine, "ready")).body.data.orderStatus).toBe(
-      "in_preparation"
-    );
+    expect(
+      (await advance("coco", orderId, kitchenLine, "ready")).body.data
+        .orderStatus
+    ).toBe("in_preparation");
     expect(ticketOf((await board("coco")).body, orderId)?.status).toBe("ready");
 
     await advance("beto", orderId, barLine, "preparing");
@@ -432,18 +452,33 @@ describeWithLocalStack("production with local Supabase", () => {
 
   it("protects sectors, tenants and the request shape", async () => {
     const { kitchenLine, orderId } = await place();
-    expect((await advance("beto", orderId, kitchenLine, "preparing")).status).toBe(404);
-    expect((await advance("otra", orderId, kitchenLine, "preparing")).status).toBe(404);
-    expect((await advance("ana", orderId, kitchenLine, "preparing")).status).toBe(403);
+    expect(
+      (await advance("beto", orderId, kitchenLine, "preparing")).status
+    ).toBe(404);
+    expect(
+      (await advance("otra", orderId, kitchenLine, "preparing")).status
+    ).toBe(404);
+    expect(
+      (await advance("ana", orderId, kitchenLine, "preparing")).status
+    ).toBe(403);
     const forged = await staff(
       "coco",
       "POST",
       `/v1/staff/production/orders/${orderId}/items/${kitchenLine}/status`,
-      { commandId: next(), sector: "bar", status: "preparing", tenantId: two.tenantId }
+      {
+        commandId: next(),
+        sector: "bar",
+        status: "preparing",
+        tenantId: two.tenantId
+      }
     );
     expect(forged.status).toBe(400);
-    expect((await advance("coco", orderId, kitchenLine, "queued")).status).toBe(400);
-    expect((await advance("coco", orderId, kitchenLine, "delivered")).status).toBe(400);
+    expect((await advance("coco", orderId, kitchenLine, "queued")).status).toBe(
+      400
+    );
+    expect(
+      (await advance("coco", orderId, kitchenLine, "delivered")).status
+    ).toBe(400);
     const [row] = await admin<{ status: string }[]>`
       select status from private.production_items
       where tenant_id = ${one.tenantId} and order_id = ${orderId} and line_id = ${kitchenLine}
@@ -456,25 +491,33 @@ describeWithLocalStack("production with local Supabase", () => {
     const first = await place(commandId);
     const replay = await place(commandId, [first.kitchenLine, first.barLine]);
     expect(replay.orderId).toBe(first.orderId);
-    const [{ count: items }] = await admin<{ count: number }[]>`
+    const [itemRow] = await admin<{ count: number }[]>`
       select count(*)::int as count from private.production_items
       where tenant_id = ${one.tenantId} and order_id = ${first.orderId}
     `;
-    expect(items).toBe(2);
+    expect(itemRow?.count).toBe(2);
 
     const advanceCommand = next();
     const results = await Promise.all(
       Array.from({ length: 6 }, () =>
-        advance("coco", first.orderId, first.kitchenLine, "preparing", advanceCommand)
+        advance(
+          "coco",
+          first.orderId,
+          first.kitchenLine,
+          "preparing",
+          advanceCommand
+        )
       )
     );
     for (const result of results) expect(result.status).toBe(200);
-    expect(new Set(results.map((result) => JSON.stringify(result.body))).size).toBe(1);
-    const [{ count: events }] = await admin<{ count: number }[]>`
+    expect(
+      new Set(results.map((result) => JSON.stringify(result.body))).size
+    ).toBe(1);
+    const [eventRow] = await admin<{ count: number }[]>`
       select count(*)::int as count from private.production_item_events
       where tenant_id = ${one.tenantId} and order_id = ${first.orderId}
     `;
-    expect(events).toBe(1);
+    expect(eventRow?.count).toBe(1);
 
     const reuse = await advance(
       "coco",
@@ -486,7 +529,12 @@ describeWithLocalStack("production with local Supabase", () => {
     expect(reuse.status).toBe(409);
     expect(reuse.body.error.code).toBe("WAITER_COMMAND_REUSED");
 
-    const reconnect = await advance("coco", first.orderId, first.kitchenLine, "preparing");
+    const reconnect = await advance(
+      "coco",
+      first.orderId,
+      first.kitchenLine,
+      "preparing"
+    );
     expect(reconnect.status).toBe(200);
     expect(reconnect.body.data.changed).toBe(false);
   });

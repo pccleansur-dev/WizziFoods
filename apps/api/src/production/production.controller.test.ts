@@ -134,7 +134,9 @@ describe("ProductionController", () => {
       })
       .catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(expected);
-    expect(JSON.stringify((failure as Error & { response: unknown }).response)).not.toContain("db");
+    expect(
+      JSON.stringify((failure as Error & { response: unknown }).response)
+    ).not.toContain("db");
   });
 
   it("rethrows unknown failures", async () => {
