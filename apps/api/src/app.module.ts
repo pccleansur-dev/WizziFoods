@@ -24,6 +24,8 @@ import {
 import { CatalogService } from "./catalog/catalog.service.js";
 import { CatalogImportController } from "./catalog-import/catalog-import.controller.js";
 import { CatalogImportService } from "./catalog-import/catalog-import.service.js";
+import { DinerDraftController } from "./diner-draft/diner-draft.controller.js";
+import { DinerDraftService } from "./diner-draft/diner-draft.service.js";
 import { FloorPlanAdminController } from "./floor-plan/floor-plan.controller.js";
 import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
 import { TableEntryController } from "./table-entry/table-entry.controller.js";
@@ -83,6 +85,7 @@ export class AppModule {
         BusinessProfileController,
         CatalogImportController,
         CatalogAdminController,
+        DinerDraftController,
         FloorPlanAdminController,
         PaymentMethodsAdminController,
         PublicCatalogController,
@@ -152,6 +155,15 @@ export class AppModule {
           provide: TableEntryService,
           useFactory: (database: TenantDatabase) =>
             new TableEntryService(database.floorPlanRepository)
+        },
+        {
+          inject: [TableEntryService, TENANT_DATABASE],
+          provide: DinerDraftService,
+          useFactory: (
+            tableEntryService: TableEntryService,
+            database: TenantDatabase
+          ) =>
+            new DinerDraftService(tableEntryService, database.catalogRepository)
         },
         {
           inject: [TENANT_DATABASE],
