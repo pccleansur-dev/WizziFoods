@@ -341,3 +341,108 @@ export function trimCatalogText(input: unknown): unknown {
     }))
   };
 }
+
+type TranslationTarget = {
+  content: LocalizedCatalogContent[];
+  id: string;
+  kind: "category" | "product" | "variant";
+};
+
+function translationTargets(draft: CatalogDraft): TranslationTarget[] {
+  return [
+    ...draft.categories.map(({ content, id }) => ({
+      content,
+      id,
+      kind: "category" as const
+    })),
+    ...draft.products.flatMap((product) => [
+      { content: product.content, id: product.id, kind: "product" as const },
+      ...product.variants.map(({ content, id }) => ({
+        content,
+        id,
+        kind: "variant" as const
+      }))
+    ])
+  ];
+}
+
+/**
+ * Textos que existen en el idioma de origen y todavía faltan en el destino. Lo
+ * que una persona ya escribió nunca se vuelve a pedir. Las variantes no tienen
+ * descripción.
+ */
+export function collectMissingTranslations(
+  draft: CatalogDraft,
+  sourceLanguage: string,
+  targetLanguage: string
+): { key: string; text: string }[] {
+  const missing: { key: string; text: string }[] = [];
+  for (const target of translationTargets(draft)) {
+    const source = target.content.find(
+      ({ language }) => language === sourceLanguage
+    );
+    const current = target.content.find(
+      ({ language }) => language === targetLanguage
+    );
+    const fields: ("description" | "title")[] =
+      target.kind === "variant" ? ["title"] : ["title", "description"];
+    for (const field of fields) {
+      const text = source?.[field].trim() ?? "";
+      if (text && !(current?.[field].trim() ?? "")) {
+        missing.push({ key: `${target.kind}:${target.id}:${field}`, text });
+      }
+    }
+  }
+  return missing;
+}
+
+/**
+ * Vuelca las traducciones sólo en campos vacíos del idioma destino, sin pisar
+ * lo escrito y sin tocar claves que no pertenecen al borrador.
+ */
+export function applyCatalogTranslations(
+  draft: CatalogDraft,
+  targetLanguage: string,
+  translations: { key: string; text: string }[]
+): CatalogDraft {
+  const byKey = new Map(translations.map(({ key, text }) => [key, text]));
+  const fill = (
+    kind: TranslationTarget["kind"],
+    id: string,
+    content: LocalizedCatalogContent[]
+  ): LocalizedCatalogContent[] => {
+    const fields: ("description" | "title")[] =
+      kind === "variant" ? ["title"] : ["title", "description"];
+    if (!fields.some((field) => byKey.has(`${kind}:${id}:${field}`))) {
+      return content;
+    }
+    const existing = content.find(
+      ({ language }) => language === targetLanguage
+    );
+    const next = { ...(existing ?? localizedFallback(targetLanguage)) };
+    for (const field of fields) {
+      const translated = byKey.get(`${kind}:${id}:${field}`);
+      if (translated !== undefined && !next[field].trim()) {
+        next[field] = translated;
+      }
+    }
+    return existing
+      ? content.map((item) => (item === existing ? next : item))
+      : [...content, next];
+  };
+  return {
+    ...draft,
+    categories: draft.categories.map((category) => ({
+      ...category,
+      content: fill("category", category.id, category.content)
+    })),
+    products: draft.products.map((product) => ({
+      ...product,
+      content: fill("product", product.id, product.content),
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        content: fill("variant", variant.id, variant.content)
+      }))
+    }))
+  };
+}

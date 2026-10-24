@@ -23,6 +23,8 @@ import {
 } from "./catalog-localized-fields";
 import { CatalogPreview } from "./catalog-preview";
 import { ProductVariants } from "./catalog-product-variants";
+import { CatalogTranslateButton } from "./catalog-translate-button";
+import { translateCatalogAction } from "./translate-actions";
 import type { PublishedCatalog, SavedCatalogDraft } from "./catalog";
 import { BusinessMediaUploadField } from "./business-media-upload-field";
 import { CatalogAvailabilityControl } from "./catalog-availability";
@@ -130,6 +132,12 @@ export function CatalogEditor({
       <div className="catalog-workspace">
         <div className="catalog-editor">
           <div className="catalog-toolbar" aria-label="Acciones de la carta">
+            <CatalogTranslateButton
+              change={change}
+              draft={draft}
+              languages={languages}
+              onTranslate={translateCatalogAction}
+            />
             <label className="catalog-language-picker">
               <span>Idioma de vista previa</span>
               <select

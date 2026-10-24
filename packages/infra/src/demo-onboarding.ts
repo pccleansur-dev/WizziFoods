@@ -4,6 +4,7 @@
  *   pnpm demo:up      siembra un negocio vacío + Administrador (contraseña y TOTP) y levanta API, web y worker
  *   pnpm demo:totp    imprime el código TOTP vigente
  *   pnpm demo:reset   borra el negocio y el usuario de prueba (deja el alta otra vez desde cero)
+ *   pnpm demo:api     reinicia sólo la API (tras cambiar su configuración)
  *   pnpm demo:down    detiene API, web y worker
  *
  * Sólo para desarrollo local: requiere Supabase local (infra:up). El usuario se
@@ -331,8 +332,27 @@ Después andá a http://${hostname}:${webPort}/panel/publicar
 Para empezar de cero: pnpm demo:reset && pnpm demo:up   ·   Para detener: pnpm demo:down`);
 }
 
+/** Reinicia sólo la API (por ejemplo tras cambiar su configuración), sin tocar la web. */
+async function restartApi(): Promise<void> {
+  const state = loadState();
+  if (!state) throw new Error("No hay entorno de prueba: corré pnpm demo:up");
+  const [api, ...rest] = state.pids;
+  stop(api === undefined ? [] : [api]);
+  const next = launch(
+    process.execPath,
+    ["./node_modules/tsx/dist/cli.mjs", "src/main.ts"],
+    path.join(root, "apps", "api"),
+    "demo-api.log"
+  );
+  saveState({ ...state, pids: [next, ...rest] });
+  await waitFor(`http://localhost:${apiPort}/health`, "La API");
+  console.info("API reiniciada.");
+}
+
 const command = process.argv[2];
-if (command === "up") {
+if (command === "api") {
+  await restartApi();
+} else if (command === "up") {
   await up();
 } else if (command === "totp") {
   const state = loadState();

@@ -7,6 +7,8 @@ import {
   addCatalogSector,
   addCatalogVariant,
   createEmptyCatalogDraft,
+  applyCatalogTranslations,
+  collectMissingTranslations,
   formatPrice,
   trimCatalogText,
   parsePriceToCents,
@@ -218,5 +220,95 @@ describe("trimCatalogText", () => {
   it("leaves anything it does not understand for the contract to reject", () => {
     expect(trimCatalogText("nope")).toBe("nope");
     expect(trimCatalogText({ categories: "x" })).toEqual({ categories: "x" });
+  });
+});
+
+describe("catalog translation helpers", () => {
+  const categoryId = "b1000000-0000-4000-8000-000000000001";
+  const productId = "b2000000-0000-4000-8000-000000000002";
+  const variantId = "b3000000-0000-4000-8000-000000000003";
+  const sectorId = "b4000000-0000-4000-8000-000000000004";
+  const base = {
+    baseRevision: null,
+    categories: [
+      {
+        content: [
+          { description: "", language: "es", title: "Platos" },
+          { description: "", language: "en", title: "" }
+        ],
+        id: categoryId,
+        position: 0
+      }
+    ],
+    products: [
+      {
+        categoryId,
+        content: [
+          { description: "Con papas", language: "es", title: "Milanesa" },
+          { description: "", language: "en", title: "" }
+        ],
+        id: productId,
+        imageAssetId: null,
+        position: 0,
+        priceCents: 100,
+        sectorId,
+        variants: [
+          {
+            content: [{ description: "", language: "es", title: "Doble" }],
+            id: variantId,
+            position: 0,
+            priceDeltaCents: 10
+          }
+        ]
+      }
+    ],
+    sectors: [
+      { id: sectorId, kind: "kitchen" as const, name: "Cocina", position: 0 }
+    ]
+  };
+
+  it("collects only what has a source text and no target text", () => {
+    expect(collectMissingTranslations(base, "es", "en")).toEqual([
+      { key: `category:${categoryId}:title`, text: "Platos" },
+      { key: `product:${productId}:title`, text: "Milanesa" },
+      { key: `product:${productId}:description`, text: "Con papas" },
+      { key: `variant:${variantId}:title`, text: "Doble" }
+    ]);
+  });
+
+  it("never asks to translate what a person already wrote", () => {
+    const written = JSON.parse(JSON.stringify(base));
+    written.products[0].content[1].title = "Milanese";
+    const keys = collectMissingTranslations(written, "es", "en").map(
+      ({ key }) => key
+    );
+    expect(keys).not.toContain(`product:${productId}:title`);
+    expect(keys).toContain(`product:${productId}:description`);
+  });
+
+  it("applies translations only into empty targets and creates missing language entries", () => {
+    const written = JSON.parse(JSON.stringify(base));
+    written.products[0].content[1].title = "Milanese";
+    const result = applyCatalogTranslations(written, "en", [
+      { key: `category:${categoryId}:title`, text: "Dishes" },
+      { key: `product:${productId}:title`, text: "SHOULD NOT OVERWRITE" },
+      { key: `product:${productId}:description`, text: "With fries" },
+      { key: `variant:${variantId}:title`, text: "Double" }
+    ]);
+    expect(result.categories[0]?.content[1]?.title).toBe("Dishes");
+    expect(result.products[0]?.content[1]?.title).toBe("Milanese");
+    expect(result.products[0]?.content[1]?.description).toBe("With fries");
+    expect(
+      result.products[0]?.variants[0]?.content.find((c) => c.language === "en")
+        ?.title
+    ).toBe("Double");
+    expect(base.categories[0]?.content[1]?.title).toBe("");
+  });
+
+  it("ignores keys that do not belong to the draft", () => {
+    const result = applyCatalogTranslations(base, "en", [
+      { key: "product:ffffffff-ffff-4fff-8fff-ffffffffffff:title", text: "x" }
+    ]);
+    expect(result).toEqual(base);
   });
 });

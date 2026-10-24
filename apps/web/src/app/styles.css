@@ -2592,3 +2592,22 @@ dd {
   > .catalog-add-row {
   padding-inline: 0;
 }
+
+.catalog-translate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.catalog-translate__message {
+  max-width: 34rem;
+  margin: 0;
+  color: #355f3f;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.catalog-translate__message--error {
+  color: #8b241d;
+}
