@@ -26,6 +26,8 @@ import { CatalogImportController } from "./catalog-import/catalog-import.control
 import { CatalogImportService } from "./catalog-import/catalog-import.service.js";
 import { FloorPlanAdminController } from "./floor-plan/floor-plan.controller.js";
 import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
+import { TableEntryController } from "./table-entry/table-entry.controller.js";
+import { TableEntryService } from "./table-entry/table-entry.service.js";
 import { PaymentMethodsAdminController } from "./payment-methods/payment-methods.controller.js";
 import { PaymentMethodsService } from "./payment-methods/payment-methods.service.js";
 import { PaymentSecretSealer } from "./payment-methods/payment-secret-sealer.js";
@@ -87,6 +89,7 @@ export class AppModule {
         ReadinessAdminController,
         StaffAuthController,
         StaffSessionController,
+        TableEntryController,
         SupportAccessController,
         PlatformOperationsController,
         TenantAdminScopeController,
@@ -143,6 +146,12 @@ export class AppModule {
           provide: FloorPlanService,
           useFactory: (database: TenantDatabase) =>
             new FloorPlanService(database.floorPlanRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: TableEntryService,
+          useFactory: (database: TenantDatabase) =>
+            new TableEntryService(database.floorPlanRepository)
         },
         {
           inject: [TENANT_DATABASE],
