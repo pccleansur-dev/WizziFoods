@@ -30,9 +30,9 @@ describe("team member contracts", () => {
     const result = parseTeamMemberCreate(body);
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.issues.some((issue) => issue.code === "UNKNOWN_FIELD")).toBe(
-        true
-      );
+      expect(
+        result.issues.some((issue) => issue.code === "UNKNOWN_FIELD")
+      ).toBe(true);
     }
   });
 
@@ -61,8 +61,11 @@ describe("team member contracts", () => {
 
   it("validates updates, activation and PIN reset strictly", () => {
     expect(
-      parseTeamMemberUpdate({ displayName: "Ana", role: "kitchen", sectorIds: [] })
-        .ok
+      parseTeamMemberUpdate({
+        displayName: "Ana",
+        role: "kitchen",
+        sectorIds: []
+      }).ok
     ).toBe(true);
     expect(
       parseTeamMemberUpdate({

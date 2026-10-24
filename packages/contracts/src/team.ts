@@ -13,9 +13,7 @@ export const TEAM_LIMITS = {
 } as const;
 
 export type TeamIssueCode =
-  | "INVALID_FIELD"
-  | "INVALID_STRUCTURE"
-  | "UNKNOWN_FIELD";
+  "INVALID_FIELD" | "INVALID_STRUCTURE" | "UNKNOWN_FIELD";
 
 export type TeamIssue = { code: TeamIssueCode; message: string; path: string };
 

@@ -26,7 +26,10 @@ import {
   createPaymentMethodsRepository,
   type PaymentMethodsRepository
 } from "./payment-methods-repository.js";
-import { createTeamRepository, type TeamRepository } from "./team-repository.js";
+import {
+  createTeamRepository,
+  type TeamRepository
+} from "./team-repository.js";
 import {
   createCatalogImportRepository,
   type CatalogImportRepository

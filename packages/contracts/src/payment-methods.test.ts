@@ -58,8 +58,9 @@ describe("payment method contracts", () => {
 
   it("accepts credentials only for provider methods and never echoes them", () => {
     expect(
-      parsePaymentSecretRequest("mercado_pago", { secret: "APP_USR-secret-123" })
-        .ok
+      parsePaymentSecretRequest("mercado_pago", {
+        secret: "APP_USR-secret-123"
+      }).ok
     ).toBe(true);
     expect(
       parsePaymentSecretRequest("cash", { secret: "APP_USR-secret-123" }).ok
@@ -69,9 +70,9 @@ describe("payment method contracts", () => {
     });
     expect(bad.ok).toBe(false);
     expect(JSON.stringify(bad)).not.toContain("has spaces");
-    expect(parsePaymentSecretRequest("mercado_pago", { secret: "short" }).ok).toBe(
-      false
-    );
+    expect(
+      parsePaymentSecretRequest("mercado_pago", { secret: "short" }).ok
+    ).toBe(false);
     expect(
       parsePaymentSecretRequest("mercado_pago", {
         secret: "APP_USR-secret-123",
@@ -82,7 +83,9 @@ describe("payment method contracts", () => {
 
   it("rejects status rows that expose credential material", () => {
     expect(parsePaymentMethodStatuses(statuses())).toHaveLength(5);
-    expect(parsePaymentMethodStatuses(statuses({ ciphertext: "00" }))).toBeNull();
+    expect(
+      parsePaymentMethodStatuses(statuses({ ciphertext: "00" }))
+    ).toBeNull();
     expect(parsePaymentMethodStatuses(statuses({ secret: "x" }))).toBeNull();
     expect(parsePaymentMethodStatuses(statuses().slice(1))).toBeNull();
   });

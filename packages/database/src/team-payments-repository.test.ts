@@ -95,8 +95,9 @@ describe("team repository", () => {
       requesterId,
       scope
     });
-    const values = (client as unknown as ReturnType<typeof vi.fn>).mock
-      .calls[0]!.slice(1);
+    const values = (
+      client as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls[0]!.slice(1);
     expect(values).toContain(hash);
     expect(values).not.toContain("123456");
   });
