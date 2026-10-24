@@ -140,7 +140,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 ### Fase 6 — Operación y producción
 
-- [ ] T19. Operar salón, llamados y pedidos manuales.
+- [x] T19. Operar salón, llamados y pedidos manuales.
 - [ ] T20. Producir por sector y actualizar estados por ítem.
 - [ ] T21. Resolver entrega, faltantes, cambios y cancelaciones auditadas.
 

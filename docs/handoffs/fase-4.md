@@ -328,3 +328,27 @@ secretos no salen del servidor.
   entre borrador, publicado y disponibilidad inmediata.
 - El warning de webpack de OpenTelemetry sobre `require-in-the-middle` es
   preexistente y no impide el build; no debe confundirse con un fallo de T12.
+
+## Estado de T19 — operación del salón
+
+Hecho: ver `docs/runbooks/operacion-del-salon.md`. Migración
+`20261024090000_create_waiter_operations.sql` (rollback en `supabase/rollbacks`, pgTap
+`waiter_operations.test.sql`, 71 aserciones). La API del personal vive en
+`apps/api/src/waiter` y `staff-auth/staff-session.guard.ts`; la web en
+`apps/web/src/app/interno/[tenantSlug]/operacion/salon`.
+
+Punto de partida para T20–T22:
+
+- T20 debe leer `private.confirmed_orders` / `confirmed_order_items` (cada ítem trae
+  `production_sector_id` de la carta publicada). T19 **no** crea tickets ni estados de
+  producción; los pedidos confirmados son append-only, así que los estados por ítem
+  deben vivir en tablas nuevas.
+- T22 debe crear la sesión de mesa (colgada de `group.id` o de la mesa) y el ledger. Hoy
+  `confirmed_orders` no tiene saldo ni pago; el contrato fija `payment: not_recorded` y
+  `accountDecision: pending`. «Cobrar ahora» y «Dejar cuenta abierta» están
+  deshabilitados en `confirmed-order-panel.tsx`. `floor_table_service_states` sigue sin
+  escribirse: nadie pasa una mesa a `occupied` todavía.
+- T24 debe confirmar las intenciones `payment_pending` por webhook; un `check` de
+  `order_intents` impide que lo haga un Mozo.
+- Pendientes: llamado genérico del comensal, apagar la disponibilidad con stock cero y
+  Realtime en lugar de polling (T31).

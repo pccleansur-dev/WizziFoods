@@ -27,15 +27,14 @@ alter table private.order_intents
     or (payment_path = 'in_person' and status in ('awaiting_waiter', 'confirmed', 'rejected'))
   );
 
+-- Deleting is not guarded here: a decided intent is referenced by its decision
+-- and order (restrict), so only undecided intents can ever be removed.
 create function private.guard_order_intent_change()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
 begin
-  if tg_op = 'DELETE' then
-    raise exception 'order intents are never deleted' using errcode = 'PT209';
-  end if;
   if old.status <> 'awaiting_waiter'
     or new.status not in ('confirmed', 'rejected')
     or (to_jsonb(new) - 'status') is distinct from (to_jsonb(old) - 'status')
@@ -47,7 +46,7 @@ end;
 $$;
 
 create trigger order_intents_guard_change
-before update or delete on private.order_intents
+before update on private.order_intents
 for each row execute function private.guard_order_intent_change();
 
 alter table private.waiter_calls

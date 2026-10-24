@@ -591,20 +591,41 @@ borrador conservado. Runbook: `docs/runbooks/intenciones-de-pedido.md`.
 
 ## Fase 6 — Operación y producción
 
-### T19. Operar salón, llamados y pedidos manuales
+### T19. Operar salón, llamados y pedidos manuales — completada
 
 **Descripción:** Dar al Mozo una vista viva del salón y capacidad de validar o cargar una comanda.
 
 **Criterios de aceptación:**
 
-- [ ] Salón muestra mesa, sesión, llamado, saldo y estado sin cruzar tenant.
-- [ ] Mozo valida una intención o carga un pedido manual atribuido a persona/mesa.
-- [ ] Confirmar y cobrar ahora o dejar cuenta abierta son decisiones separadas.
+- [x] Salón muestra mesa, sesión, llamado, saldo y estado sin cruzar tenant.
+- [x] Mozo valida una intención o carga un pedido manual atribuido a persona/mesa.
+- [x] Confirmar y cobrar ahora o dejar cuenta abierta son decisiones separadas.
 
 **Verificación:**
 
-- [ ] Pruebas de permisos y transiciones de llamado.
-- [ ] E2E cliente → llamado → mozo → pedido confirmado.
+- [x] Pruebas de permisos y transiciones de llamado.
+- [x] E2E cliente → llamado → mozo → pedido confirmado.
+
+**Resultado:** el Mozo (y el Encargado) usan `/interno/<negocio>/operacion/salon`: vista
+viva por polling (5 s) con plantas, mesas y grupos como una unidad, llamados e
+intenciones por validar; reclamar un llamado, confirmar o rechazar una intención de T18
+(motivo obligatorio al rechazar) y cargar una comanda manual a la mesa o a una persona.
+La API (`/v1/staff/*`) resuelve empleado, tenant, ubicación, rol y capacidades sólo del
+Bearer de la sesión en cada solicitud y rechaza cualquier tenant, ubicación, staff, rol,
+precio, total o pago enviado por el cliente; SQL vuelve a verificar empleado activo,
+rol y sector (el Mozo sólo opera en sus sectores; el Encargado no amplía su alcance).
+Reclamar y decidir bloquean filas: de dos Mozos simultáneos gana uno, los reintentos
+idénticos devuelven el mismo resultado (`waiter_commands`) y todo queda auditado. Los
+pedidos confirmados, sus ítems y las decisiones son append-only. Confirmar revalida mesa,
+carta, disponibilidad y precio, y descuenta el stock operativo opcional; un pago online
+pendiente nunca es confirmable. El resultado lleva `payment: not_recorded` y las
+decisiones «Cobrar ahora» / «Dejar cuenta abierta» aparecen separadas y deshabilitadas:
+no se crea pago, saldo, ledger, sesión de mesa ni envío a producción. Verificado con 8
+pruebas de contrato nuevas, 7 de repositorio, 9 de API y 17 de web, 71 aserciones pgTap (dos
+tenants), 14 de integración HTTP con dos tenants y Mozos concurrentes y 14 recorridos
+Playwright (móvil 375 px y escritorio, 3100/3101). Runbook:
+`docs/runbooks/operacion-del-salon.md`. Pendientes: llamado genérico «Llamar al mozo»
+del comensal y apagar la disponibilidad al llegar a stock cero.
 
 **Dependencias:** T18.
 
