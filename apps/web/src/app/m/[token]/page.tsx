@@ -4,7 +4,7 @@ import { EntryRefresh } from "./entry-refresh";
 import { EntryView } from "./entry-view";
 import { DinerExperience } from "./diner-experience";
 import { loadPublicCatalog } from "./public-catalog";
-import { loadOrderIntentOptions } from "./order-intent";
+import { loadOrderIntentOptions } from "./order-intent-options";
 import { loadTableEntry } from "./table-entry";
 
 export const dynamic = "force-dynamic";

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  catalogProduct,
   otherHostname,
   seedBusiness,
   tables,
@@ -172,4 +173,133 @@ test("a concurrent availability change marks the draft and blocks continuation",
   } finally {
     await business.setProductAvailable(true);
   }
+});
+
+async function addMilanesa(page: import("@playwright/test").Page) {
+  await scan(page, "5");
+  await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
+  await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
+}
+
+test("the general account creates one in-person waiter call", async ({
+  page
+}) => {
+  const dinerName = `General ${test.info().project.name}`;
+  await addMilanesa(page);
+  await page.getByLabel("Tu nombre").fill(dinerName);
+  await page.getByRole("button", { name: "Enviar pedido" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Ya avisamos al mozo" })
+  ).toBeVisible();
+  await expect
+    .poll(() => business.intentState(dinerName))
+    .toEqual({
+      calls: 1,
+      intents: 1,
+      status: "awaiting_waiter"
+    });
+});
+
+test("individual consumption requires and persists the seat", async ({
+  page
+}) => {
+  const dinerName = `Individual ${test.info().project.name}`;
+  await addMilanesa(page);
+  await page.getByLabel("Tu nombre").fill(dinerName);
+  await page.getByLabel("Mi consumo").check();
+  await page.getByLabel(/^Silla/u).fill("Silla 2");
+  await page.getByRole("button", { name: "Enviar pedido" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Ya avisamos al mozo" })
+  ).toBeVisible();
+  await expect
+    .poll(() => business.intentState(dinerName))
+    .toMatchObject({
+      calls: 1,
+      intents: 1
+    });
+});
+
+test("Mercado Pago remains pending and never opens a waiter call", async ({
+  page
+}) => {
+  const dinerName = `Online ${test.info().project.name}`;
+  await addMilanesa(page);
+  await page.getByLabel("Tu nombre").fill(dinerName);
+  await page.getByLabel("Mercado Pago").check();
+  await page.getByRole("button", { name: "Enviar pedido" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Pago pendiente" })
+  ).toBeVisible();
+  await expect(
+    page.getByText("no está confirmado ni fue enviado a cocina")
+  ).toBeVisible();
+  await expect
+    .poll(() => business.intentState(dinerName))
+    .toEqual({
+      calls: 0,
+      intents: 1,
+      status: "payment_pending"
+    });
+});
+
+test("concurrent retries create one intent and one waiter call", async ({
+  request
+}) => {
+  const dinerName = `Concurrent ${test.info().project.name}`;
+  const payload = {
+    attribution: "table",
+    commandId: "fe900000-0000-4000-8000-000000000001",
+    dinerName,
+    items: [
+      {
+        lineId: "fe900000-0000-4000-8000-000000000002",
+        productId: catalogProduct,
+        quantity: 1,
+        variantId: null
+      }
+    ],
+    paymentMethod: "cash",
+    paymentPath: "in_person",
+    seatLabel: null,
+    token: business.tokens.get("5")!
+  };
+  const responses = await Promise.all([
+    request.post("/api/order-intents", { data: payload }),
+    request.post("/api/order-intents", { data: payload })
+  ]);
+  expect(responses.map((response) => response.status())).toEqual([201, 201]);
+  const [first, second] = await Promise.all(
+    responses.map((response) => response.json())
+  );
+  expect(second).toEqual(first);
+  await expect
+    .poll(() => business.intentState(dinerName))
+    .toEqual({
+      calls: 1,
+      intents: 1,
+      status: "awaiting_waiter"
+    });
+});
+
+test("a transient submission failure keeps the private draft", async ({
+  page
+}) => {
+  await addMilanesa(page);
+  await page.getByLabel("Tu nombre").fill("Reintento");
+  await page.route("**/api/order-intents", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: { code: "ORDER_INTENT_UNREACHABLE", message: "No disponible." }
+      }),
+      status: 502
+    });
+  });
+  await page.getByRole("button", { name: "Enviar pedido" }).click();
+  await expect(page.getByText("No pudimos enviar el pedido.")).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: /Mi pedido/u }).click();
+  await expect(page.getByText("Milanesa", { exact: true })).toBeVisible();
 });

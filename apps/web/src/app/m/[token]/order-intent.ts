@@ -1,4 +1,3 @@
-import { readWebConfig } from "@platform/config";
 import {
   isPaymentMethodKey,
   parseDinerDraftRequest,
@@ -6,8 +5,6 @@ import {
   type OrderPaymentPath,
   type PaymentMethodKey
 } from "@platform/contracts";
-
-import { tenantFetch } from "../../panel/tenant-fetch";
 
 export type OrderIntentPaymentMethod = {
   method: PaymentMethodKey;
@@ -116,21 +113,4 @@ export function parseOrderIntentResponse(
     status: data.status,
     totalCents: data.totalCents as number
   };
-}
-
-export async function loadOrderIntentOptions(
-  host: string
-): Promise<OrderIntentPaymentMethod[]> {
-  if (!host) return [];
-  try {
-    const config = readWebConfig(process.env);
-    const response = await tenantFetch(
-      `${config.apiUrl}/v1/public/order-intents/options`,
-      { cache: "no-store", headers: { host } }
-    );
-    if (!response.ok) return [];
-    return parseOrderIntentOptionsResponse(await response.json()) ?? [];
-  } catch {
-    return [];
-  }
 }

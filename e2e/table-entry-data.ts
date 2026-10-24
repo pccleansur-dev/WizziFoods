@@ -100,6 +100,11 @@ export type SeededBusiness = {
     state: "needs_cleaning" | "occupied" | "out_of_service" | null
   ): Promise<void>;
   setProductAvailable(isAvailable: boolean): Promise<void>;
+  intentState(dinerName: string): Promise<{
+    calls: number;
+    intents: number;
+    status: string | null;
+  }>;
   close(): Promise<void>;
 };
 
@@ -108,6 +113,10 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
     [tenantId, userId],
     [otherTenantId, otherUserId]
   ] as const) {
+    await owner`delete from private.waiter_calls where tenant_id = ${tenant}`;
+    await owner`delete from private.order_intent_items where tenant_id = ${tenant}`;
+    await owner`delete from private.order_intents where tenant_id = ${tenant}`;
+    await owner`delete from private.order_intent_commands where tenant_id = ${tenant}`;
     await owner`delete from private.published_catalogs where tenant_id = ${tenant}`;
     await sql`delete from private.location_publications where tenant_id = ${tenant}`;
     await sql`delete from private.audit_events where tenant_id = ${tenant}`;
@@ -159,6 +168,18 @@ export async function seedBusiness(): Promise<SeededBusiness> {
     insert into private.location_publications (tenant_id, location_id, published_by)
     values (${tenantId}, ${locationId}, ${userId})
   `;
+  await sql`select private.ensure_payment_methods(${tenantId}::uuid, ${locationId}::uuid)`;
+  await sql`
+    update private.payment_methods
+    set enabled = true, public_config = '{"publicKey":"E2E_PUBLIC_KEY"}'
+    where tenant_id = ${tenantId} and location_id = ${locationId}
+      and method_key = 'mercado_pago'
+  `;
+  await sql`
+    insert into private.payment_method_secrets
+      (tenant_id, location_id, method_key, ciphertext, key_version)
+    values (${tenantId}, ${locationId}, 'mercado_pago', decode(repeat('ab', 29), 'hex'), 1)
+  `;
   await owner`
     insert into private.published_catalogs (
       tenant_id, location_id, revision, source_draft_revision, snapshot, published_by
@@ -170,6 +191,27 @@ export async function seedBusiness(): Promise<SeededBusiness> {
       await cleanup(sql, owner);
       await sql.end();
       await owner.end();
+    },
+    async intentState(dinerName) {
+      const [row] = await owner<
+        {
+          calls: number;
+          intents: number;
+          status: string | null;
+        }[]
+      >`
+        select count(distinct intent.id)::integer as intents,
+          count(call.id)::integer as calls,
+          max(intent.status) as status
+        from private.order_intents intent
+        left join private.waiter_calls call
+          on call.tenant_id = intent.tenant_id
+          and call.location_id = intent.location_id
+          and call.intent_id = intent.id
+        where intent.tenant_id = ${tenantId}
+          and intent.diner_name = ${dinerName}
+      `;
+      return row ?? { calls: 0, intents: 0, status: null };
     },
     async setState(tableId, state) {
       await sql`

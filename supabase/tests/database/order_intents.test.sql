@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(17);
+select plan(18);
 
 insert into auth.users (id) values ('18100000-0000-4000-8000-000000000001');
 insert into public.tenants (id, slug, name, status) values
@@ -92,6 +92,10 @@ select has_function('private', 'create_order_intent',
   'order intents are created through one scoped function');
 select has_function('private', 'list_public_payment_methods', array['uuid','uuid'],
   'public payment choices are read through a scoped function');
+select ok(
+  not has_table_privilege('authenticator', 'private.order_intents', 'select')
+    and not has_table_privilege('authenticator', 'private.waiter_calls', 'insert'),
+  'the runtime role cannot bypass the scoped order-intent functions');
 select results_eq(
   $$ select method, payment_path from private.list_public_payment_methods((select t1 from scope), (select l1 from scope)) $$,
   $$ values ('cash'::text, 'in_person'::text) $$,
