@@ -1,44 +1,8 @@
-import { readWebConfig } from "@platform/config";
-import {
-  staffRoleLabels,
-  type StaffCurrentSessionView
-} from "@platform/contracts";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { staffRoleLabels } from "@platform/contracts";
 
+import { loadStaffSession } from "../../../../staff/load-staff-session";
 import { operationModulesFor } from "../../../../staff/operation-modules";
-import { staffSessionCookieName } from "../../../../staff/staff-access";
 import { signOutStaffAction } from "../actions";
-
-async function loadStaffSession(
-  tenantSlug: string
-): Promise<StaffCurrentSessionView> {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(
-    staffSessionCookieName(tenantSlug)
-  )?.value;
-  if (!accessToken) redirect(`/interno/${tenantSlug}`);
-
-  const config = readWebConfig(process.env);
-  let response: Response;
-  try {
-    response = await fetch(`${config.apiUrl}/v1/staff-sessions/current`, {
-      cache: "no-store",
-      headers: { authorization: `Bearer ${accessToken}` }
-    });
-  } catch {
-    redirect(`/interno/${tenantSlug}?estado=no-disponible`);
-  }
-  if (!response.ok) redirect(`/interno/${tenantSlug}`);
-
-  const payload = (await response.json()) as {
-    data: StaffCurrentSessionView;
-  };
-  if (payload.data.identity.tenant.slug !== tenantSlug) {
-    redirect(`/interno/${tenantSlug}`);
-  }
-  return payload.data;
-}
 
 export default async function StaffOperationPage({
   params
@@ -87,7 +51,16 @@ export default async function StaffOperationPage({
               <span aria-hidden="true">→</span>
               <h2>{module.title}</h2>
               <p>{module.description}</p>
-              <small>Próxima etapa operativa</small>
+              {module.path ? (
+                <a
+                  className="panel-module-link"
+                  href={`/interno/${tenantSlug}/operacion/${module.path}`}
+                >
+                  Abrir {module.title}
+                </a>
+              ) : (
+                <small>Próxima etapa operativa</small>
+              )}
             </article>
           ))}
         </div>

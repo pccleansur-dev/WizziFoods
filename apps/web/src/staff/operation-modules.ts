@@ -2,6 +2,8 @@ import type { StaffCapability, StaffRole } from "@platform/contracts";
 
 export type StaffOperationModule = {
   description: string;
+  /** Route under /interno/<tenant>/operacion, when the module already exists. */
+  path?: string;
   requiredCapability: StaffCapability;
   title: string;
 };
@@ -19,11 +21,13 @@ const modules: readonly StaffOperationModule[] = [
   },
   {
     description: "Llamados activos y atención de cada mesa.",
+    path: "salon",
     requiredCapability: "calls.manage",
     title: "Mesas y llamados"
   },
   {
     description: "Carga, validación y seguimiento de pedidos.",
+    path: "salon?vista=comanda",
     requiredCapability: "orders.manage",
     title: "Pedidos"
   },

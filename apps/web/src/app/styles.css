@@ -3545,3 +3545,334 @@ dd {
     grid-column: 1;
   }
 }
+
+/* Waiter salon (T19) */
+.waiter-page {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.waiter-page h1 {
+  margin: 0.5rem 0 1rem;
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+}
+
+.waiter-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.waiter-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.waiter-status {
+  margin: 0;
+  color: #4d463d;
+  font-size: 0.9375rem;
+}
+
+.waiter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.waiter-tabs button {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #b9ad9a;
+  border-radius: 0.75rem;
+  background: #fffdf8;
+  color: #221f1a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.waiter-tabs button[aria-pressed="true"] {
+  border-color: #221f1a;
+  background: #221f1a;
+  color: #fffdf8;
+}
+
+.waiter-section {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 1rem;
+  background: #fffdf8;
+  box-shadow: none;
+}
+
+.waiter-section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.waiter-list,
+.waiter-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.waiter-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.waiter-card h3,
+.waiter-result h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.waiter-card header p {
+  margin: 0.125rem 0 0;
+  color: #4d463d;
+  font-size: 0.9375rem;
+}
+
+.waiter-lines {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waiter-lines li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.waiter-lines input[type="number"] {
+  width: 4.5rem;
+  min-height: 2.75rem;
+}
+
+.waiter-total {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.waiter-note,
+.waiter-empty,
+.waiter-next-steps small {
+  margin: 0;
+  color: #4d463d;
+  font-size: 0.875rem;
+}
+
+.waiter-chip {
+  display: inline-block;
+  width: fit-content;
+  margin: 0;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid #b9ad9a;
+  border-radius: 999px;
+  background: #f5f3ee;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.waiter-chip--open {
+  border-color: #a4491f;
+  color: #7a2f0d;
+}
+
+.waiter-chip--claimed {
+  border-color: #2f6b3f;
+  color: #1f4d2c;
+}
+
+.waiter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.waiter-actions .button,
+.waiter-next-steps .button,
+.waiter-form .button,
+.waiter-reject .button {
+  min-height: 2.75rem;
+  padding-inline: 0.875rem;
+  font-size: 0.9375rem;
+}
+
+.waiter-reject,
+.waiter-field {
+  display: grid;
+  gap: 0.375rem;
+  border: 0;
+  padding: 0;
+}
+
+.waiter-reject label,
+.waiter-field label,
+.waiter-field legend {
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.waiter-field input:not([type="radio"]),
+.waiter-field select,
+.waiter-reject textarea,
+.waiter-menu select {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #8f8576;
+  border-radius: 0.5rem;
+  background: #fff;
+  font: inherit;
+}
+
+.waiter-field input:focus-visible,
+.waiter-field select:focus-visible,
+.waiter-reject textarea:focus-visible,
+.waiter-menu select:focus-visible,
+.waiter-tabs button:focus-visible,
+.waiter-actions .button:focus-visible,
+.waiter-next-steps .button:focus-visible,
+.waiter-form .button:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 2px;
+}
+
+.waiter-menu {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waiter-menu li {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.75rem;
+}
+
+.waiter-menu small {
+  display: block;
+  color: #4d463d;
+}
+
+.waiter-floor {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.waiter-units {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waiter-unit {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 2px solid #d8d2c7;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.waiter-unit strong {
+  font-size: 1.0625rem;
+}
+
+.waiter-unit small {
+  color: #4d463d;
+  font-size: 0.8125rem;
+}
+
+.waiter-unit--occupied {
+  border-color: #2f6b3f;
+}
+
+.waiter-unit--needs_cleaning {
+  border-color: #a4741f;
+}
+
+.waiter-unit--out_of_service {
+  border-style: dashed;
+  border-color: #7a7a7a;
+}
+
+.waiter-badge {
+  color: #7a2f0d;
+  font-size: 0.875rem;
+}
+
+.waiter-result {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #2f6b3f;
+  border-radius: 1rem;
+  background: #f4faf5;
+  box-shadow: none;
+}
+
+.waiter-next-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.waiter-next-steps [aria-disabled="true"] {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.waiter-notice {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.waiter-notice--error {
+  border: 1px solid #a4491f;
+  background: #fdf1ea;
+  color: #6b260a;
+}
+
+.waiter-notice--ok {
+  border: 1px solid #2f6b3f;
+  background: #f4faf5;
+  color: #1f4d2c;
+}
+
+@media (min-width: 40rem) {
+  .waiter-page {
+    padding: 1.5rem 2rem;
+  }
+
+  .waiter-units {
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  }
+
+  .waiter-menu li {
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+  }
+}

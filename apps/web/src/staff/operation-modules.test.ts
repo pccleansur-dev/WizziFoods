@@ -19,4 +19,20 @@ describe("staff operation modules", () => {
       )
     ).toEqual(["Mesas y llamados", "Pedidos", "Cobros"]);
   });
+
+  it("links the waiter modules that already exist to the salon", () => {
+    const modules = operationModulesFor(
+      "waiter",
+      STAFF_ROLE_CAPABILITIES.waiter
+    );
+    expect(
+      modules.find(({ title }) => title === "Mesas y llamados")?.path
+    ).toBe("salon");
+    expect(modules.find(({ title }) => title === "Pedidos")?.path).toBe(
+      "salon?vista=comanda"
+    );
+    expect(
+      modules.find(({ title }) => title === "Cobros")?.path
+    ).toBeUndefined();
+  });
 });
