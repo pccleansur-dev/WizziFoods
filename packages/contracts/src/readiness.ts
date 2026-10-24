@@ -195,6 +195,41 @@ export function parseReadinessReport(value: unknown): ReadinessReport | null {
   };
 }
 
+/**
+ * Valida la matriz ya calculada que la API entrega al panel. Sólo confía en los
+ * códigos: textos, enlaces y severidad se reconstruyen desde la matriz, y la
+ * bandera `ready` debe coincidir con los bloqueos.
+ */
+export function parseReadinessView(value: unknown): ReadinessReport | null {
+  const raw = record(value);
+  if (
+    !raw ||
+    !exactKeys(raw, ["items", "published", "ready", "team"]) ||
+    !Array.isArray(raw.items) ||
+    typeof raw.ready !== "boolean"
+  ) {
+    return null;
+  }
+  const blockers: string[] = [];
+  const warnings: string[] = [];
+  for (const entry of raw.items) {
+    const item = record(entry);
+    if (!item || typeof item.code !== "string") return null;
+    if ((BLOCKER_CODES as readonly string[]).includes(item.code)) {
+      blockers.push(item.code);
+    } else {
+      warnings.push(item.code);
+    }
+  }
+  const report = parseReadinessReport({
+    blockers,
+    published: raw.published,
+    team: raw.team,
+    warnings
+  });
+  return report && report.ready === raw.ready ? report : null;
+}
+
 export type PublicationParseResult = { ok: boolean };
 
 /** Publicar no recibe datos: tenant, ubicación y estado salen de la sesión. */

@@ -1,5 +1,5 @@
 import {
-  parseReadinessReport,
+  parseReadinessView,
   type ReadinessReport,
   type SandboxRun
 } from "@platform/contracts";
@@ -16,7 +16,7 @@ export type ReadinessActionState = {
 };
 
 export function parseReadiness(body: unknown): ReadinessReport {
-  const report = parseReadinessReport(dataOf(body));
+  const report = parseReadinessView(dataOf(body));
   if (!report) throw new Error("Respuesta de requisitos inválida.");
   return report;
 }

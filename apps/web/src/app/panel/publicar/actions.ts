@@ -1,6 +1,6 @@
 "use server";
 
-import { parseReadinessReport, parseSandboxRun } from "@platform/contracts";
+import { parseReadinessView, parseSandboxRun } from "@platform/contracts";
 
 import { adminApi, dataOf } from "../admin-api";
 import {
@@ -47,7 +47,7 @@ export async function readinessCommandAction(
         return state(
           result.status === 409 ? "invalid" : "error",
           result.message ?? "No pudimos publicar el negocio.",
-          { readiness: parseReadinessReport(result.readiness) }
+          { readiness: parseReadinessView(result.readiness) }
         );
       }
       case "simulate": {

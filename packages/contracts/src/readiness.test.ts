@@ -8,6 +8,7 @@ import {
   describeReadiness,
   parsePublicationRequest,
   parseReadinessReport,
+  parseReadinessView,
   parseSandboxRun
 } from "./readiness.js";
 
@@ -84,6 +85,42 @@ describe("readiness matrix", () => {
     expect(
       parseReadinessReport({ ...base, published: { at: "x" } })
     ).toBeNull();
+  });
+});
+
+describe("readiness view", () => {
+  it("round-trips the report the API sends to the panel", () => {
+    const report = parseReadinessReport({
+      ...base,
+      blockers: ["FLOOR_NO_TABLES"],
+      warnings: ["TEAM_EMPTY"]
+    });
+    expect(parseReadinessView(JSON.parse(JSON.stringify(report)))).toEqual(
+      report
+    );
+  });
+
+  it("rebuilds the text from the matrix instead of trusting the server", () => {
+    const report = parseReadinessReport({
+      ...base,
+      blockers: ["FLOOR_NO_TABLES"]
+    });
+    const view = JSON.parse(JSON.stringify(report));
+    view.items[0].message = "<script>alert(1)</script>";
+    expect(parseReadinessView(view)?.items[0]?.message).not.toContain("script");
+  });
+
+  it("rejects a view whose ready flag contradicts its blockers", () => {
+    const report = parseReadinessReport({
+      ...base,
+      blockers: ["FLOOR_NO_TABLES"]
+    });
+    expect(parseReadinessView({ ...report, ready: true })).toBeNull();
+    expect(parseReadinessView({ ...report, extra: 1 })).toBeNull();
+    expect(
+      parseReadinessView({ ...report, items: [{ code: "NOPE" }] })
+    ).toBeNull();
+    expect(parseReadinessView(null)).toBeNull();
   });
 });
 

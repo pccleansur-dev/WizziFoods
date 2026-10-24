@@ -20,7 +20,7 @@ function RequirementList({
   title: string;
 }) {
   return (
-    <section aria-label={title}>
+    <div aria-label={title} role="group">
       <h2>{title}</h2>
       {items.length === 0 ? (
         <p className="panel-lead">{emptyText}</p>
@@ -36,7 +36,7 @@ function RequirementList({
           ))}
         </ul>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -119,7 +119,7 @@ export function ReadinessManager({
         </button>
       </div>
 
-      <section aria-label="Modo prueba">
+      <div aria-label="Modo prueba" role="group">
         <h2>Modo prueba</h2>
         <p className="panel-lead">
           Recorre QR, pedido, producción, pago, cierre y limpieza con datos de
@@ -154,7 +154,7 @@ export function ReadinessManager({
             ))}
           </ol>
         ) : null}
-      </section>
+      </div>
     </section>
   );
 }

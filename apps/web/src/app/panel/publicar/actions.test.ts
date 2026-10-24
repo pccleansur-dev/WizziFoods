@@ -1,3 +1,4 @@
+import { parseReadinessReport } from "@platform/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const adminApi = vi.fn();
@@ -8,13 +9,16 @@ vi.mock("../admin-api", () => ({
 
 const { readinessCommandAction } = await import("./actions");
 
-const ready = {
+// Lo que responde la API: la matriz ya calculada, no el formato de la base.
+const raw = {
   blockers: [],
   published: null,
   team: { activeManagers: 0, activeMembers: 0 },
   warnings: ["TEAM_EMPTY"]
 };
-const missing = { ...ready, blockers: ["FLOOR_NO_TABLES"] };
+const view = (extra: Record<string, unknown> = {}) =>
+  JSON.parse(JSON.stringify(parseReadinessReport({ ...raw, ...extra })));
+const missing = view({ blockers: ["FLOOR_NO_TABLES"] });
 const run = {
   namespace: "sandbox",
   reference: "SBX-ABCD1234",
@@ -41,14 +45,13 @@ describe("readinessCommandAction", () => {
   it("publishes with an empty body and returns the matrix", async () => {
     adminApi.mockResolvedValue({
       body: {
-        data: {
-          ...ready,
+        data: view({
           published: {
             at: "2026-10-24T10:00:00+00:00",
             by: "f3000000-0000-4000-8000-000000000003",
             revision: 1
           }
-        }
+        })
       },
       ok: true,
       status: 200
