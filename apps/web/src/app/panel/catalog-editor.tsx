@@ -181,7 +181,7 @@ export function CatalogEditor({
           </p>
 
           <div className="catalog-editor__groups">
-            <div className="catalog-card">
+            <div className="catalog-card catalog-card--table">
               <div className="catalog-card__heading">
                 <h3>Categorías</h3>
                 <span>{draft.categories.length} de 50</span>
@@ -191,42 +191,55 @@ export function CatalogEditor({
                   Ejemplo: Entradas, Principales, Postres.
                 </p>
               ) : (
-                draft.categories.map((category) => (
-                  <div className="catalog-inline-row" key={category.id}>
-                    <CatalogLocalizedFields
-                      content={category.content}
-                      languages={languages}
-                      legend="Contenido de la categoría"
-                      onChange={(language, field, value) =>
-                        change((current) =>
-                          updateCatalogLocalizedContent(
-                            current,
-                            { id: category.id, type: "category" },
-                            language,
-                            field,
-                            value
-                          )
-                        )
-                      }
-                    />
-                    <button
-                      aria-label={`Eliminar ${category.content[0]?.title ?? "categoría"}`}
-                      className="catalog-remove"
-                      onClick={() =>
-                        change((current) =>
-                          removeCatalogCategory(current, category.id)
-                        )
-                      }
-                      type="button"
-                    >
-                      Eliminar
-                    </button>
+                <>
+                  <div
+                    aria-hidden="true"
+                    className="catalog-table-head catalog-table-head--categories"
+                  >
+                    <span>Nombre</span>
+                    <span>Descripción</span>
+                    <span />
                   </div>
-                ))
+                  {draft.categories.map((category) => (
+                    <div
+                      className="catalog-inline-row catalog-inline-row--category"
+                      key={category.id}
+                    >
+                      <CatalogLocalizedFields
+                        content={category.content}
+                        languages={languages}
+                        legend="Contenido de la categoría"
+                        onChange={(language, field, value) =>
+                          change((current) =>
+                            updateCatalogLocalizedContent(
+                              current,
+                              { id: category.id, type: "category" },
+                              language,
+                              field,
+                              value
+                            )
+                          )
+                        }
+                      />
+                      <button
+                        aria-label={`Eliminar ${category.content[0]?.title ?? "categoría"}`}
+                        className="catalog-remove"
+                        onClick={() =>
+                          change((current) =>
+                            removeCatalogCategory(current, category.id)
+                          )
+                        }
+                        type="button"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
 
-            <div className="catalog-card">
+            <div className="catalog-card catalog-card--table">
               <div className="catalog-card__heading">
                 <h3>Sectores de preparación</h3>
                 <span>{draft.sectors.length} de 20</span>
@@ -236,54 +249,63 @@ export function CatalogEditor({
                   Cada producto debe ir a Cocina, Barra u otro sector.
                 </p>
               ) : (
-                draft.sectors.map((sector) => (
+                <>
                   <div
-                    className="catalog-inline-row catalog-inline-row--sector"
-                    key={sector.id}
+                    aria-hidden="true"
+                    className="catalog-table-head catalog-table-head--sectors"
                   >
-                    <label className="field-group">
-                      <span>Nombre</span>
-                      <input
-                        maxLength={80}
-                        onChange={(event) =>
-                          change((current) => ({
-                            ...current,
-                            sectors: current.sectors.map((value) =>
-                              value.id === sector.id
-                                ? { ...value, name: event.target.value }
-                                : value
-                            )
-                          }))
-                        }
-                        value={sector.name}
-                      />
-                    </label>
-                    <label className="field-group">
-                      <span>Tipo</span>
-                      <select
-                        onChange={(event) =>
-                          change((current) => ({
-                            ...current,
-                            sectors: current.sectors.map((value) =>
-                              value.id === sector.id
-                                ? {
-                                    ...value,
-                                    kind: event.target
-                                      .value as CatalogSectorKind
-                                  }
-                                : value
-                            )
-                          }))
-                        }
-                        value={sector.kind}
-                      >
-                        <option value="kitchen">Cocina</option>
-                        <option value="bar">Barra</option>
-                        <option value="other">Otro</option>
-                      </select>
-                    </label>
+                    <span>Nombre</span>
+                    <span>Tipo</span>
                   </div>
-                ))
+                  {draft.sectors.map((sector) => (
+                    <div
+                      className="catalog-inline-row catalog-inline-row--sector"
+                      key={sector.id}
+                    >
+                      <label className="field-group">
+                        <span>Nombre</span>
+                        <input
+                          maxLength={80}
+                          onChange={(event) =>
+                            change((current) => ({
+                              ...current,
+                              sectors: current.sectors.map((value) =>
+                                value.id === sector.id
+                                  ? { ...value, name: event.target.value }
+                                  : value
+                              )
+                            }))
+                          }
+                          value={sector.name}
+                        />
+                      </label>
+                      <label className="field-group">
+                        <span>Tipo</span>
+                        <select
+                          onChange={(event) =>
+                            change((current) => ({
+                              ...current,
+                              sectors: current.sectors.map((value) =>
+                                value.id === sector.id
+                                  ? {
+                                      ...value,
+                                      kind: event.target
+                                        .value as CatalogSectorKind
+                                    }
+                                  : value
+                              )
+                            }))
+                          }
+                          value={sector.kind}
+                        >
+                          <option value="kitchen">Cocina</option>
+                          <option value="bar">Barra</option>
+                          <option value="other">Otro</option>
+                        </select>
+                      </label>
+                    </div>
+                  ))}
+                </>
               )}
             </div>
 

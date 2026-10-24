@@ -2231,3 +2231,110 @@ dd {
     top: 1rem;
   }
 }
+
+/* Categorías y sectores: mismo formato de tabla que los productos. */
+@media (min-width: 62rem) {
+  .catalog-card--table {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .catalog-card--table > .catalog-card__heading {
+    padding: 1.15rem 1.15rem 0;
+  }
+
+  .catalog-card--table > .catalog-helper {
+    padding: 0 1.15rem 1.15rem;
+  }
+
+  .catalog-table-head--categories,
+  .catalog-card--table .catalog-inline-row--category {
+    grid-template-columns: minmax(12rem, 1fr) minmax(14rem, 2fr) 5rem;
+  }
+
+  .catalog-table-head--sectors,
+  .catalog-card--table .catalog-inline-row--sector {
+    grid-template-columns: minmax(12rem, 1fr) 16rem;
+  }
+
+  .catalog-table-head--categories,
+  .catalog-table-head--sectors {
+    display: grid;
+    gap: 0.5rem 0.75rem;
+    padding: 0.6rem 1.15rem;
+  }
+
+  .catalog-card--table .catalog-inline-row {
+    display: grid;
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+    padding: 0.6rem 1.15rem;
+    border-top: 0;
+    border-bottom: 1px solid #e1dbd1;
+  }
+
+  .catalog-card--table .catalog-inline-row:nth-of-type(even) {
+    background: #fffdf8;
+  }
+
+  .catalog-card--table .catalog-inline-row:hover,
+  .catalog-card--table .catalog-inline-row:focus-within {
+    background: #fff;
+  }
+
+  .catalog-inline-row--category > .catalog-localized-fields,
+  .catalog-inline-row--category
+    > .catalog-localized-fields
+    > .catalog-localized-fields__language {
+    display: contents;
+  }
+
+  .catalog-inline-row--category > .catalog-localized-fields > legend,
+  .catalog-inline-row--category
+    > .catalog-localized-fields
+    > .catalog-localized-fields__language
+    > strong {
+    display: none;
+  }
+
+  .catalog-inline-row--category
+    > .catalog-localized-fields
+    > .catalog-localized-fields__language
+    > .field-group:first-of-type {
+    grid-column: 1;
+  }
+
+  .catalog-inline-row--category .catalog-product__description {
+    grid-column: 2;
+  }
+
+  .catalog-inline-row--category > .catalog-remove {
+    grid-column: 3;
+    align-self: center;
+    min-height: 2.5rem;
+  }
+
+  .catalog-inline-row--category .field-group > span,
+  .catalog-inline-row--sector .field-group > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .catalog-inline-row--category .field-group input,
+  .catalog-inline-row--category .field-group textarea,
+  .catalog-inline-row--sector .field-group input,
+  .catalog-inline-row--sector .field-group select {
+    min-height: 2.5rem;
+    padding: 0.45rem 0.65rem;
+  }
+
+  .catalog-inline-row--category .field-group textarea {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    resize: vertical;
+  }
+}
