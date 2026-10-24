@@ -351,20 +351,46 @@ escritorio y 375 px sin desborde horizontal.
 
 **Criterios de aceptación:**
 
-- [ ] Se crean sectores, mesas, formas, sillas, posición y numeración sin perder identidad al moverlas.
-- [ ] Agrupar no reemplaza los IDs ni QR de las mesas físicas.
-- [ ] Guardar genera QR descargables y verificables por tenant.
+- [x] Se crean sectores, mesas, formas, sillas, posición y numeración sin perder identidad al moverlas.
+- [x] Agrupar no reemplaza los IDs ni QR de las mesas físicas.
+- [x] Guardar genera QR descargables y verificables por tenant.
 
 **Verificación:**
 
-- [ ] Pruebas de geometría serializada, unicidad QR y agrupación/separación.
-- [ ] Recorrido manual responsive, con recomendación no bloqueante de pantalla amplia.
+- [x] Pruebas de geometría serializada, unicidad QR y agrupación/separación.
+- [x] Recorrido manual responsive, con recomendación no bloqueante de pantalla amplia.
 
 **Dependencias:** T08, T11.
 
 **Archivos probables:** módulo floor-plan, editor UI, generador QR, pruebas.
 
 **Tamaño:** M.
+
+**Resultado:** el Administrador diseña el salón en `/panel/plano`: crea sectores y
+mesas redondas, cuadradas o rectangulares con posición, rotación, medidas, número
+o nombre y sillas (cantidad y disposición), las arrastra o mueve con el teclado,
+las agrupa y separa, y guarda con control de versión. La identidad física
+(`floor_tables`), la geometría (`floor_table_geometry`) y la pertenencia a una
+agrupación (`floor_groups`/`floor_group_members`) viven en tablas separadas; mover,
+redimensionar, renombrar, agrupar o separar nunca cambia el ID ni el QR. Cada mesa
+recibe un token de 256 bits aleatorio, único e inmutable (sin IDs, tenant ni datos
+sensibles en la URL `/m/<token>`); sólo se resuelve dentro del tenant y la
+ubicación ya probados por el dominio, la rotación revoca el anterior y quitar una
+mesa revoca su QR. Guardar es un comando idempotente por `commandId` con
+`expectedVersion` (409 ante conflicto, sin last-write-wins); el contrato, la API y
+las restricciones de base de datos validan rangos, límites y claves desconocidas,
+y rechazan `tenantId`/`locationId` inyectados. El editor informa errores por
+mesa, conserva los cambios ante fallos, reintenta con el mismo `commandId` y
+ofrece cargar la versión más reciente. `floor_plan_readiness` expone mesas activas
+con QR válido para T15. Verificado con 14 pruebas de contrato, 10 de repositorio,
+pruebas de servicio/controlador, 30 aserciones pgTap (aislamiento entre dos
+tenants, QR, idempotencia, conflicto, intercambio de nombres, retiro y rotación),
+integración HTTP con dos tenants contra Supabase local y un recorrido real en
+navegador (escritorio y 375 px, sin desborde horizontal): crear sector → crear
+mesas → mover (arrastre y teclado) → agrupar → guardar → recargar → separar →
+descargar QR → verificar; los QR quedaron idénticos tras agrupar y separar.
+El navegador usó un arnés temporal local (no versionado) que firma un JWT de
+prueba contra la API real en lugar de pasar por el inicio de sesión/MFA de T05.
 
 ### T14. Configurar equipo y medios de pago
 

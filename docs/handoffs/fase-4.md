@@ -17,6 +17,56 @@ dependencia de producción agregada es `read-excel-file@9.3.12`, fijada en el
 lockfile. El audit de producción no presenta hallazgos altos o críticos; conserva
 cuatro bajos y cuatro moderados preexistentes en la cadena Fastify/Nest.
 
+## Estado de T13 — completada
+
+Commits en `chore/workspace-bootstrap`, sobre `dee7294`: contratos y validación de
+geometría; persistencia y QR (`20261024010000_create_floor_plan.sql`); repositorio
+con resolución de QR por alcance; API administrativa; pruebas de integración con
+dos tenants; editor responsive y descargas. Runbook: `docs/runbooks/plano-salon.md`.
+
+Decisiones:
+
+- **Comando de guardado = plano completo.** `PUT /v1/tenant/floor-plan` recibe
+  `{ commandId, expectedVersion, plan }`; la base compara contra lo guardado y
+  conserva fila, ID y QR de cada mesa que sigue presente. Reintentar el mismo
+  `commandId` con el mismo contenido no aplica nada (`applied: false`); el mismo id
+  con otro contenido responde 409 `FLOOR_PLAN_COMMAND_REUSED`; una versión vieja
+  responde 409 `FLOOR_PLAN_VERSION_CONFLICT`.
+- **Sectores del salón ≠ sectores de producción.** Los sectores de T11 (cocina o
+  barra, dentro del JSON de la carta) siguen siendo de producción. T13 creó
+  sectores propios del salón (`private.floor_sectors`). T14 debe decidir a cuál
+  asigna personal; si necesita ambos, referenciar cada uno por separado.
+- **Mesas quitadas se retiran, no se borran.** `retired_at` libera el nombre,
+  revoca el QR y el ID no puede volver. Un sector sólo se elimina sin mesas
+  activas; las agrupaciones se reemplazan completas en cada guardado.
+- **QR.** Token de 64 hex (256 bits de `gen_random_uuid`), único, inmutable
+  (trigger), con estados `active` y `revoked`. La URL es
+  `<scheme>://<host del tenant>/m/<token>` (http sólo para `*.localhost`). Se guarda
+  el token y no un hash porque el panel debe poder volver a descargarlo; sólo lo
+  leen funciones `security definer` concedidas a `authenticator`. No se registra en
+  logs ni en auditoría y no viaja en query strings.
+- **Rotación auditada** disponible en SQL y API (`POST
+/v1/tenant/floor-plan/tables/:id/qr/rotate`), sin botón en el panel.
+
+Migración: `20261024010000_create_floor_plan.sql` (rollback en `supabase/rollbacks`,
+probado aplicar → revertir → reaplicar) y pgTap
+`supabase/tests/database/floor_plan.test.sql`. Dependencia nueva:
+`qrcode-generator@2.0.4` (sin dependencias ni scripts de instalación), sólo en la
+API; `pnpm audit --prod --audit-level high` no reporta hallazgos altos.
+
+### Punto de partida para T14 y T15
+
+- T15 debe leer `FloorPlanRepository.getReadiness(scope)` (mesas activas, mesas con
+  QR activo y `ready`) o `private.floor_plan_readiness`; cero mesas o una mesa sin
+  QR vigente significa plano incompleto.
+- T16 resuelve el QR con `FloorPlanRepository.resolveQr(scope, token)` (o
+  `private.resolve_floor_table_qr`) usando el alcance que ya probó el host. Todavía
+  no existe la ruta pública `/m/:token`.
+- T13 no mueve pedidos, pagos ni sesiones al agrupar o separar: la agrupación es
+  sólo plano. T16 en adelante debe definir cómo una sesión de mesa consume
+  `floor_group_members`.
+- Eventos de auditoría nuevos: `floor_plan.saved` y `floor_table.qr_rotated`.
+
 ## Invariantes que Fase 4 debe preservar
 
 - El tenant y la ubicación se resuelven desde sesión y dominio; ningún body,
@@ -36,7 +86,7 @@ cuatro bajos y cuatro moderados preexistentes en la cadena Fastify/Nest.
 
 ## Secuencia recomendada
 
-### T13 — Plano, mesas, agrupaciones y QR
+### T13 — Plano, mesas, agrupaciones y QR (completada, ver arriba)
 
 1. Definir primero el modelo persistente: plano versionado, sectores, mesas,
    sillas, geometría y membresías de agrupación separadas de la identidad física.
@@ -94,6 +144,23 @@ navegador real. T14 requiere inspeccionar red y logs para demostrar que los
 secretos no salen del servidor.
 
 ## Riesgos y pendientes conscientes
+
+- **Cabecera `Host` desde el servidor web.** Las páginas administrativas (T10–T13)
+  llaman a la API con `fetch` y `headers.host = <host del tenant>`. Node/undici
+  descarta esa cabecera, así que la API resuelve el host de su propia URL y
+  responde `TENANT_NOT_FOUND`. Las pruebas de integración usan `server.inject` y no
+  lo detectan. Hay que resolverlo antes de operar de punta a punta (un cliente
+  HTTP que envíe `Host`, o una cabecera de reenvío firmada que la API acepte sólo
+  del servidor web). T13 se verificó en navegador con un arnés temporal que usa
+  `node:http`.
+- Local: `catalog_media_validation.test.sql` falla en la base de desarrollo incluso
+  sin la migración de T13, y `local-catalog.integration.test.ts` no puede limpiar
+  `published_catalogs` porque las tablas de T11 pertenecen a `supabase_admin` y las
+  de T12/T13 a `postgres`. No afecta a T13.
+- El plano valida los límites del lienzo pero no avisa de solapamientos entre
+  mesas.
+- No hay botón de rotación de QR ni impresión por lotes; las descargas son SVG
+  individuales.
 
 - El adaptador OCR externo no forma parte de T12: PDF e imagen quedan revisables
   con `OCR_UNAVAILABLE`, sin bloquear CSV/XLSX ni carga manual.

@@ -128,7 +128,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 ### Fase 4 — Alta: operación y publicación
 
-- [ ] T13. Diseñar el plano, mesas, sillas, agrupaciones y QR estables.
+- [x] T13. Diseñar el plano, mesas, sillas, agrupaciones y QR estables.
 - [ ] T14. Configurar equipo y medios de pago.
 - [ ] T15. Validar mínimos, probar el circuito y publicar el negocio.
 
