@@ -51,7 +51,9 @@ function need(values: Record<string, string>, key: string): string {
   return value;
 }
 
-function poolerUrl(role: "authenticator" | "postgres"): string {
+function poolerUrl(
+  role: "authenticator" | "postgres" | "supabase_admin"
+): string {
   const supabase = localEnv("infra", "supabase", ".env");
   const password = encodeURIComponent(need(supabase, "POSTGRES_PASSWORD"));
   return `postgresql://${role}.${need(supabase, "POOLER_TENANT_ID")}:${password}@127.0.0.1:54322/postgres`;
@@ -60,6 +62,11 @@ function poolerUrl(role: "authenticator" | "postgres"): string {
 /** Administrative connection used only to seed and clean the e2e business. */
 export function adminDatabaseUrl(): string {
   return poolerUrl("postgres");
+}
+
+/** Owner connection for local Supabase tables intentionally hidden from postgres. */
+export function ownerDatabaseUrl(): string {
+  return poolerUrl("supabase_admin");
 }
 
 /** Environment of the API and the web on side ports, apart from the demo. */

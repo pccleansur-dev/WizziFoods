@@ -45,6 +45,35 @@ export function parseStoredDraft(value: string | null): DinerDraftItem[] {
   }
 }
 
+export function addDraftItem(
+  items: DinerDraftItem[],
+  added: DinerDraftItem
+): DinerDraftItem[] {
+  const existing = items.find(
+    ({ productId, variantId }) =>
+      productId === added.productId && variantId === added.variantId
+  );
+  if (!existing) return [...items, added];
+  return items.map((item) =>
+    item.lineId === existing.lineId
+      ? { ...item, quantity: Math.min(20, item.quantity + added.quantity) }
+      : item
+  );
+}
+
+export function setDraftQuantity(
+  items: DinerDraftItem[],
+  lineId: string,
+  quantity: number
+): DinerDraftItem[] {
+  if (quantity < 1) return items.filter((item) => item.lineId !== lineId);
+  return items.map((item) =>
+    item.lineId === lineId
+      ? { ...item, quantity: Math.min(20, quantity) }
+      : item
+  );
+}
+
 export function parseDinerDraftQuoteResponse(
   body: unknown
 ): DinerDraftQuote | null {

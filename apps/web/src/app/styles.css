@@ -3162,3 +3162,314 @@ dd {
   border: 1px solid #d8d2c7;
   border-radius: 0.75rem;
 }
+
+.diner-experience {
+  width: min(100%, 50rem);
+  padding: 0 clamp(1rem, 5vw, 2.5rem) 4rem;
+}
+
+.diner-nav {
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  padding: 0.35rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.75rem;
+  background: #f7f2e8;
+}
+
+.diner-nav button {
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #4e4942;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.diner-nav button[aria-current="page"] {
+  background: #221f1a;
+  color: #fff;
+}
+
+.diner-nav span {
+  display: inline-grid;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  margin-left: 0.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #d09a52;
+  color: #221f1a;
+  font-size: 0.8rem;
+}
+
+.diner-nav button:focus-visible,
+.diner-products button:focus-visible,
+.diner-dialog button:focus-visible,
+.diner-dialog input:focus-visible,
+.diner-order button:focus-visible,
+.diner-order input:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 2px;
+}
+
+.diner-menu {
+  display: grid;
+  gap: 2rem;
+}
+
+.diner-menu h2,
+.diner-order h2,
+.diner-empty h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+}
+
+.diner-products,
+.diner-order ul {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diner-products li,
+.diner-order li {
+  border: 1px solid #d8d2c7;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.diner-products button {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 1rem;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.diner-products button span,
+.diner-order li > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.diner-products small,
+.diner-order small {
+  color: #6c655b;
+  line-height: 1.35;
+}
+
+.diner-products em {
+  color: #8a321f;
+  font-size: 0.875rem;
+  font-style: normal;
+  font-weight: 750;
+}
+
+.diner-products .is-unavailable {
+  background: #f3f0eb;
+}
+
+.diner-products .is-unavailable button {
+  color: #6c655b;
+}
+
+.diner-dialog-backdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  align-items: end;
+  padding: 1rem;
+  background: rgb(34 31 26 / 55%);
+}
+
+.diner-dialog {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 34rem);
+  max-height: calc(100vh - 2rem);
+  margin: 0 auto;
+  padding: 1.5rem;
+  overflow: auto;
+  border-radius: 1rem 1rem 0.5rem 0.5rem;
+  background: #fff;
+}
+
+.diner-dialog h2 {
+  margin: 0;
+  padding-right: 2rem;
+  font-size: 1.75rem;
+}
+
+.diner-dialog-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: #f1ece2;
+  color: #221f1a;
+  font: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.diner-product-description,
+.diner-product-price,
+.diner-help,
+.diner-warning,
+.diner-empty p {
+  margin: 0;
+}
+
+.diner-variants {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.diner-variants legend {
+  margin-bottom: 0.5rem;
+  font-weight: 750;
+}
+
+.diner-variants label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.5rem;
+}
+
+.diner-quantity {
+  display: grid;
+  grid-template-columns: 1fr 5rem;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 700;
+}
+
+.diner-quantity input,
+.diner-order input {
+  min-height: 2.75rem;
+  width: 5rem;
+  border: 1px solid #8a8377;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #221f1a;
+  font: inherit;
+  text-align: center;
+}
+
+.diner-primary {
+  min-height: 3rem;
+}
+
+.diner-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.diner-warning {
+  color: #8a321f;
+  font-weight: 700;
+}
+
+.diner-order,
+.diner-empty {
+  display: grid;
+  gap: 1rem;
+}
+
+.diner-order li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.diner-order li label {
+  display: grid;
+  gap: 0.25rem;
+  color: #6c655b;
+  font-size: 0.75rem;
+}
+
+.diner-remove {
+  grid-column: 2 / -1;
+  justify-self: end;
+  min-height: 2.75rem;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: #8a321f;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.diner-total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 2px solid #221f1a;
+  font-size: 1.25rem;
+}
+
+.diner-help {
+  color: #6c655b;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 42rem) {
+  .diner-dialog-backdrop {
+    align-items: center;
+  }
+
+  .diner-dialog {
+    border-radius: 1rem;
+  }
+
+  .diner-products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 28rem) {
+  .diner-order li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .diner-order li > b {
+    grid-column: 1;
+  }
+}

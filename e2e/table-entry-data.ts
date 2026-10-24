@@ -1,6 +1,10 @@
 import postgres from "postgres";
 
-import { adminDatabaseUrl, e2eHostname } from "./stack-env";
+import {
+  adminDatabaseUrl,
+  e2eHostname,
+  ownerDatabaseUrl
+} from "./stack-env";
 
 const tenantId = "fe000000-0000-4000-8000-000000000013";
 const userId = "fe000000-0000-4000-8000-000000000011";
@@ -18,6 +22,10 @@ export const tables = {
   mateB: "fe200000-0000-4000-8000-000000000003"
 };
 const group = "fe300000-0000-4000-8000-000000000001";
+const catalogCategory = "fe500000-0000-4000-8000-000000000001";
+const catalogSector = "fe500000-0000-4000-8000-000000000002";
+export const catalogProduct = "fe500000-0000-4000-8000-000000000003";
+const catalogVariant = "fe500000-0000-4000-8000-000000000004";
 
 function table(id: string, label: string, x: number) {
   return {
@@ -51,6 +59,43 @@ const plan = {
   ]
 };
 
+const catalog = {
+  baseRevision: null,
+  categories: [
+    {
+      content: [{ description: "", language: "es", title: "Principales" }],
+      id: catalogCategory,
+      position: 0
+    }
+  ],
+  products: [
+    {
+      categoryId: catalogCategory,
+      content: [
+        {
+          description: "Con papas doradas",
+          language: "es",
+          title: "Milanesa"
+        }
+      ],
+      id: catalogProduct,
+      imageAssetId: null,
+      position: 0,
+      priceCents: 12_500,
+      sectorId: catalogSector,
+      variants: [
+        {
+          content: [{ description: "", language: "es", title: "Napolitana" }],
+          id: catalogVariant,
+          position: 0,
+          priceDeltaCents: 2_500
+        }
+      ]
+    }
+  ],
+  sectors: [{ id: catalogSector, kind: "kitchen", name: "Cocina", position: 0 }]
+};
+
 export type SeededBusiness = {
   /** Token of each table by its label. */
   tokens: Map<string, string>;
@@ -58,14 +103,16 @@ export type SeededBusiness = {
     tableId: string,
     state: "needs_cleaning" | "occupied" | "out_of_service" | null
   ): Promise<void>;
+  setProductAvailable(isAvailable: boolean): Promise<void>;
   close(): Promise<void>;
 };
 
-async function cleanup(sql: postgres.Sql) {
+async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
   for (const [tenant, user] of [
     [tenantId, userId],
     [otherTenantId, otherUserId]
   ] as const) {
+    await owner`delete from private.published_catalogs where tenant_id = ${tenant}`;
     await sql`delete from private.location_publications where tenant_id = ${tenant}`;
     await sql`delete from private.audit_events where tenant_id = ${tenant}`;
     await sql`delete from public.tenants where id = ${tenant}`;
@@ -76,7 +123,8 @@ async function cleanup(sql: postgres.Sql) {
 /** Creates a published business with tables in every state, plus a second one. */
 export async function seedBusiness(): Promise<SeededBusiness> {
   const sql = postgres(adminDatabaseUrl(), { prepare: false });
-  await cleanup(sql);
+  const owner = postgres(ownerDatabaseUrl(), { prepare: false });
+  await cleanup(sql, owner);
   for (const [tenant, user, host, slug] of [
     [tenantId, userId, e2eHostname, "e2e-entry"],
     [otherTenantId, otherUserId, otherHostname, "e2e-other"]
@@ -115,11 +163,17 @@ export async function seedBusiness(): Promise<SeededBusiness> {
     insert into private.location_publications (tenant_id, location_id, published_by)
     values (${tenantId}, ${locationId}, ${userId})
   `;
+  await owner`
+    insert into private.published_catalogs (
+      tenant_id, location_id, revision, source_draft_revision, snapshot, published_by
+    ) values (${tenantId}, ${locationId}, 1, 1, ${sql.json(catalog)}, ${userId})
+  `;
 
   const business: SeededBusiness = {
     async close() {
-      await cleanup(sql);
+      await cleanup(sql, owner);
       await sql.end();
+      await owner.end();
     },
     async setState(tableId, state) {
       await sql`
@@ -133,6 +187,20 @@ export async function seedBusiness(): Promise<SeededBusiness> {
           values (${tenantId}, ${locationId}, ${tableId}, ${state})
         `;
       }
+    },
+    async setProductAvailable(isAvailable) {
+      await owner`
+        insert into private.catalog_product_availability (
+          tenant_id, location_id, product_id, is_available, version, updated_by
+        ) values (
+          ${tenantId}, ${locationId}, ${catalogProduct}, ${isAvailable}, 1, ${userId}
+        )
+        on conflict (tenant_id, location_id, product_id) do update
+        set is_available = excluded.is_available,
+            version = private.catalog_product_availability.version + 1,
+            updated_by = excluded.updated_by,
+            updated_at = now()
+      `;
     },
     tokens: new Map(rows.map((row) => [row.label, row.token]))
   };

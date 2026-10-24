@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  addDraftItem,
   draftStorageKey,
   parseDinerDraftQuoteResponse,
-  parseStoredDraft
+  parseStoredDraft,
+  setDraftQuantity
 } from "./diner-draft";
 
 const productId = "b1000000-0000-4000-8000-000000000001";
@@ -53,5 +55,24 @@ describe("private diner draft client", () => {
         data: { draft: { ...quote, totalCents: 1 }, status: "ok" }
       })
     ).toBeNull();
+  });
+
+  it("combines the same product and variant without exceeding twenty units", () => {
+    const first = { lineId, productId, quantity: 18, variantId: null };
+    expect(
+      addDraftItem([first], {
+        ...first,
+        lineId: crypto.randomUUID(),
+        quantity: 5
+      })
+    ).toEqual([{ ...first, quantity: 20 }]);
+  });
+
+  it("changes a quantity or removes the line at zero", () => {
+    const item = { lineId, productId, quantity: 2, variantId: null };
+    expect(setDraftQuantity([item], lineId, 1)).toEqual([
+      { ...item, quantity: 1 }
+    ]);
+    expect(setDraftQuantity([item], lineId, 0)).toEqual([]);
   });
 });
