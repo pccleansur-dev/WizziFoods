@@ -1,10 +1,10 @@
 /**
  * Entorno de prueba local para recorrer el alta de un negocio ficticio (T15).
  *
- *   pnpm demo:up      siembra un negocio vacío + Administrador (contraseña y TOTP) y levanta API y web
+ *   pnpm demo:up      siembra un negocio vacío + Administrador (contraseña y TOTP) y levanta API, web y worker
  *   pnpm demo:totp    imprime el código TOTP vigente
  *   pnpm demo:reset   borra el negocio y el usuario de prueba (deja el alta otra vez desde cero)
- *   pnpm demo:down    detiene API y web
+ *   pnpm demo:down    detiene API, web y worker
  *
  * Sólo para desarrollo local: requiere Supabase local (infra:up). El usuario se
  * crea con la API admin de Supabase local y nada de esto se versiona: el estado
@@ -310,7 +310,14 @@ async function up(): Promise<void> {
     path.join(root, "apps", "web"),
     "demo-web.log"
   );
-  saveState({ ...state, pids: [api, web] });
+  // Sin el worker las imágenes y las importaciones quedarían en "procesando".
+  const worker = launch(
+    process.execPath,
+    ["./node_modules/tsx/dist/cli.mjs", "src/main.ts"],
+    path.join(root, "apps", "worker"),
+    "demo-worker.log"
+  );
+  saveState({ ...state, pids: [api, web, worker] });
   await waitFor(`http://localhost:${apiPort}/health`, "La API");
   await waitFor(`http://${hostname}:${webPort}/acceso`, "La web");
 
@@ -337,7 +344,7 @@ if (command === "up") {
     stop(state.pids);
     saveState({ ...state, pids: [] });
   }
-  console.info("API y web detenidas.");
+  console.info("API, web y worker detenidos.");
 } else if (command === "reset") {
   const state = loadState();
   if (state) stop(state.pids);
