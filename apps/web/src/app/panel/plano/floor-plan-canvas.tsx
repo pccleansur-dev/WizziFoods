@@ -15,7 +15,7 @@ export const SECTOR_COLORS = [
 ] as const;
 const GROUP_COLORS = ["#b45309", "#1d4ed8", "#be185d", "#15803d", "#7c3aed"];
 const SNAP = 10;
-const VIEW_STEP = 400;
+const VIEW_STEP = 300;
 
 export function viewBoxFor(plan: FloorPlanDraft): {
   height: number;
@@ -29,11 +29,11 @@ export function viewBoxFor(plan: FloorPlanDraft): {
   }
   const width = Math.min(
     FLOOR_PLAN_LIMITS.canvasWidth,
-    Math.max(1600, Math.ceil(right / VIEW_STEP) * VIEW_STEP)
+    Math.max(1200, Math.ceil(right / VIEW_STEP) * VIEW_STEP)
   );
   const height = Math.min(
     FLOOR_PLAN_LIMITS.canvasHeight,
-    Math.max(1200, Math.ceil(bottom / VIEW_STEP) * VIEW_STEP)
+    Math.max(900, Math.ceil(bottom / VIEW_STEP) * VIEW_STEP)
   );
   return { height, width };
 }
@@ -131,8 +131,8 @@ export function FloorPlanCanvas({
                 fill={color}
                 fontSize="30"
                 fontWeight="700"
-                x={left + 10}
-                y={top - 10}
+                x={left + 14}
+                y={top + 34}
               >
                 {group.name}
               </text>

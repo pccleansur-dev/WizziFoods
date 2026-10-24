@@ -1838,6 +1838,10 @@ dd {
   min-width: 100%;
 }
 
+.floor-plan-svg text {
+  user-select: none;
+}
+
 .floor-plan-table {
   cursor: grab;
   touch-action: none;
