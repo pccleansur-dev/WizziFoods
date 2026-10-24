@@ -36,6 +36,9 @@ import {
   StaffSessionController
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
+import { AnthropicTranslationGateway } from "./translation/anthropic-translation.gateway.js";
+import { TranslationAdminController } from "./translation/translation.controller.js";
+import { TranslationService } from "./translation/translation.service.js";
 import { TeamAdminController } from "./team/team.controller.js";
 import { TeamService } from "./team/team.service.js";
 import { SupportAccessController } from "./support-access/support-access.controller.js";
@@ -91,6 +94,7 @@ export class AppModule {
         TenantHostController,
         TenantProvisioningController,
         TeamAdminController,
+        TranslationAdminController,
         TenantSuspensionController
       ],
       module: AppModule,
@@ -156,6 +160,15 @@ export class AppModule {
           provide: ReadinessService,
           useFactory: (database: TenantDatabase) =>
             new ReadinessService(database.readinessRepository)
+        },
+        {
+          provide: TranslationService,
+          useFactory: () =>
+            new TranslationService(
+              config.anthropicApiKey
+                ? new AnthropicTranslationGateway(config.anthropicApiKey)
+                : null
+            )
         },
         {
           inject: [TENANT_DATABASE],
