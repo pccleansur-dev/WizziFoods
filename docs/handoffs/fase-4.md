@@ -245,11 +245,11 @@ secretos no salen del servidor.
   plano (`/panel/plano`) ya usa `tenantFetch`
   (`apps/web/src/app/panel/tenant-fetch.ts`, basado en `node:http`), que sí envía
   `Host`; la API sigue validando el Bearer y no recibe `tenantId`, `locationId` ni
-  `X-Forwarded-Host`. **Pendiente:** las llamadas de T10–T12 (perfil, carta,
-  importaciones, subida de imágenes: `panel/actions.ts` y `app/api/business-media`)
-  siguen usando `fetch` y deben migrarse a `tenantFetch`. T14 y T15 ya lo usan desde
-  `admin-api.ts`. La corrección completa está en la
-  rama `claude/interesting-proskuriakova-25c6df` (commit `173c15d`).
+  `X-Forwarded-Host`. **Resuelto en T15:** las llamadas administrativas de T10–T12 (`panel/actions.ts` y
+  `app/api/business-media`) ahora usan `tenantFetch`; antes la subida de imágenes y el
+  guardado de perfil/carta fallaban con 404 en el recorrido real. Quedan con `fetch`
+  sólo las rutas de plataforma (`/v1/platform/...`) y las de sesión de empleados
+  (`app/interno`), que no resuelven un tenant desde el host administrativo.
 - **Servidor de desarrollo de Next.** Imprimía los argumentos de las Server Actions
   (PIN y credenciales). `next.config.ts` fija `logging.serverFunctions: false`; toda
   acción nueva con datos sensibles depende de ello y de que no se registren cuerpos.

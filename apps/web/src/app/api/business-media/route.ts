@@ -10,6 +10,7 @@ import {
   parseBusinessMediaReservation,
   parseBusinessMediaStatus
 } from "../../panel/business-media";
+import { tenantFetch } from "../../panel/tenant-fetch";
 import { isSameOrigin } from "./same-origin";
 
 function errorResponse(message: string, status: number) {
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
       "content-type": "application/json",
       host
     };
-    const reservationResponse = await fetch(
+    const reservationResponse = await tenantFetch(
       `${config.apiUrl}/v1/tenant/business-media/reservations`,
       {
         body: JSON.stringify({
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
       return errorResponse("No pudimos cargar la imagen.", 502);
     }
 
-    const queueResponse = await fetch(
+    const queueResponse = await tenantFetch(
       `${config.apiUrl}/v1/tenant/business-media/${reservation.id}/processing`,
       {
         cache: "no-store",

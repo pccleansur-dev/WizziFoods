@@ -16,6 +16,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createAuthServerClient } from "../../auth/supabase-server";
+import { tenantFetch } from "./tenant-fetch";
 import {
   parseProvisionedTenant,
   type TenantProvisioningActionState
@@ -127,16 +128,19 @@ export async function enqueueCatalogImportAction(
     return importError(previousState, "La sesión venció. Volvé a ingresar.");
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog-imports`, {
-      body: JSON.stringify(request),
-      cache: "no-store",
-      headers: {
-        authorization: `Bearer ${auth.accessToken}`,
-        "content-type": "application/json",
-        host: auth.host
-      },
-      method: "POST"
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/catalog-imports`,
+      {
+        body: JSON.stringify(request),
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          "content-type": "application/json",
+          host: auth.host
+        },
+        method: "POST"
+      }
+    );
     if (!response.ok) {
       return importError(previousState, "No pudimos encolar la importación.");
     }
@@ -178,7 +182,7 @@ export async function approveCatalogImportAction(
     return importError(previousState, "La sesión venció. Volvé a ingresar.");
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(
+    const response = await tenantFetch(
       `${config.apiUrl}/v1/tenant/catalog-imports/${importId}/approve`,
       {
         body: JSON.stringify(draft),
@@ -227,7 +231,7 @@ export async function discardCatalogImportAction(
     return importError(previousState, "La sesión venció. Volvé a ingresar.");
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(
+    const response = await tenantFetch(
       `${config.apiUrl}/v1/tenant/catalog-imports/${importId}/discard`,
       {
         cache: "no-store",
@@ -318,7 +322,7 @@ export async function setCatalogAvailabilityAction(
   }
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(
+    const response = await tenantFetch(
       `${config.apiUrl}/v1/tenant/catalog/products/${productId}/availability`,
       {
         body: JSON.stringify({
@@ -398,16 +402,19 @@ export async function saveCatalogAction(
   }
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog/draft`, {
-      body: JSON.stringify(draft),
-      cache: "no-store",
-      headers: {
-        authorization: `Bearer ${auth.accessToken}`,
-        "content-type": "application/json",
-        host: auth.host
-      },
-      method: "PUT"
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/catalog/draft`,
+      {
+        body: JSON.stringify(draft),
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          "content-type": "application/json",
+          host: auth.host
+        },
+        method: "PUT"
+      }
+    );
     if (!response.ok) {
       return catalogError(
         previousState,
@@ -457,16 +464,19 @@ export async function publishCatalogAction(
   }
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog/publish`, {
-      body: JSON.stringify({ expectedDraftRevision }),
-      cache: "no-store",
-      headers: {
-        authorization: `Bearer ${auth.accessToken}`,
-        "content-type": "application/json",
-        host: auth.host
-      },
-      method: "POST"
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/catalog/publish`,
+      {
+        body: JSON.stringify({ expectedDraftRevision }),
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          "content-type": "application/json",
+          host: auth.host
+        },
+        method: "POST"
+      }
+    );
     if (!response.ok) {
       return catalogError(
         previousState,
@@ -558,7 +568,7 @@ export async function saveBusinessProfileAction(
     const requestHeaders = await headers();
     const host = requestHeaders.get("host");
     if (!host) throw new Error("missing host");
-    const response = await fetch(
+    const response = await tenantFetch(
       `${config.apiUrl}/v1/tenant/business-profile`,
       {
         body: JSON.stringify(draft),

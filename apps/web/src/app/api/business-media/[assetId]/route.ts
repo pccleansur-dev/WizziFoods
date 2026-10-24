@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { createAuthServerClient } from "../../../../auth/supabase-server";
 import { parseBusinessMediaStatus } from "../../../panel/business-media";
+import { tenantFetch } from "../../../panel/tenant-fetch";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -38,7 +39,7 @@ export async function GET(
 
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(
+    const response = await tenantFetch(
       `${config.apiUrl}/v1/tenant/business-media/${assetId}`,
       {
         cache: "no-store",
