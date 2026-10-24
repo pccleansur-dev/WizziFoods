@@ -10,6 +10,8 @@ export type BaseRuntimeConfig = {
 
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
   adminInviteRedirectUrl: string;
+  /** Opcional: sin ella la traducción automática responde 503. */
+  anthropicApiKey?: string | null;
   databaseUrl: string;
   metricsPort: number;
   platformBaseDomain: string;
@@ -218,9 +220,18 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       }
     }
 
+    const rawAnthropicKey = source.ANTHROPIC_API_KEY?.trim();
+    if (
+      rawAnthropicKey &&
+      !/^sk-ant-[A-Za-z0-9_-]{10,}$/u.test(rawAnthropicKey)
+    ) {
+      throw new Error("ANTHROPIC_API_KEY must be an Anthropic API key");
+    }
+
     return {
       ...base,
       adminInviteRedirectUrl,
+      anthropicApiKey: rawAnthropicKey || null,
       databaseUrl,
       metricsPort,
       platformBaseDomain,

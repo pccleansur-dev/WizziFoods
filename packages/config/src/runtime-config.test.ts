@@ -38,6 +38,7 @@ describe("runtime configuration", () => {
       })
     ).toEqual({
       environment: "test",
+      anthropicApiKey: null,
       adminInviteRedirectUrl:
         "https://app.example.test/auth/callback?next=/acceso/continuar",
       databaseUrl: "postgresql://authenticator:secret@db:5432/postgres",
@@ -71,6 +72,31 @@ describe("runtime configuration", () => {
       expect(() => readApiConfig({ ...env, PAYMENT_SECRET_KEY: bad })).toThrow(
         "PAYMENT_SECRET_KEY must be 32 random bytes in base64"
       );
+    }
+  });
+
+  it("reads an optional translation provider key without exposing malformed ones", () => {
+    const env = {
+      ...baseEnvironment,
+      ...apiInvitationEnvironment,
+      API_METRICS_PORT: "9464",
+      API_PORT: "3001",
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+      SUPABASE_URL: "http://supabase.local:8000"
+    };
+    expect(readApiConfig(env).anthropicApiKey).toBeNull();
+    expect(
+      readApiConfig({ ...env, ANTHROPIC_API_KEY: "  sk-ant-test-0123456789  " })
+        .anthropicApiKey
+    ).toBe("sk-ant-test-0123456789");
+    expect(() =>
+      readApiConfig({ ...env, ANTHROPIC_API_KEY: "not-a-key-supersecret" })
+    ).toThrow("ANTHROPIC_API_KEY must be an Anthropic API key");
+    try {
+      readApiConfig({ ...env, ANTHROPIC_API_KEY: "not-a-key-supersecret" });
+    } catch (error) {
+      expect((error as Error).message).not.toContain("supersecret");
     }
   });
 
