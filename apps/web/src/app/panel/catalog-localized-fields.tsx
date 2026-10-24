@@ -42,6 +42,7 @@ export function CatalogLocalizedFields({
                 onChange={(event) =>
                   onChange(language, "title", event.target.value)
                 }
+                placeholder={`Nombre (${catalogLanguageName(language)})`}
                 required
                 value={localized?.title ?? ""}
               />
@@ -55,6 +56,7 @@ export function CatalogLocalizedFields({
                   onChange={(event) =>
                     onChange(language, "description", event.target.value)
                   }
+                  placeholder={`Descripción (${catalogLanguageName(language)})`}
                   rows={3}
                   value={localized?.description ?? ""}
                 />

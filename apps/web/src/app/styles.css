@@ -2040,3 +2040,194 @@ dd {
     flex: 1 1 100%;
   }
 }
+
+/* Productos como tabla: una fila por producto y columnas que aprovechan el ancho. */
+.catalog-table-head {
+  display: none;
+}
+
+@media (min-width: 62rem) {
+  /* El panel aprovecha el ancho de la pantalla en vez de quedarse en una columna. */
+  .panel-header,
+  .panel-content {
+    max-width: 96rem;
+    width: min(100%, 96rem);
+  }
+
+  /* La vista previa baja debajo del editor para dejar todo el ancho a las tablas. */
+  .catalog-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog-preview {
+    position: static;
+  }
+
+  .catalog-card--products {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .catalog-card--products > .catalog-card__heading {
+    padding: 1.15rem 1.15rem 0;
+  }
+
+  .catalog-card--products > .catalog-helper {
+    padding: 0 1.15rem 1.15rem;
+  }
+
+  .catalog-table-head,
+  .catalog-card--products .catalog-product {
+    display: grid;
+    grid-template-columns:
+      minmax(10rem, 1.2fr) minmax(12rem, 2fr) 7rem minmax(10rem, 1fr)
+      minmax(9rem, 1fr) 9.5rem 5rem;
+    gap: 0.5rem 0.75rem;
+    padding: 0.6rem 1.15rem;
+  }
+
+  .catalog-table-head {
+    border-bottom: 1px solid #ddd5c8;
+    background: #f1ece2;
+    color: #5f584f;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .catalog-card--products .catalog-product {
+    grid-auto-flow: row dense;
+    align-items: start;
+    margin: 0;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .catalog-card--products .catalog-product:nth-of-type(even) {
+    background: #fffdf8;
+  }
+
+  .catalog-card--products .catalog-product:hover,
+  .catalog-card--products .catalog-product:focus-within {
+    background: #fff;
+  }
+
+  /* Los contenedores se aplanan para que cada campo sea una celda de la fila. */
+  .catalog-product > .catalog-product__heading,
+  .catalog-product > .catalog-product__fields,
+  .catalog-product > .catalog-localized-fields,
+  .catalog-product
+    > .catalog-localized-fields
+    > .catalog-localized-fields__language {
+    display: contents;
+  }
+
+  .catalog-product > .catalog-product__heading > strong,
+  .catalog-product > .catalog-localized-fields > legend,
+  .catalog-product
+    > .catalog-localized-fields
+    > .catalog-localized-fields__language
+    > strong {
+    display: none;
+  }
+
+  .catalog-product > .catalog-localized-fields .field-group > span,
+  .catalog-product > .catalog-product__fields .field-group > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .catalog-product .field-group input,
+  .catalog-product .field-group select,
+  .catalog-product .field-group textarea {
+    min-height: 2.5rem;
+    padding: 0.45rem 0.65rem;
+  }
+
+  .catalog-product .field-group textarea {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    resize: vertical;
+  }
+
+  .catalog-product > .catalog-variants .catalog-card__heading p {
+    display: none;
+  }
+
+  .catalog-product > .catalog-variants .catalog-card__heading {
+    margin-bottom: 0.5rem;
+  }
+
+  .catalog-product > .catalog-variants .button {
+    min-height: 2.25rem;
+    padding-block: 0.35rem;
+  }
+
+  .catalog-product
+    > .catalog-localized-fields
+    > .catalog-localized-fields__language
+    > .field-group:first-of-type {
+    grid-column: 1;
+  }
+
+  .catalog-product > .catalog-localized-fields .catalog-product__description {
+    grid-column: 2;
+  }
+
+  .catalog-product > .catalog-product__fields > .field-group:nth-child(1) {
+    grid-column: 3;
+  }
+
+  .catalog-product > .catalog-product__fields > .field-group:nth-child(2) {
+    grid-column: 4;
+  }
+
+  .catalog-product > .catalog-product__fields > .field-group:nth-child(3) {
+    grid-column: 5;
+  }
+
+  .catalog-product > .media-upload-field {
+    grid-column: 6;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .catalog-product > .media-upload-field > div:first-child {
+    display: none;
+  }
+
+  .catalog-product > .media-upload-field .button {
+    min-height: 2.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  .catalog-product > .catalog-product__heading > .catalog-remove {
+    grid-column: 7;
+    align-self: center;
+    min-height: 2.5rem;
+  }
+
+  .catalog-product > .catalog-variants {
+    grid-column: 1 / -1;
+    margin-top: 0.25rem;
+    padding-top: 0.6rem;
+  }
+}
+
+@media (min-width: 100rem) {
+  .catalog-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+  }
+
+  .catalog-preview {
+    position: sticky;
+    top: 1rem;
+  }
+}

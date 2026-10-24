@@ -297,237 +297,252 @@ export function CatalogEditor({
                   Agregá categoría y sector antes del primer producto.
                 </p>
               ) : (
-                draft.products.map((product) => (
-                  <article className="catalog-product" key={product.id}>
-                    <div className="catalog-product__heading">
-                      <strong>
-                        {product.content[0]?.title || "Producto sin nombre"}
-                      </strong>
-                      <button
-                        className="catalog-remove"
-                        onClick={() =>
-                          change((current) =>
-                            normalizeProductPositions({
-                              ...current,
-                              products: current.products.filter(
-                                ({ id }) => id !== product.id
-                              )
-                            })
-                          )
-                        }
-                        type="button"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                    <div className="catalog-product__fields">
-                      <label className="field-group">
-                        <span>Precio en pesos</span>
-                        <input
-                          inputMode="decimal"
-                          onChange={(event) => {
-                            const cents = parsePriceToCents(event.target.value);
-                            if (cents !== null) {
-                              change((current) => ({
-                                ...current,
-                                products: current.products.map((value) =>
-                                  value.id === product.id
-                                    ? { ...value, priceCents: cents }
-                                    : value
-                                )
-                              }));
-                            }
-                          }}
-                          pattern="[0-9]+(?:,[0-9]{1,2})?"
-                          value={formatPrice(product.priceCents)}
-                        />
-                      </label>
-                      <label className="field-group">
-                        <span>Categoría</span>
-                        <select
-                          onChange={(event) =>
+                <>
+                  <div aria-hidden="true" className="catalog-table-head">
+                    <span>Nombre</span>
+                    <span>Descripción</span>
+                    <span>Precio ($)</span>
+                    <span>Categoría</span>
+                    <span>Se prepara en</span>
+                    <span>Foto</span>
+                    <span />
+                  </div>
+                  {draft.products.map((product) => (
+                    <article className="catalog-product" key={product.id}>
+                      <div className="catalog-product__heading">
+                        <strong>
+                          {product.content[0]?.title || "Producto sin nombre"}
+                        </strong>
+                        <button
+                          className="catalog-remove"
+                          onClick={() =>
                             change((current) =>
                               normalizeProductPositions({
                                 ...current,
-                                products: current.products.map((value) =>
-                                  value.id === product.id
-                                    ? {
-                                        ...value,
-                                        categoryId: event.target.value
-                                      }
-                                    : value
+                                products: current.products.filter(
+                                  ({ id }) => id !== product.id
                                 )
                               })
                             )
                           }
-                          value={product.categoryId}
-                        >
-                          {draft.categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.content[0]?.title}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="field-group">
-                        <span>Se prepara en</span>
-                        <select
-                          onChange={(event) =>
-                            change((current) => ({
-                              ...current,
-                              products: current.products.map((value) =>
-                                value.id === product.id
-                                  ? { ...value, sectorId: event.target.value }
-                                  : value
-                              )
-                            }))
-                          }
-                          value={product.sectorId}
-                        >
-                          {draft.sectors.map((sector) => (
-                            <option key={sector.id} value={sector.id}>
-                              {sector.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    <CatalogLocalizedFields
-                      content={product.content}
-                      languages={languages}
-                      legend="Contenido del producto"
-                      onChange={(language, field, value) =>
-                        change((current) =>
-                          updateCatalogLocalizedContent(
-                            current,
-                            { id: product.id, type: "product" },
-                            language,
-                            field,
-                            value
-                          )
-                        )
-                      }
-                    />
-                    <BusinessMediaUploadField
-                      hasAsset={Boolean(product.imageAssetId)}
-                      help="Se mostrará junto al producto cuando la carta esté publicada."
-                      kind="product"
-                      label="Foto del producto"
-                      onReady={(imageAssetId) =>
-                        change((current) => ({
-                          ...current,
-                          products: current.products.map((value) =>
-                            value.id === product.id
-                              ? { ...value, imageAssetId }
-                              : value
-                          )
-                        }))
-                      }
-                    />
-                    <div className="catalog-variants">
-                      <div className="catalog-card__heading">
-                        <div>
-                          <h4>Variantes</h4>
-                          <p>Ejemplo: tamaño, presentación o acompañamiento.</p>
-                        </div>
-                        <button
-                          className="button button--secondary"
-                          disabled={product.variants.length >= 30}
-                          onClick={() =>
-                            change((current) =>
-                              addCatalogVariant(
-                                current,
-                                product.id,
-                                undefined,
-                                languages
-                              )
-                            )
-                          }
                           type="button"
                         >
-                          + Agregar variante
+                          Eliminar
                         </button>
                       </div>
-                      {product.variants.map((variant) => (
-                        <div className="catalog-variant" key={variant.id}>
-                          <div className="catalog-product__heading">
-                            <strong>
-                              {variant.content.find(
-                                ({ language }) => language === previewLanguage
-                              )?.title || "Variante sin nombre"}
-                            </strong>
-                            <button
-                              className="catalog-remove"
-                              onClick={() =>
-                                change((current) =>
-                                  removeCatalogVariant(
-                                    current,
-                                    product.id,
-                                    variant.id
+                      <div className="catalog-product__fields">
+                        <label className="field-group">
+                          <span>Precio en pesos</span>
+                          <input
+                            inputMode="decimal"
+                            onChange={(event) => {
+                              const cents = parsePriceToCents(
+                                event.target.value
+                              );
+                              if (cents !== null) {
+                                change((current) => ({
+                                  ...current,
+                                  products: current.products.map((value) =>
+                                    value.id === product.id
+                                      ? { ...value, priceCents: cents }
+                                      : value
                                   )
-                                )
+                                }));
                               }
-                              type="button"
-                            >
-                              Eliminar variante
-                            </button>
-                          </div>
-                          <label className="field-group catalog-variant__price">
-                            <span>Adicional en pesos</span>
-                            <input
-                              inputMode="decimal"
-                              onChange={(event) => {
-                                const cents = parsePriceToCents(
-                                  event.target.value
-                                );
-                                if (cents !== null) {
-                                  change((current) => ({
-                                    ...current,
-                                    products: current.products.map((value) =>
-                                      value.id === product.id
-                                        ? {
-                                            ...value,
-                                            variants: value.variants.map(
-                                              (item) =>
-                                                item.id === variant.id
-                                                  ? {
-                                                      ...item,
-                                                      priceDeltaCents: cents
-                                                    }
-                                                  : item
-                                            )
-                                          }
-                                        : value
-                                    )
-                                  }));
-                                }
-                              }}
-                              pattern="[0-9]+(?:,[0-9]{1,2})?"
-                              value={formatPrice(variant.priceDeltaCents)}
-                            />
-                          </label>
-                          <CatalogLocalizedFields
-                            content={variant.content}
-                            languages={languages}
-                            legend="Contenido de la variante"
-                            onChange={(language, field, value) =>
+                            }}
+                            pattern="[0-9]+(?:,[0-9]{1,2})?"
+                            value={formatPrice(product.priceCents)}
+                          />
+                        </label>
+                        <label className="field-group">
+                          <span>Categoría</span>
+                          <select
+                            onChange={(event) =>
                               change((current) =>
-                                updateCatalogLocalizedContent(
+                                normalizeProductPositions({
+                                  ...current,
+                                  products: current.products.map((value) =>
+                                    value.id === product.id
+                                      ? {
+                                          ...value,
+                                          categoryId: event.target.value
+                                        }
+                                      : value
+                                  )
+                                })
+                              )
+                            }
+                            value={product.categoryId}
+                          >
+                            {draft.categories.map((category) => (
+                              <option key={category.id} value={category.id}>
+                                {category.content[0]?.title}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="field-group">
+                          <span>Se prepara en</span>
+                          <select
+                            onChange={(event) =>
+                              change((current) => ({
+                                ...current,
+                                products: current.products.map((value) =>
+                                  value.id === product.id
+                                    ? { ...value, sectorId: event.target.value }
+                                    : value
+                                )
+                              }))
+                            }
+                            value={product.sectorId}
+                          >
+                            {draft.sectors.map((sector) => (
+                              <option key={sector.id} value={sector.id}>
+                                {sector.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <CatalogLocalizedFields
+                        content={product.content}
+                        languages={languages}
+                        legend="Contenido del producto"
+                        onChange={(language, field, value) =>
+                          change((current) =>
+                            updateCatalogLocalizedContent(
+                              current,
+                              { id: product.id, type: "product" },
+                              language,
+                              field,
+                              value
+                            )
+                          )
+                        }
+                      />
+                      <BusinessMediaUploadField
+                        hasAsset={Boolean(product.imageAssetId)}
+                        help="Se mostrará junto al producto cuando la carta esté publicada."
+                        kind="product"
+                        label="Foto del producto"
+                        onReady={(imageAssetId) =>
+                          change((current) => ({
+                            ...current,
+                            products: current.products.map((value) =>
+                              value.id === product.id
+                                ? { ...value, imageAssetId }
+                                : value
+                            )
+                          }))
+                        }
+                      />
+                      <div className="catalog-variants">
+                        <div className="catalog-card__heading">
+                          <div>
+                            <h4>Variantes</h4>
+                            <p>
+                              Ejemplo: tamaño, presentación o acompañamiento.
+                            </p>
+                          </div>
+                          <button
+                            className="button button--secondary"
+                            disabled={product.variants.length >= 30}
+                            onClick={() =>
+                              change((current) =>
+                                addCatalogVariant(
                                   current,
-                                  { id: variant.id, type: "variant" },
-                                  language,
-                                  field,
-                                  value
+                                  product.id,
+                                  undefined,
+                                  languages
                                 )
                               )
                             }
-                            showDescription={false}
-                          />
+                            type="button"
+                          >
+                            + Agregar variante
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  </article>
-                ))
+                        {product.variants.map((variant) => (
+                          <div className="catalog-variant" key={variant.id}>
+                            <div className="catalog-product__heading">
+                              <strong>
+                                {variant.content.find(
+                                  ({ language }) => language === previewLanguage
+                                )?.title || "Variante sin nombre"}
+                              </strong>
+                              <button
+                                className="catalog-remove"
+                                onClick={() =>
+                                  change((current) =>
+                                    removeCatalogVariant(
+                                      current,
+                                      product.id,
+                                      variant.id
+                                    )
+                                  )
+                                }
+                                type="button"
+                              >
+                                Eliminar variante
+                              </button>
+                            </div>
+                            <label className="field-group catalog-variant__price">
+                              <span>Adicional en pesos</span>
+                              <input
+                                inputMode="decimal"
+                                onChange={(event) => {
+                                  const cents = parsePriceToCents(
+                                    event.target.value
+                                  );
+                                  if (cents !== null) {
+                                    change((current) => ({
+                                      ...current,
+                                      products: current.products.map((value) =>
+                                        value.id === product.id
+                                          ? {
+                                              ...value,
+                                              variants: value.variants.map(
+                                                (item) =>
+                                                  item.id === variant.id
+                                                    ? {
+                                                        ...item,
+                                                        priceDeltaCents: cents
+                                                      }
+                                                    : item
+                                              )
+                                            }
+                                          : value
+                                      )
+                                    }));
+                                  }
+                                }}
+                                pattern="[0-9]+(?:,[0-9]{1,2})?"
+                                value={formatPrice(variant.priceDeltaCents)}
+                              />
+                            </label>
+                            <CatalogLocalizedFields
+                              content={variant.content}
+                              languages={languages}
+                              legend="Contenido de la variante"
+                              onChange={(language, field, value) =>
+                                change((current) =>
+                                  updateCatalogLocalizedContent(
+                                    current,
+                                    { id: variant.id, type: "variant" },
+                                    language,
+                                    field,
+                                    value
+                                  )
+                                )
+                              }
+                              showDescription={false}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </>
               )}
             </div>
           </div>
