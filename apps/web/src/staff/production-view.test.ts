@@ -32,6 +32,10 @@ describe("production view helpers", () => {
     expect(productionStatusLabel("preparing")).toBe("En preparación");
     expect(productionStatusLabel("in_preparation")).toBe("En preparación");
     expect(productionStatusLabel("ready")).toBe("Listo");
+    expect(productionStatusLabel("delivered")).toBe("Entregado");
+    expect(productionStatusLabel("exception")).toBe("Faltante");
+    expect(productionStatusLabel("cancelled")).toBe("Cancelado");
+    expect(productionStatusLabel("replaced")).toBe("Reemplazado");
   });
 
   it("offers exactly one forward step per item state", () => {
@@ -44,6 +48,14 @@ describe("production view helpers", () => {
       target: "ready"
     });
     expect(nextProductionStep("ready")).toBeNull();
+    for (const status of [
+      "delivered",
+      "exception",
+      "cancelled",
+      "replaced"
+    ] as const) {
+      expect(nextProductionStep(status)).toBeNull();
+    }
   });
 
   it("keeps active tickets before ready ones, oldest first", () => {

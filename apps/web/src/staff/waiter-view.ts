@@ -67,6 +67,12 @@ const errorMessages: Record<string, string> = {
     "Los precios de la carta cambiaron. Pedí al comensal que revise el pedido.",
   ORDER_ITEMS_CHANGED:
     "La disponibilidad de la carta cambió. Revisá el pedido.",
+  ADJUSTMENT_ALREADY_DECIDED:
+    "Ese reemplazo ya fue decidido o ya hay uno pendiente.",
+  INVALID_ORDER_ADJUSTMENT_REQUEST: "Revisá los datos de la operación.",
+  ITEM_NOT_READY: "Solo se entrega un ítem que ya está listo.",
+  MANAGER_REQUIRED: "Cancelar un ítem lo decide el Encargado.",
+  ORDER_TARGET_NOT_FOUND: "No encontramos ese pedido o ítem en tu zona.",
   PRODUCTION_ITEM_NOT_FOUND: "No encontramos ese ítem en tu sector.",
   PRODUCTION_TRANSITION_INVALID:
     "El ítem no puede pasar a ese estado. Actualizá la pantalla.",

@@ -9,11 +9,17 @@ const statusLabels: Record<
   ProductionItemStatus | ProductionOrderStatus,
   string
 > = {
+  cancelled: "Cancelado",
+  delivered: "Entregado",
+  exception: "Faltante",
   in_preparation: "En preparación",
   preparing: "En preparación",
   queued: "En cola",
-  ready: "Listo"
+  ready: "Listo",
+  replaced: "Reemplazado"
 };
+
+const completed = new Set(["cancelled", "delivered", "ready"]);
 
 export function productionStatusLabel(
   status: ProductionItemStatus | ProductionOrderStatus
@@ -40,7 +46,8 @@ export function sortProductionTickets(
 ): ProductionTicket[] {
   return [...tickets].sort(
     (left, right) =>
-      Number(left.status === "ready") - Number(right.status === "ready") ||
+      Number(completed.has(left.status)) -
+        Number(completed.has(right.status)) ||
       Date.parse(left.confirmedAt) - Date.parse(right.confirmedAt)
   );
 }
