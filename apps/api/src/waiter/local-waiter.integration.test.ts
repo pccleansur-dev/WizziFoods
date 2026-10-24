@@ -87,6 +87,12 @@ describeWithLocalStack("waiter operations with local Supabase", () => {
   async function cleanup() {
     for (const fixture of [one, two]) {
       await admin`delete from private.waiter_calls where tenant_id = ${fixture.tenantId}`;
+      await admin`alter table private.production_item_events disable trigger production_item_events_append_only`;
+      await admin`alter table private.production_items disable trigger production_items_guard_change`;
+      await admin`delete from private.production_item_events where tenant_id = ${fixture.tenantId}`;
+      await admin`delete from private.production_items where tenant_id = ${fixture.tenantId}`;
+      await admin`alter table private.production_item_events enable trigger production_item_events_append_only`;
+      await admin`alter table private.production_items enable trigger production_items_guard_change`;
       await admin`
         alter table private.confirmed_orders disable trigger confirmed_orders_append_only
       `;
@@ -506,7 +512,7 @@ describeWithLocalStack("waiter operations with local Supabase", () => {
     ).toBe(400);
   });
 
-  it("confirms an intent once, without payment, production or table state", async () => {
+  it("confirms an intent once, without payment or table state", async () => {
     const { intentId } = await diner("1", { quantity: 2 });
     const first = await decide("ana", intentId, "confirm");
     expect(first.status).toBe(200);
@@ -528,7 +534,7 @@ describeWithLocalStack("waiter operations with local Supabase", () => {
     const leaked = await admin<{ table_name: string }[]>`
       select table_name from information_schema.tables
       where table_schema = 'private'
-        and table_name ~ '(ledger|payment_transaction|production|kds)'
+        and table_name ~ '(ledger|payment_transaction|kds)'
     `;
     expect(leaked).toEqual([]);
   });
