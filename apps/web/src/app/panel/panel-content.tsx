@@ -145,6 +145,12 @@ export function PanelContent({
             <strong>Medios de pago</strong>
           </Link>
         </div>
+        <div>
+          <span>Apertura</span>
+          <Link className="panel-module-link" href="/panel/publicar">
+            <strong>Probar y publicar</strong>
+          </Link>
+        </div>
       </div>
     </div>
   );

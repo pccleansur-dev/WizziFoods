@@ -6,7 +6,14 @@ import { tenantFetch } from "./tenant-fetch";
 
 export type AdminApiResult =
   | { body: unknown; ok: true; status: number }
-  | { code: string | null; message: string | null; ok: false; status: number };
+  | {
+      code: string | null;
+      message: string | null;
+      ok: false;
+      /** Requisitos que acompañan a BUSINESS_NOT_READY (sin validar). */
+      readiness?: unknown;
+      status: number;
+    };
 
 /**
  * Calls the tenant administration API for the signed-in Administrator. The
@@ -54,7 +61,11 @@ export async function adminApi(
 
   const error =
     typeof body === "object" && body !== null && "error" in body
-      ? (body.error as { code?: unknown; message?: unknown })
+      ? (body.error as {
+          code?: unknown;
+          message?: unknown;
+          readiness?: unknown;
+        })
       : null;
   return {
     code: typeof error?.code === "string" ? error.code : null,
@@ -63,6 +74,7 @@ export async function adminApi(
         ? error.message
         : null,
     ok: false,
+    ...(error?.readiness === undefined ? {} : { readiness: error.readiness }),
     status: response.status
   };
 }
