@@ -215,3 +215,17 @@ export {
   type WaiterSalonView,
   type WaiterTableState
 } from "./waiter-operations.js";
+export {
+  parseProductionAdvanceRequest,
+  parseProductionAdvanceResult,
+  parseProductionBoard,
+  type ProductionAdvanceRequest,
+  type ProductionAdvanceResult,
+  type ProductionAdvanceTarget,
+  type ProductionBoard,
+  type ProductionItemStatus,
+  type ProductionOrderStatus,
+  type ProductionSector,
+  type ProductionTicket,
+  type ProductionTicketItem
+} from "./production.js";
