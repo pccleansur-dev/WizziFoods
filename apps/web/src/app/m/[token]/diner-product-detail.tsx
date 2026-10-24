@@ -8,6 +8,7 @@ import {
   catalogTitle,
   formatMoney
 } from "./diner-catalog-format";
+import { DinerProductImage } from "./diner-product-image";
 
 export function DinerProductDetail({
   isAvailable,
@@ -52,6 +53,7 @@ export function DinerProductDetail({
       >
         ×
       </button>
+      <DinerProductImage size="hero" title={catalogTitle(product.content)} />
       <p className="eyebrow">Detalle</p>
       <h2 id="product-detail-title">{catalogTitle(product.content)}</h2>
       {catalogDescription(product.content) ? (

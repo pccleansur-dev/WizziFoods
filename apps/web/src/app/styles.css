@@ -3128,7 +3128,7 @@ dd {
   display: grid;
   gap: 1rem;
   width: min(100%, 28rem);
-  padding: clamp(1.5rem, 6vw, 2.5rem);
+  padding: clamp(1.25rem, 5vw, 2.5rem);
 }
 
 .diner-entry h1 {
@@ -3150,7 +3150,8 @@ dd {
 }
 
 .diner-abilities {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0;
   padding: 0;
@@ -3158,14 +3159,55 @@ dd {
 }
 
 .diner-abilities li {
-  padding: 0.75rem 1rem;
-  border: 1px solid #d8d2c7;
-  border-radius: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: #efe7d6;
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 .diner-experience {
-  width: min(100%, 50rem);
-  padding: 0 clamp(1rem, 5vw, 2.5rem) 4rem;
+  width: min(100%, 64rem);
+  padding: 0 0 4rem;
+}
+
+/* The global main/section chrome (large padding, border, radius) is meant for
+   standalone pages; inside the diner flow it nests cards and wastes the width
+   of a phone, so the diner pages use the full width and flat sections. */
+main:has(.diner-experience),
+main:has(.diner-entry) {
+  padding: 0.75rem;
+  place-items: start center;
+}
+
+.diner-experience section,
+.diner-experience .diner-menu section {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.diner-menu {
+  gap: 1.5rem;
+}
+
+main:has(.diner-experience) .diner-entry {
+  width: min(100%, 64rem);
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 40rem) {
+  main:has(.diner-experience),
+  main:has(.diner-entry) {
+    padding: 1.5rem;
+  }
+
+  .diner-products {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
 }
 
 .diner-nav {
@@ -3267,7 +3309,7 @@ dd {
   cursor: pointer;
 }
 
-.diner-products button span,
+.diner-products button .diner-product-text,
 .diner-order li > div {
   display: grid;
   gap: 0.25rem;
@@ -3898,4 +3940,56 @@ dd {
 
 .production-tickets [data-status="ready"] {
   opacity: 0.8;
+}
+
+/* Product photo slot: card thumbnail on the right, hero in the detail dialog. */
+.diner-products button {
+  align-items: center;
+}
+
+.diner-product-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.diner-product-text b {
+  margin-top: 0.25rem;
+  font-size: 1.0625rem;
+}
+
+.diner-image {
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #efe7d6, #e2d3b4);
+  color: #8a6a35;
+  font-weight: 800;
+}
+
+.diner-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.diner-image--card {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 0.75rem;
+  font-size: 2rem;
+}
+
+.diner-image--hero {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.75rem;
+  font-size: 3.5rem;
+}
+
+@media (min-width: 40rem) {
+  .diner-image--card {
+    width: 6.5rem;
+    height: 6.5rem;
+  }
 }

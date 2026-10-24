@@ -8,6 +8,7 @@ import {
   catalogTitle,
   formatMoney
 } from "./diner-catalog-format";
+import { DinerProductImage } from "./diner-product-image";
 import { DinerProductDetail } from "./diner-product-detail";
 import type { PublicCatalog } from "./public-catalog";
 
@@ -60,14 +61,18 @@ export function DinerMenu({
                         }}
                         type="button"
                       >
-                        <span>
+                        <span className="diner-product-text">
                           <strong>{catalogTitle(product.content)}</strong>
                           {catalogDescription(product.content) ? (
                             <small>{catalogDescription(product.content)}</small>
                           ) : null}
                           {!isAvailable ? <em>No disponible</em> : null}
+                          <b>{formatMoney(product.priceCents)}</b>
                         </span>
-                        <b>{formatMoney(product.priceCents)}</b>
+                        <DinerProductImage
+                          size="card"
+                          title={catalogTitle(product.content)}
+                        />
                       </button>
                     </li>
                   );
