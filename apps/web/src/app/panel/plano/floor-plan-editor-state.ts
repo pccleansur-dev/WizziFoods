@@ -600,6 +600,138 @@ export function seatPositions(
   ];
 }
 
+type SeatedTable = Pick<
+  FloorTable,
+  | "height"
+  | "rotation"
+  | "seatCount"
+  | "seatLayout"
+  | "shape"
+  | "width"
+  | "x"
+  | "y"
+>;
+type Side = "bottom" | "left" | "right" | "top";
+
+/** A local point (relative to the table centre, before rotating) in plan coordinates. */
+function toPlan(table: SeatedTable, point: { x: number; y: number }) {
+  const radians = (table.rotation * Math.PI) / 180;
+  return {
+    x:
+      table.x +
+      table.width / 2 +
+      point.x * Math.cos(radians) -
+      point.y * Math.sin(radians),
+    y:
+      table.y +
+      table.height / 2 +
+      point.x * Math.sin(radians) +
+      point.y * Math.cos(radians)
+  };
+}
+
+/** Whether a plan point is inside the table, grown by two seat gaps on every side. */
+function insideZone(table: SeatedTable, point: { x: number; y: number }) {
+  const radians = (table.rotation * Math.PI) / 180;
+  const dx = point.x - (table.x + table.width / 2);
+  const dy = point.y - (table.y + table.height / 2);
+  const localX = dx * Math.cos(radians) + dy * Math.sin(radians);
+  const localY = -dx * Math.sin(radians) + dy * Math.cos(radians);
+  return (
+    Math.abs(localX) < table.width / 2 + SEAT_GAP * 2 &&
+    Math.abs(localY) < table.height / 2 + SEAT_GAP * 2
+  );
+}
+
+function sideSeats(table: SeatedTable, side: Side, total: number) {
+  const halfWidth = table.width / 2;
+  const halfHeight = table.height / 2;
+  return Array.from({ length: total }, (_, index) => {
+    const alongX = -halfWidth + ((index + 0.5) * table.width) / total;
+    const alongY = -halfHeight + ((index + 0.5) * table.height) / total;
+    if (side === "top") return { x: alongX, y: -(halfHeight + SEAT_GAP) };
+    if (side === "bottom") return { x: alongX, y: halfHeight + SEAT_GAP };
+    if (side === "left") return { x: -(halfWidth + SEAT_GAP), y: alongY };
+    return { x: halfWidth + SEAT_GAP, y: alongY };
+  });
+}
+
+/**
+ * Seats of a table that belongs to a group: the sides that face another table
+ * of the group are left empty and their seats go to the free sides, so the
+ * total stays the same and nobody sits between two joined tables.
+ */
+export function seatPositionsWithin(
+  table: SeatedTable,
+  neighbours: SeatedTable[]
+): { x: number; y: number }[] {
+  const base = seatPositions(table);
+  if (neighbours.length === 0 || base.length === 0) return base;
+  const faces = (point: { x: number; y: number }) =>
+    neighbours.some((other) => insideZone(other, toPlan(table, point)));
+
+  if (table.shape === "round") {
+    return base.filter((seat) => !faces(seat));
+  }
+
+  const halfWidth = table.width / 2;
+  const halfHeight = table.height / 2;
+  const probes: Record<Side, { x: number; y: number }[]> = {
+    bottom: [-halfWidth, 0, halfWidth].map((x) => ({
+      x,
+      y: halfHeight + SEAT_GAP
+    })),
+    left: [-halfHeight, 0, halfHeight].map((y) => ({
+      x: -(halfWidth + SEAT_GAP),
+      y
+    })),
+    right: [-halfHeight, 0, halfHeight].map((y) => ({
+      x: halfWidth + SEAT_GAP,
+      y
+    })),
+    top: [-halfWidth, 0, halfWidth].map((x) => ({
+      x,
+      y: -(halfHeight + SEAT_GAP)
+    }))
+  };
+  const allowed: Side[] =
+    table.seatLayout === "one-side"
+      ? ["top"]
+      : table.seatLayout === "long-sides"
+        ? ["top", "bottom"]
+        : ["top", "right", "bottom", "left"];
+  const free = allowed.filter((side) => !probes[side].some(faces));
+  if (free.length === allowed.length)
+    return base.filter((seat) => !faces(seat));
+  if (free.length === 0) return base.filter((seat) => !faces(seat));
+
+  const length = (side: Side) =>
+    side === "top" || side === "bottom" ? table.width : table.height;
+  const total = table.seatCount;
+  const weight = free.reduce((sum, side) => sum + length(side), 0);
+  const counts = new Map<Side, number>(
+    free.map((side) => [side, Math.floor((total * length(side)) / weight)])
+  );
+  let missing = total - [...counts.values()].reduce((a, b) => a + b, 0);
+  // A igual resto, el sobrante va a los lados de arriba y de abajo.
+  const preferred = (side: Side) =>
+    side === "top" || side === "bottom" ? 0 : 1;
+  const byRemainder = [...free].sort(
+    (left, right) =>
+      (((total * length(right)) / weight) % 1) -
+        (((total * length(left)) / weight) % 1) ||
+      preferred(left) - preferred(right)
+  );
+  for (let index = 0; missing > 0; index = (index + 1) % byRemainder.length) {
+    const side = byRemainder[index] as Side;
+    counts.set(side, (counts.get(side) ?? 0) + 1);
+    missing -= 1;
+  }
+  return free
+    .flatMap((side) => sideSeats(table, side, counts.get(side) ?? 0))
+    .filter((seat) => !faces(seat));
+}
+
 /**
  * Cuántas sillas van en cada lado cuando la disposición es «alrededor». En una
  * mesa alargada va una silla en cada extremo y el resto en los lados largos

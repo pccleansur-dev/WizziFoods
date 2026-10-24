@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import {
-  seatPositions,
+  seatPositionsWithin,
   stepZoom,
   wheelZoom,
   ZOOM_LIMITS
@@ -137,6 +137,16 @@ export function FloorPlanCanvas({
   const view = viewBoxFor(plan);
   const sectorIndex = new Map(plan.sectors.map(({ id }, index) => [id, index]));
   const tableById = new Map(plan.tables.map((table) => [table.id, table]));
+  /** The other tables of the group a table belongs to, if any. */
+  const groupmates = (tableId: string) => {
+    const group = plan.groups.find(({ tableIds }) =>
+      tableIds.includes(tableId)
+    );
+    return (group?.tableIds ?? []).flatMap((id) => {
+      const other = tableById.get(id);
+      return other && id !== tableId ? [other] : [];
+    });
+  };
 
   function toPlanPoint(event: PointerEvent) {
     const svg = svgRef.current;
@@ -303,17 +313,19 @@ export function FloorPlanCanvas({
                 <g
                   transform={`translate(${centerX} ${centerY}) rotate(${table.rotation})`}
                 >
-                  {seatPositions(table).map((seat, index) => (
-                    <circle
-                      cx={seat.x}
-                      cy={seat.y}
-                      fill="#ffffff"
-                      key={index}
-                      r="12"
-                      stroke="#6b6455"
-                      strokeWidth="3"
-                    />
-                  ))}
+                  {seatPositionsWithin(table, groupmates(table.id)).map(
+                    (seat, index) => (
+                      <circle
+                        cx={seat.x}
+                        cy={seat.y}
+                        fill="#ffffff"
+                        key={index}
+                        r="12"
+                        stroke="#6b6455"
+                        strokeWidth="3"
+                      />
+                    )
+                  )}
                   {table.shape === "round" ? (
                     <circle
                       fill={fill}

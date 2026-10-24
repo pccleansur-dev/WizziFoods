@@ -20,6 +20,7 @@ import {
   resizeTable,
   rotateTable,
   seatPositions,
+  seatPositionsWithin,
   stepZoom,
   tableLabelForIssue,
   ensureDefaultFloor,
@@ -568,5 +569,109 @@ describe("QR codes grouped by floor", () => {
     expect(qrEntriesByFloor(plan, plan).map(({ floor }) => floor.name)).toEqual(
       ["Planta baja"]
     );
+  });
+});
+
+describe("seats of grouped tables", () => {
+  const square = (x: number, y: number, rotation = 0) => ({
+    height: 100,
+    rotation,
+    seatCount: 4,
+    seatLayout: "perimeter" as const,
+    shape: "square" as const,
+    width: 100,
+    x,
+    y
+  });
+  const toPlan = (
+    table: ReturnType<typeof square>,
+    seat: { x: number; y: number }
+  ) => {
+    const radians = (table.rotation * Math.PI) / 180;
+    return {
+      x:
+        table.x +
+        table.width / 2 +
+        seat.x * Math.cos(radians) -
+        seat.y * Math.sin(radians),
+      y:
+        table.y +
+        table.height / 2 +
+        seat.x * Math.sin(radians) +
+        seat.y * Math.cos(radians)
+    };
+  };
+
+  it("keeps the layout of a table that has no neighbours in its group", () => {
+    const table = square(60, 100);
+    expect(seatPositionsWithin(table, [])).toEqual(seatPositions(table));
+    expect(seatPositionsWithin(table, [square(60, 800)])).toEqual(
+      seatPositions(table)
+    );
+  });
+
+  it("removes the seats between two stacked tables and keeps every seat on the outside", () => {
+    const upper = square(60, 100);
+    const lower = square(60, 240);
+    const upperSeats = seatPositionsWithin(upper, [lower]);
+    const lowerSeats = seatPositionsWithin(lower, [upper]);
+    expect(upperSeats).toHaveLength(4);
+    expect(lowerSeats).toHaveLength(4);
+    // nada entre las dos mesas
+    for (const seat of upperSeats) {
+      expect(toPlan(upper, seat).y).toBeLessThanOrEqual(upper.y + 100);
+    }
+    for (const seat of lowerSeats) {
+      expect(toPlan(lower, seat).y).toBeGreaterThanOrEqual(lower.y);
+    }
+    // 2 arriba, 1 y 1 a los costados en la de arriba
+    expect(upperSeats.filter(({ y }) => y < -50)).toHaveLength(2);
+    expect(upperSeats.filter(({ x }) => x < -50)).toHaveLength(1);
+    expect(upperSeats.filter(({ x }) => x > 50)).toHaveLength(1);
+    expect(lowerSeats.filter(({ y }) => y > 50)).toHaveLength(2);
+  });
+
+  it("works side by side too", () => {
+    const left = square(100, 100);
+    const right = square(240, 100);
+    const seats = seatPositionsWithin(left, [right]);
+    expect(seats).toHaveLength(4);
+    for (const seat of seats) {
+      expect(toPlan(left, seat).x).toBeLessThanOrEqual(left.x + 100);
+    }
+  });
+
+  it("follows a rotated table: the blocked side is the one that faces the neighbour", () => {
+    const turned = square(60, 100, 90);
+    const lower = square(60, 240);
+    for (const seat of seatPositionsWithin(turned, [lower])) {
+      expect(toPlan(turned, seat).y).toBeLessThanOrEqual(turned.y + 100);
+    }
+  });
+
+  it("never leaves a seat inside the zone of a neighbour", () => {
+    const a = square(60, 100);
+    const b = square(150, 100);
+    for (const [one, other] of [
+      [a, b],
+      [b, a]
+    ] as const) {
+      for (const seat of seatPositionsWithin(one, [other])) {
+        const point = toPlan(one, seat);
+        const inside =
+          point.x > other.x - 36 &&
+          point.x < other.x + other.width + 36 &&
+          point.y > other.y - 36 &&
+          point.y < other.y + other.height + 36;
+        expect(inside).toBe(false);
+      }
+    }
+  });
+
+  it("only drops the facing seats of a round table", () => {
+    const round = { ...square(60, 100), shape: "round" as const };
+    const seats = seatPositionsWithin(round, [square(60, 240)]);
+    expect(seats.length).toBeLessThan(4);
+    expect(seats.length).toBeGreaterThan(0);
   });
 });
