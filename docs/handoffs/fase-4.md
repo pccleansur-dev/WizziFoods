@@ -113,6 +113,54 @@ Decisiones:
   con otro medio disponible.
 - La simulación de T15 no debe tocar `payment_methods` ni credenciales reales.
 
+## Estado de T15 — completada
+
+Cierra la Fase 4 (el Checkpoint 4 sigue abierto: falta la aprobación humana de
+Valentín antes de operar de verdad). Commits en `claude/t15-readiness-8ccee6`, sobre
+`6cb1f22`: contratos (`58e9ec7`), matriz y publicación en SQL (`e96d7b0`), circuito
+aislado (`6e21314`), repositorio, API, panel `/panel/publicar`, prueba de integración
+del alta ficticia y la corrección del panel. Runbook:
+`docs/runbooks/publicacion-y-modo-prueba.md`.
+
+Migraciones (con rollback en `supabase/rollbacks`, probadas aplicar → revertir →
+reaplicar) y pgTap:
+
+- `20261024050000_create_business_readiness.sql` → `business_readiness.test.sql` (32).
+- `20261024051000_create_business_sandbox.sql` → `business_sandbox.test.sql` (26).
+
+Decisiones:
+
+- **La matriz vive en la base.** `private.location_readiness` compone los mismos
+  orígenes que T13/T14 (`floor_plan_readiness`, `payment_readiness`,
+  `staff_team_summary`) más perfil y carta; el contrato sólo explica y enlaza, y falla
+  cerrado ante códigos desconocidos. Siete bloqueos y tres recomendaciones; crear
+  empleados no es requisito. Un borrador de carta o una importación sin aprobar nunca
+  cuenta como carta.
+- **Publicar = una transacción.** `private.publish_location` serializa la ubicación,
+  toma `FOR SHARE` sobre perfil, plano, mesas activas y medios de pago, y recién
+  entonces revalida. Es la única función que escribe
+  `private.location_publications` (una marca por ubicación; sin "despublicar").
+  Auditoría `business.published`. No publica la carta ni aprueba importaciones.
+- **Modo prueba aislado en la base.** `sandbox_runs/steps/orders`, namespace
+  `sandbox`, referencias `SBX-`, sin referencias desde tablas reales, sin privilegios
+  para el runtime, sólo lectura de plano y carta, sin tocar `payment_methods` ni
+  credenciales. Auditoría con prefijo `sandbox.` para que cualquier métrica o reporte
+  de negocio lo excluya (`action not like 'sandbox.%'`).
+- **API.** `GET /v1/tenant/readiness`, `POST /v1/tenant/publication`,
+  `POST /v1/tenant/sandbox/runs` y `DELETE /v1/tenant/sandbox`; sólo Administrador,
+  cuerpo vacío (cualquier campo da 400). El panel valida la vista con
+  `parseReadinessView` (reconstruye textos desde la matriz y comprueba `ready`) y llama
+  con `tenantFetch` vía `admin-api.ts`.
+
+### Punto de partida para T16
+
+- Las tablas de pedidos reales no deben leer ni escribir `sandbox_*`; toda métrica,
+  saldo o cierre debe excluir el namespace `sandbox` y la acción `sandbox.*`.
+- Para abrir al público, T16 puede exigir `private.location_publications` (el negocio
+  fue publicado por su Administrador) además de la resolución de QR de T13.
+- `FloorPlanRepository.resolveQr(scope, token)` sigue siendo el punto de entrada para
+  la ruta pública `/m/:token`.
+
 ## Invariantes que Fase 4 debe preservar
 
 - El tenant y la ubicación se resuelven desde sesión y dominio; ningún body,
@@ -198,9 +246,9 @@ secretos no salen del servidor.
   (`apps/web/src/app/panel/tenant-fetch.ts`, basado en `node:http`), que sí envía
   `Host`; la API sigue validando el Bearer y no recibe `tenantId`, `locationId` ni
   `X-Forwarded-Host`. **Pendiente:** las llamadas de T10–T12 (perfil, carta,
-  importaciones) siguen usando `fetch` y deben migrarse a `tenantFetch`, igual que
-  toda llamada administrativa nueva de T15 (T14 ya usa `tenantFetch` desde
-  `admin-api.ts`). La corrección completa está en la
+  importaciones, subida de imágenes: `panel/actions.ts` y `app/api/business-media`)
+  siguen usando `fetch` y deben migrarse a `tenantFetch`. T14 y T15 ya lo usan desde
+  `admin-api.ts`. La corrección completa está en la
   rama `claude/interesting-proskuriakova-25c6df` (commit `173c15d`).
 - **Servidor de desarrollo de Next.** Imprimía los argumentos de las Server Actions
   (PIN y credenciales). `next.config.ts` fija `logging.serverFunctions: false`; toda
@@ -218,6 +266,15 @@ secretos no salen del servidor.
 - No hay botón de rotación de QR ni impresión por lotes; las descargas son SVG
   individuales.
 
+- La prueba de integración de T15 deja un tenant `alta-*` cuando la base de desarrollo
+  tiene `published_catalogs` a nombre de `supabase_admin`; rompe `tenancy_rls.test.sql`
+  hasta limpiarlo (comando en el runbook de T15). En una base creada con un único
+  dueño de tablas se limpia sola.
+- El panel de publicación no puede revertir la publicación ni mostrar historial de
+  corridas del modo prueba; sólo el resultado de la última simulación.
+- El modo prueba recorre un circuito simplificado en la base (primer producto de la
+  carta publicada, primera mesa con QR); cuando T16–T24 existan, habrá que decidir si
+  se enchufa al flujo real con la misma marca y limpieza.
 - El adaptador OCR externo no forma parte de T12: PDF e imagen quedan revisables
   con `OCR_UNAVAILABLE`, sin bloquear CSV/XLSX ni carga manual.
 - El límite de Server Actions es 9 MB para admitir un archivo máximo de 8 MB más

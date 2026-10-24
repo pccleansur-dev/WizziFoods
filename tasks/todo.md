@@ -443,20 +443,41 @@ credencial); se corrigió con `logging.serverFunctions: false` y una prueba.
 
 **Criterios de aceptación:**
 
-- [ ] El sistema explica cada requisito faltante sin impedir guardar avances.
-- [ ] Modo prueba recorre QR, pedido, producción, pago, cierre y limpieza sin contaminar métricas reales.
-- [ ] Sólo Administrador publica y la operación no requiere aprobación de Valentín.
+- [x] El sistema explica cada requisito faltante sin impedir guardar avances.
+- [x] Modo prueba recorre QR, pedido, producción, pago, cierre y limpieza sin contaminar métricas reales.
+- [x] Sólo Administrador publica y la operación no requiere aprobación de Valentín.
 
 **Verificación:**
 
-- [ ] Matriz automática de requisitos mínimos.
-- [ ] E2E de prueba y publicación, verificando aislamiento de datos simulados.
+- [x] Matriz automática de requisitos mínimos.
+- [x] E2E de prueba y publicación, verificando aislamiento de datos simulados.
 
 **Dependencias:** T10–T14.
 
 **Archivos probables:** módulo readiness, módulo sandbox-mode, revisión/publicación UI, E2E.
 
 **Tamaño:** M.
+
+**Resultado:** la base evalúa una matriz de diez códigos (siete bloqueos y tres
+recomendaciones; crear empleados no es requisito) sobre perfil, carta publicada,
+plano/QR y medios de pago, y el contrato les da explicación y enlace al paso; ninguna
+función de T10–T14 la consulta, así que guardar avances nunca se bloquea. El modo
+prueba vive en tablas y funciones propias (`sandbox_*`, namespace y referencias
+`SBX-`), recorre QR → pedido → producción → pago simulado → cierre → limpieza en una
+transacción, sólo lee plano y carta, no toca `payment_methods`, credenciales, equipo
+ni la publicación, y audita con el prefijo `sandbox.`. Publicar exige Administrador y
+una transacción que serializa la ubicación, toma `FOR SHARE` sobre lo que valida y
+revalida todo (sin TOCTOU); no requiere aprobación de la plataforma. Verificado con
+pruebas de contrato (12), repositorio (6), controlador/servicio (7) y acción/panel
+(10), 58 aserciones pgTap con dos tenants (matriz, autorización, aislamiento,
+inercia del estado real, limpieza), integración HTTP local con dos tenants del alta
+ficticia completa (borrador sin publicar e importación pendiente fuera de la carta
+pública, simulación inerte, carrera publicar vs. guardar con prueba de mutación) y un
+recorrido en navegador real (escritorio y 375 px, sin desborde): ver requisitos →
+simulación rechazada con explicación → guardar plano → simulación completa →
+publicar. El navegador usó un arnés temporal local (no versionado) con usuario,
+contraseña y TOTP creados por la API admin de Supabase local. Runbook:
+`docs/runbooks/publicacion-y-modo-prueba.md`.
 
 ### Checkpoint 4
 

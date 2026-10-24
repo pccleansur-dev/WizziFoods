@@ -396,10 +396,10 @@ describeWithLocalStack("sign-up journey with local Supabase", () => {
 
   it("simulates the full circuit without touching real state and leaves nothing behind", async () => {
     const before = await realState(one);
-    const [{ count: realEvents }] = (await admin<{ count: string }[]>`
+    const [realBefore] = await admin<{ count: string }[]>`
       select count(*)::text from private.audit_events
       where tenant_id = ${one.tenantId} and action not like 'sandbox.%'
-    `) as [{ count: string }];
+    `;
 
     const result = await call(one, "POST", "/v1/tenant/sandbox/runs", {});
     expect(result.statusCode, result.body).toBe(200);
@@ -425,7 +425,7 @@ describeWithLocalStack("sign-up journey with local Supabase", () => {
       select count(*)::text from private.audit_events
       where tenant_id = ${one.tenantId} and action not like 'sandbox.%'
     `;
-    expect(events?.count).toBe(realEvents);
+    expect(events?.count).toBe(realBefore?.count);
     const sandboxEvents = await admin<{ action: string }[]>`
       select action from private.audit_events
       where tenant_id = ${one.tenantId} and action like 'sandbox.%'
