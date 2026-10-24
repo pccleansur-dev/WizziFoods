@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: runtimeConfig.apiUrl
   },
+  logging: {
+    // The dev server prints Server Function arguments, which here include PINs
+    // and provider credentials. Never log them.
+    serverFunctions: false
+  },
   experimental: {
     cpus: 1,
     serverActions: {
