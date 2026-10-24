@@ -289,8 +289,8 @@ select is((select status from private.waiter_calls where intent_id = (select (re
 select is(pg_temp.decide((select waiter_a from staff), (select (result ->> 'intentId')::uuid from intent1b), '19e10000-0000-4000-8000-000000000006', 'confirm'),
   (select result from confirmed), 'confirming again with the same command replays the result');
 select is((select count(*)::int from private.confirmed_orders), 1, 'a replay never duplicates the order');
-select is((select count(*)::int from private.floor_table_service_states), 0,
-  'confirming does not simulate a table session');
+select is((select count(*)::int from private.floor_table_service_states where state = 'occupied'), 1,
+  'confirming opens the table session and marks the table occupied (T22)');
 
 -- Mercado Pago can never be confirmed by staff ------------------------------
 update private.payment_methods set enabled = true, public_config = '{"publicKey":"TEST_PUBLIC_KEY"}'
@@ -372,11 +372,11 @@ select throws_ok($$ select pg_temp.manual((select waiter_a from staff), '1960000
 select throws_ok($$ select pg_temp.manual((select waiter_a from staff), '19600000-0000-4000-8000-000000000001', '19e20000-0000-4000-8000-000000000007',
   items => '[{"lineId":"19c00000-0000-4000-8000-000000000008","productId":"19b00000-0000-4000-8000-000000000099","variantId":null,"quantity":1}]'::jsonb) $$,
   'PT104', null, 'a product outside the published menu is refused');
-insert into private.floor_table_service_states (tenant_id, location_id, table_id, state)
-values ((select t1 from scope), (select l1 from scope), '19600000-0000-4000-8000-000000000001', 'needs_cleaning');
+update private.floor_table_service_states set state = 'needs_cleaning'
+where table_id = '19600000-0000-4000-8000-000000000001';
 select throws_ok($$ select pg_temp.manual((select waiter_a from staff), '19600000-0000-4000-8000-000000000001', '19e20000-0000-4000-8000-000000000008') $$,
   'PT210', null, 'a table pending cleaning is not enabled silently by an order');
-select is((select state from private.floor_table_service_states), 'needs_cleaning',
+select is((select state from private.floor_table_service_states where table_id = '19600000-0000-4000-8000-000000000001'), 'needs_cleaning',
   'refusing an order leaves the table state untouched');
 select is((select count(*)::int from private.audit_events where action = 'order.manual_confirmed'), 2,
   'manual orders are audited');
