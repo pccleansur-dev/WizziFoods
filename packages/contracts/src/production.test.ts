@@ -75,7 +75,7 @@ describe("production contracts", () => {
         tickets: [
           {
             ...board.tickets[0],
-            items: [{ ...board.tickets[0]!.items[0], status: "delivered" }]
+            items: [{ ...board.tickets[0]!.items[0], status: "paid" }]
           }
         ]
       }
@@ -102,7 +102,7 @@ describe("production contracts", () => {
       parseProductionAdvanceResult({ ...result, status: "queued" })
     ).toBeNull();
     expect(
-      parseProductionAdvanceResult({ ...result, orderStatus: "delivered" })
+      parseProductionAdvanceResult({ ...result, orderStatus: "paid" })
     ).toBeNull();
   });
 });

@@ -1,8 +1,21 @@
 export type ProductionSector = "bar" | "kitchen";
 
-export type ProductionItemStatus = "preparing" | "queued" | "ready";
+export type ProductionItemStatus =
+  | "cancelled"
+  | "delivered"
+  | "exception"
+  | "preparing"
+  | "queued"
+  | "ready"
+  | "replaced";
 
-export type ProductionOrderStatus = "in_preparation" | "queued" | "ready";
+export type ProductionOrderStatus =
+  | "cancelled"
+  | "delivered"
+  | "exception"
+  | "in_preparation"
+  | "queued"
+  | "ready";
 
 export type ProductionAdvanceTarget = "preparing" | "ready";
 
@@ -98,16 +111,31 @@ function timestamp(value: unknown): string | null {
     : null;
 }
 
+const itemStatuses: readonly ProductionItemStatus[] = [
+  "queued",
+  "preparing",
+  "ready",
+  "delivered",
+  "exception",
+  "cancelled",
+  "replaced"
+];
+
 function itemStatus(value: unknown): ProductionItemStatus | null {
-  return value === "queued" || value === "preparing" || value === "ready"
-    ? value
-    : null;
+  return itemStatuses.find((status) => status === value) ?? null;
 }
 
+const orderStatuses: readonly ProductionOrderStatus[] = [
+  "queued",
+  "in_preparation",
+  "ready",
+  "delivered",
+  "exception",
+  "cancelled"
+];
+
 function orderStatus(value: unknown): ProductionOrderStatus | null {
-  return value === "queued" || value === "in_preparation" || value === "ready"
-    ? value
-    : null;
+  return orderStatuses.find((status) => status === value) ?? null;
 }
 
 export function parseProductionAdvanceRequest(

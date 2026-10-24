@@ -216,6 +216,31 @@ export {
   type WaiterTableState
 } from "./waiter-operations.js";
 export {
+  parseCancelItemRequest,
+  parseCancelItemResult,
+  parseDeliverItemRequest,
+  parseItemStateResult,
+  parseProductionExceptionRequest,
+  parseReplacementDecisionRequest,
+  parseReplacementDecisionResult,
+  parseReplacementProposalRequest,
+  parseReplacementProposalResult,
+  parseWaiterOrdersView,
+  type CancelItemRequest,
+  type CancelItemResult,
+  type DeliverItemRequest,
+  type ItemStateResult,
+  type ProductionExceptionRequest,
+  type ReplacementDecisionRequest,
+  type ReplacementDecisionResult,
+  type ReplacementProposalRequest,
+  type ReplacementProposalResult,
+  type WaiterInProgressItem,
+  type WaiterOrderAdjustment,
+  type WaiterOrderInProgress,
+  type WaiterOrdersView
+} from "./order-adjustments.js";
+export {
   parseProductionAdvanceRequest,
   parseProductionAdvanceResult,
   parseProductionBoard,
