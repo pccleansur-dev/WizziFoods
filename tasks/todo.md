@@ -310,14 +310,27 @@ ruta pública.
 
 **Criterios de aceptación:**
 
-- [ ] Todo resultado importado es borrador con confianza, errores y campos dudosos visibles.
-- [ ] El Administrador aprueba, corrige o descarta antes de incorporar a la carta.
-- [ ] Fallo o ausencia de OCR no bloquea la carga manual.
+- [x] Todo resultado importado es borrador con confianza, errores y campos dudosos visibles.
+- [x] El Administrador aprueba, corrige o descarta antes de incorporar a la carta.
+- [x] Fallo o ausencia de OCR no bloquea la carga manual.
 
 **Verificación:**
 
-- [ ] Fixtures de archivos válidos, maliciosos, incompletos y duplicados.
-- [ ] Prueba del worker con reintento e idempotencia.
+- [x] Fixtures de archivos válidos, maliciosos, incompletos y duplicados.
+- [x] Prueba del worker con reintento e idempotencia.
+
+**Resultado:** el Administrador puede encolar una carga manual o un archivo CSV,
+XLSX, PDF o imagen de hasta 8 MB. El límite, la extensión, el MIME y las firmas
+binarias se validan antes de persistir; el worker normaliza CSV/XLSX y deja PDF o
+imagen como borrador revisable cuando no hay OCR configurado. Cada campo expone
+confianza y dudas, los errores quedan asociados a su fila y ninguna importación
+modifica la carta publicada. La aprobación vuelve a validar el borrador y sólo lo
+fusiona con el borrador versionado de T11. La cola aplica reintentos acotados,
+acknowledgement terminal e idempotencia por tenant, ubicación y clave. Las
+funciones privadas de base de datos, la autorización de Administrador y las
+respuestas sin fuente original mantienen el aislamiento multitenant. Contratos,
+repositorio, SQL, worker, API y UI tienen pruebas; la revisión visual cubrió
+escritorio y 375 px sin desborde horizontal.
 
 **Dependencias:** T11.
 
