@@ -103,3 +103,17 @@ rompe `tenancy_rls.test.sql` (cuenta tenants). Se limpia con:
 ```bash
 docker exec -i supabase-db psql -U supabase_admin -d postgres -c "delete from private.location_publications where tenant_id in (select id from public.tenants where slug like 'alta-%'); delete from private.published_catalogs where tenant_id in (select id from public.tenants where slug like 'alta-%'); delete from private.audit_events where tenant_id in (select id from public.tenants where slug like 'alta-%'); delete from public.tenants where slug like 'alta-%'"
 ```
+
+## Probar el alta a mano (entorno de demo)
+
+Con Supabase local arriba (`pnpm infra:up`):
+
+```bash
+pnpm demo:up
+```
+
+Siembra un negocio vacío y un Administrador con contraseña y TOTP (la API admin de
+Supabase local), levanta API y web e imprime la URL y las credenciales. El estado
+queda en `.supabase/` (ignorado por git). `pnpm demo:totp` da el código vigente,
+`pnpm demo:reset` borra el negocio y el usuario para empezar de cero y
+`pnpm demo:down` detiene los procesos.

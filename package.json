@@ -19,6 +19,10 @@
     "infra:up": "pnpm infra:setup && docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml -f infra/supabase/docker-compose.local.yml up -d --wait",
     "infra:down": "docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml -f infra/supabase/docker-compose.local.yml down",
     "infra:status": "docker compose --project-directory infra/supabase --env-file infra/supabase/.env -f infra/supabase/docker-compose.yml -f infra/supabase/docker-compose.local.yml ps",
+    "demo:up": "tsx packages/infra/src/demo-onboarding.ts up",
+    "demo:totp": "tsx packages/infra/src/demo-onboarding.ts totp",
+    "demo:down": "tsx packages/infra/src/demo-onboarding.ts down",
+    "demo:reset": "tsx packages/infra/src/demo-onboarding.ts reset",
     "security:secrets": "tsx packages/infra/src/secret-scan.ts"
   },
   "devDependencies": {
