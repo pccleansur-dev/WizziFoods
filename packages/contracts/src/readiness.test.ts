@@ -29,6 +29,18 @@ describe("readiness matrix", () => {
     }
   });
 
+  it("sends each requirement to the onboarding screen that fixes it", () => {
+    const hrefs = Object.fromEntries(
+      READINESS_CODES.map((code) => [code, describeReadiness([code])[0]?.href])
+    );
+    expect(hrefs.PROFILE_MISSING).toBe("/panel/negocio");
+    expect(hrefs.PROFILE_CONTACT_MISSING).toBe("/panel/negocio");
+    expect(hrefs.CATALOG_NOT_PUBLISHED).toBe("/panel/carta");
+    expect(hrefs.CATALOG_LANGUAGE_MISSING).toBe("/panel/carta");
+    expect(hrefs.CATALOG_DRAFT_UNPUBLISHED).toBe("/panel/carta");
+    expect(hrefs.CATALOG_IMPORTS_PENDING).toBe("/panel/carta");
+  });
+
   it("separates blockers from warnings and never makes warnings block", () => {
     expect(
       BLOCKER_CODES.some((code) => WARNING_CODES.includes(code as never))

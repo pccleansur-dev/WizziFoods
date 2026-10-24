@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
 import { readinessCommandAction } from "./actions";
 import { loadReadiness } from "./readiness";
 import { ReadinessManager } from "./readiness-manager";
+import { OnboardingShell } from "../onboarding/onboarding-shell";
 
 export default async function PublishBusinessPage() {
   const result = await loadAdministrativeAccess();
@@ -15,13 +15,7 @@ export default async function PublishBusinessPage() {
   const readiness = isTenantAdmin ? await loadReadiness() : null;
 
   return (
-    <main className="panel-shell">
-      <header className="panel-header">
-        <span className="platform-wordmark">La plataforma</span>
-        <Link className="button button--secondary" href="/panel">
-          Volver al panel
-        </Link>
-      </header>
+    <OnboardingShell current="publicar">
       {readiness?.status === "ready" ? (
         <ReadinessManager
           initialReadiness={readiness.readiness}
@@ -38,6 +32,6 @@ export default async function PublishBusinessPage() {
           </p>
         </section>
       )}
-    </main>
+    </OnboardingShell>
   );
 }

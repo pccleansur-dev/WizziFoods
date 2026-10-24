@@ -44,22 +44,22 @@ export type ReadinessReport = {
 
 const matrix: Record<ReadinessCode, { href: string; message: string }> = {
   CATALOG_DRAFT_UNPUBLISHED: {
-    href: "/panel",
+    href: "/panel/carta",
     message:
       "Hay cambios de la carta sin publicar: los clientes siguen viendo la última versión publicada."
   },
   CATALOG_IMPORTS_PENDING: {
-    href: "/panel",
+    href: "/panel/carta",
     message:
       "Hay importaciones de carta sin aprobar: no forman parte de la carta hasta que las apruebes y la publiques."
   },
   CATALOG_LANGUAGE_MISSING: {
-    href: "/panel",
+    href: "/panel/carta",
     message:
       "La carta publicada no tiene título en todos los idiomas del negocio. Completá las traducciones y publicá de nuevo."
   },
   CATALOG_NOT_PUBLISHED: {
-    href: "/panel",
+    href: "/panel/carta",
     message:
       "Publicá la carta con al menos una categoría, un sector y un producto."
   },
@@ -78,12 +78,12 @@ const matrix: Record<ReadinessCode, { href: string; message: string }> = {
       "Habilitá al menos un medio de pago disponible, por ejemplo efectivo."
   },
   PROFILE_CONTACT_MISSING: {
-    href: "/panel",
+    href: "/panel/negocio",
     message:
       "Cargá un teléfono o una dirección para que tus clientes te ubiquen."
   },
   PROFILE_MISSING: {
-    href: "/panel",
+    href: "/panel/negocio",
     message:
       "Guardá los datos del negocio: nombre, idiomas y estilo visual de la carta."
   },

@@ -60,7 +60,7 @@ export function BusinessProfileForm({
         }}
       >
         <div className="profile-section-heading">
-          <p className="eyebrow">Paso 1 de 10</p>
+          <p className="eyebrow">Negocio e identidad</p>
           <h2>Datos e identidad</h2>
           <p>
             Guardá el avance cuando quieras. Esto todavía no modifica lo

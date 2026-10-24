@@ -1,11 +1,11 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
 import { reloadFloorPlanAction, saveFloorPlanAction } from "./actions";
 import { FloorPlanEditor } from "./floor-plan-editor";
 import { loadFloorPlan } from "./floor-plan";
+import { OnboardingShell } from "../onboarding/onboarding-shell";
 
 export default async function FloorPlanPage() {
   const result = await loadAdministrativeAccess();
@@ -18,13 +18,7 @@ export default async function FloorPlanPage() {
     : null;
 
   return (
-    <main className="panel-shell">
-      <header className="panel-header">
-        <span className="platform-wordmark">La plataforma</span>
-        <Link className="button button--secondary" href="/panel">
-          Volver al panel
-        </Link>
-      </header>
+    <OnboardingShell current="salon">
       {floorPlan?.status === "ready" ? (
         <FloorPlanEditor
           initialPlan={floorPlan.data.plan}
@@ -44,6 +38,6 @@ export default async function FloorPlanPage() {
           </p>
         </section>
       )}
-    </main>
+    </OnboardingShell>
   );
 }

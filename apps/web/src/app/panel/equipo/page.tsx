@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
 import { teamCommandAction } from "./actions";
 import { TeamManager } from "./team-manager";
 import { loadTeam } from "./team";
+import { OnboardingShell } from "../onboarding/onboarding-shell";
 
 export default async function TeamPage() {
   const result = await loadAdministrativeAccess();
@@ -15,13 +15,7 @@ export default async function TeamPage() {
   const team = isTenantAdmin ? await loadTeam() : null;
 
   return (
-    <main className="panel-shell">
-      <header className="panel-header">
-        <span className="platform-wordmark">La plataforma</span>
-        <Link className="button button--secondary" href="/panel">
-          Volver al panel
-        </Link>
-      </header>
+    <OnboardingShell current="equipo">
       {team?.status === "ready" ? (
         <TeamManager
           initialMembers={team.members}
@@ -39,6 +33,6 @@ export default async function TeamPage() {
           </p>
         </section>
       )}
-    </main>
+    </OnboardingShell>
   );
 }

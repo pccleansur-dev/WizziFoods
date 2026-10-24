@@ -119,7 +119,7 @@ export function CatalogEditor({
     <section className="catalog-section" aria-labelledby="catalog-title">
       <div className="catalog-section__heading">
         <div>
-          <p className="eyebrow">Paso 2 de 10</p>
+          <p className="eyebrow">Carta</p>
           <h2 id="catalog-title">Carta y productos</h2>
           <p>
             Armá la carta como borrador, revisala a la derecha y publicala

@@ -117,3 +117,27 @@ Supabase local), levanta API y web e imprime la URL y las credenciales. El estad
 queda en `.supabase/` (ignorado por git). `pnpm demo:totp` da el código vigente,
 `pnpm demo:reset` borra el negocio y el usuario para empezar de cero y
 `pnpm demo:down` detiene los procesos.
+
+## Asistente por pasos
+
+El Administrador recorre la puesta en marcha en pantallas separadas, con una barra de
+pasos arriba y **Anterior / Continuar** abajo (`apps/web/src/app/panel/onboarding/`):
+
+| Paso | Pantalla          | Contenido                              |
+| ---- | ----------------- | -------------------------------------- |
+| 1    | `/panel/negocio`  | Datos, contacto, idiomas, identidad    |
+| 2    | `/panel/carta`    | Importación asistida y editor de carta |
+| 3    | `/panel/plano`    | Plano del salón y QR                   |
+| 4    | `/panel/pagos`    | Medios de pago                         |
+| 5    | `/panel/equipo`   | Equipo (opcional)                      |
+| 6    | `/panel/publicar` | Requisitos, modo prueba y publicación  |
+
+- `/panel` es el resumen: avance, estado de cada paso y «Continuar en el paso N».
+- El estado de cada paso sale de la misma matriz de requisitos que decide si se puede
+  publicar (`onboardingProgress`); no hay una segunda fuente. Equipo es opcional y
+  publicar queda bloqueado hasta cumplir los pasos obligatorios.
+- **Continuar nunca bloquea**: el plan permite guardar y seguir después. Cada pantalla
+  guarda con su propio botón; el marco avisa que hay que guardar antes de continuar.
+- Los enlaces «Ir al paso» de la matriz apuntan a estas pantallas.
+- Pasos del plan de producto que todavía no existen y no se muestran: propuesta estética
+  y vista previa para el cliente.

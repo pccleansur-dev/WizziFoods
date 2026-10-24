@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
 import { paymentsCommandAction } from "./actions";
 import { PaymentMethodsManager } from "./payment-methods-manager";
 import { loadPaymentMethods } from "./payments";
+import { OnboardingShell } from "../onboarding/onboarding-shell";
 
 export default async function PaymentMethodsPage() {
   const result = await loadAdministrativeAccess();
@@ -15,13 +15,7 @@ export default async function PaymentMethodsPage() {
   const payments = isTenantAdmin ? await loadPaymentMethods() : null;
 
   return (
-    <main className="panel-shell">
-      <header className="panel-header">
-        <span className="platform-wordmark">La plataforma</span>
-        <Link className="button button--secondary" href="/panel">
-          Volver al panel
-        </Link>
-      </header>
+    <OnboardingShell current="pagos">
       {payments?.status === "ready" ? (
         <PaymentMethodsManager
           initialMethods={payments.methods}
@@ -38,6 +32,6 @@ export default async function PaymentMethodsPage() {
           </p>
         </section>
       )}
-    </main>
+    </OnboardingShell>
   );
 }

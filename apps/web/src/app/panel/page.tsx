@@ -1,13 +1,11 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 
 import { loadAdministrativeAccess } from "../../auth/load-admin-access";
 import { signOutAction } from "./actions";
+import { onboardingProgress } from "./onboarding/steps";
 import { PanelContent } from "./panel-content";
+import { loadReadiness } from "./publicar/readiness";
 import { loadPlatformOperations } from "./platform-operations";
-import { loadBusinessProfileDraft } from "./business-profile";
-import { loadCatalogDraft, loadPublishedCatalog } from "./catalog";
-import { loadCatalogImports } from "./catalog-import";
 
 export default async function PanelPage() {
   const result = await loadAdministrativeAccess();
@@ -21,22 +19,9 @@ export default async function PanelPage() {
     result.data.access.type === "platform_superadmin"
       ? await loadPlatformOperations()
       : null;
-  const tenantHost = (await headers()).get("host") ?? "";
-  const businessProfile =
+  const onboarding =
     result.status === "ready" && result.data.access.type === "tenant_admin"
-      ? await loadBusinessProfileDraft(tenantHost)
-      : null;
-  const catalog =
-    result.status === "ready" && result.data.access.type === "tenant_admin"
-      ? await loadCatalogDraft(tenantHost)
-      : null;
-  const publishedCatalog =
-    result.status === "ready" && result.data.access.type === "tenant_admin"
-      ? await loadPublishedCatalog(tenantHost)
-      : null;
-  const catalogImports =
-    result.status === "ready" && result.data.access.type === "tenant_admin"
-      ? await loadCatalogImports(tenantHost)
+      ? await loadReadiness()
       : null;
 
   return (
@@ -57,16 +42,9 @@ export default async function PanelPage() {
               ? platformOperations.data
               : null
           }
-          businessProfile={
-            businessProfile?.status === "ready" ? businessProfile.data : null
-          }
-          catalog={catalog?.status === "ready" ? catalog.data : null}
-          catalogImports={
-            catalogImports?.status === "ready" ? catalogImports.data : []
-          }
-          publishedCatalog={
-            publishedCatalog?.status === "ready" ? publishedCatalog.data : null
-          }
+          onboarding={onboardingProgress(
+            onboarding?.status === "ready" ? onboarding.readiness : null
+          )}
         />
       ) : (
         <section className="panel-content" role="alert">

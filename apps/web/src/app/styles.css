@@ -2650,3 +2650,230 @@ dd {
   background: #fff7f6;
   box-shadow: 0 0 0 1px #b3261e;
 }
+
+/* Asistente de puesta en marcha: barra de pasos y navegación entre pantallas. */
+.onboarding {
+  width: min(100%, 96rem);
+  margin: 0 auto;
+}
+
+.onboarding-steps {
+  margin-top: 1.25rem;
+}
+
+.onboarding-steps__summary {
+  margin: 0 0 0.5rem;
+  color: #746d62;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.onboarding-steps ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding-step a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.9rem 0.25rem 0.35rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #4a443b;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.onboarding-step a:hover {
+  border-color: #b9b0a0;
+}
+
+.onboarding-step a:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 2px;
+}
+
+.onboarding-step__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid #bcb5a9;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.onboarding-step--done .onboarding-step__mark {
+  border-color: #6aa07a;
+  background: #e6f2e9;
+  color: #2c6a3d;
+}
+
+.onboarding-step--blocked a {
+  color: #8a8377;
+}
+
+.onboarding-step--current a {
+  border-color: #253b32;
+  background: #fff;
+  font-weight: 800;
+}
+
+.onboarding-step--current .onboarding-step__mark {
+  border-color: #253b32;
+  background: #253b32;
+  color: #fff;
+}
+
+.onboarding-footer {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #d8d2c7;
+}
+
+.onboarding-footer__missing {
+  padding: 0.75rem 1rem;
+  border-left: 3px solid #b0742f;
+  background: #fff6e8;
+  color: #5c3d10;
+  font-size: 0.9rem;
+}
+
+.onboarding-footer__missing ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.onboarding-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.onboarding-footer__hint {
+  flex: 1;
+  color: #746d62;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+@media (max-width: 40rem) {
+  .onboarding-step__title {
+    display: none;
+  }
+
+  .onboarding-step--current .onboarding-step__title {
+    display: inline;
+  }
+
+  .onboarding-footer__hint {
+    flex-basis: 100%;
+    order: 3;
+    text-align: left;
+  }
+}
+
+/* Resumen de la puesta en marcha en el inicio del panel. */
+.onboarding-overview {
+  width: min(100%, 56rem);
+  margin-top: 2rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border-radius: 1rem;
+  box-shadow: none;
+}
+
+.onboarding-overview h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+
+.onboarding-bar {
+  height: 0.6rem;
+  margin: 1rem 0 1.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7e1d6;
+}
+
+.onboarding-bar > span {
+  display: block;
+  height: 100%;
+  background: #355f3f;
+}
+
+.onboarding-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding-list__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid #e1dbd1;
+}
+
+.onboarding-list__item p {
+  margin: 0.15rem 0 0;
+  color: #625b51;
+  font-size: 0.9rem;
+}
+
+.onboarding-list__item a {
+  color: #221f1a;
+  text-decoration-color: #b9b0a0;
+}
+
+.onboarding-list__item a:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 2px;
+}
+
+.onboarding-list__status {
+  margin-left: 0.6rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: #ece6da;
+  color: #5f584f;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.onboarding-list__item--done .onboarding-list__status {
+  background: #e6f2e9;
+  color: #2c6a3d;
+}
+
+.onboarding-list__item--blocked {
+  opacity: 0.75;
+}
+
+.panel-header .button--secondary,
+.onboarding-footer__nav .button,
+.onboarding-overview .button {
+  width: auto;
+}
+
+.onboarding-steps {
+  margin-bottom: 1.5rem;
+}
