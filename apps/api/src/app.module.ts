@@ -29,6 +29,8 @@ import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
 import { PaymentMethodsAdminController } from "./payment-methods/payment-methods.controller.js";
 import { PaymentMethodsService } from "./payment-methods/payment-methods.service.js";
 import { PaymentSecretSealer } from "./payment-methods/payment-secret-sealer.js";
+import { ReadinessAdminController } from "./readiness/readiness.controller.js";
+import { ReadinessService } from "./readiness/readiness.service.js";
 import {
   StaffAuthController,
   StaffSessionController
@@ -79,6 +81,7 @@ export class AppModule {
         FloorPlanAdminController,
         PaymentMethodsAdminController,
         PublicCatalogController,
+        ReadinessAdminController,
         StaffAuthController,
         StaffSessionController,
         SupportAccessController,
@@ -147,6 +150,12 @@ export class AppModule {
                 ? new PaymentSecretSealer(config.paymentSecretKey)
                 : null
             )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: ReadinessService,
+          useFactory: (database: TenantDatabase) =>
+            new ReadinessService(database.readinessRepository)
         },
         {
           inject: [TENANT_DATABASE],
