@@ -91,3 +91,21 @@ export {
   type TenantSuspensionRecord,
   type TenantSuspensionRepository
 } from "./tenant-suspension-repository.js";
+export {
+  createPaymentMethodsRepository,
+  type ClearPaymentSecretInput,
+  type PaymentMethodsRepository,
+  type PaymentReadiness,
+  type SealedPaymentSecret,
+  type StorePaymentSecretInput,
+  type UpdatePaymentMethodInput
+} from "./payment-methods-repository.js";
+export {
+  createTeamRepository,
+  type CreateTeamMemberInput,
+  type ResetTeamMemberPinInput,
+  type SetTeamMemberActiveInput,
+  type TeamRepository,
+  type TeamSummary,
+  type UpdateTeamMemberInput
+} from "./team-repository.js";

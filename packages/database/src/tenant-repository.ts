@@ -23,6 +23,11 @@ import {
   type FloorPlanRepository
 } from "./floor-plan-repository.js";
 import {
+  createPaymentMethodsRepository,
+  type PaymentMethodsRepository
+} from "./payment-methods-repository.js";
+import { createTeamRepository, type TeamRepository } from "./team-repository.js";
+import {
   createCatalogImportRepository,
   type CatalogImportRepository
 } from "./catalog-import-repository.js";
@@ -92,7 +97,9 @@ export type TenantDatabase = {
   close(): Promise<void>;
   floorPlanRepository: FloorPlanRepository;
   identityAccessRepository: IdentityAccessRepository;
+  paymentMethodsRepository: PaymentMethodsRepository;
   staffAuthRepository: StaffAuthRepository;
+  teamRepository: TeamRepository;
   supportAccessRepository: SupportAccessRepository;
   tenantDomainRepository: TenantDomainRepository;
   tenantProvisioningRepository: TenantProvisioningRepository;
@@ -166,6 +173,8 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     catalogRepository: createCatalogRepository(client),
     close: async () => client.end(),
     floorPlanRepository: createFloorPlanRepository(client),
+    paymentMethodsRepository: createPaymentMethodsRepository(client),
+    teamRepository: createTeamRepository(client),
     identityAccessRepository: {
       async resolveForIdentity(
         userId: string,
