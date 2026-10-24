@@ -53,7 +53,9 @@ la sesión abierta; hasta T22 no se une a nada. Cuando exista, la sesión deber�
 
 ## Agrupación cambiada
 
-La página recalcula el grupo en cada carga, así que si el grupo se arma, se separa o la
+La página recalcula el grupo en cada carga y, mientras sigue visible, vuelve a preguntarlo
+cada 15 segundos y al volver a la pestaña (`EntryRefresh`); no guarda nada en el
+dispositivo. Así si el grupo se arma, se separa o la
 mesa se retira, el comensal ve el estado vigente; si el QR se rotó o la mesa se retiró,
 ve «No reconocemos este código» y la indicación de pedir uno nuevo al personal. No hay
 sesión viva que migrar todavía: cuando T22/T27 existan, separar o unir mesas con una
@@ -72,6 +74,12 @@ sesión abierta debe pedir confirmación y nunca mover deuda (ver `plano-salon.m
 
 - pgTap con dos tenants: `supabase/tests/database/table_entry.test.sql` (11 aserciones).
 - Unitarias: repositorio, servicio, controlador, parser y vista.
-- Navegador real (escritorio y 375 px) contra un negocio de prueba temporal con mesa
+- Integración HTTP contra Postgres local con dos tenants
+  (`local-table-entry.integration.test.ts`, 10 casos: todos los estados, grupo, token
+  ajeno/desconocido/malformado, host inexistente, cierre comercial, sin publicar y
+  suspendido). Se corre con `DATABASE_URL`, `DATABASE_ADMIN_URL`, `SUPABASE_URL` y
+  `SUPABASE_SECRET_KEY` locales; sin ellos se omite.
+- Navegador real (escritorio y 375 px; cambiar el estado en la base con la página abierta
+  la actualiza sola) contra un negocio de prueba temporal con mesa
   libre, mesa agrupada con la vecina ocupada, pendiente de limpieza, fuera de servicio,
   token desconocido, dominio inexistente y token de otro negocio.
