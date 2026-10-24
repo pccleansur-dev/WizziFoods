@@ -12,6 +12,10 @@ import {
   BusinessMediaJobRetryError,
   runBusinessMediaIteration
 } from "./business-media-worker.js";
+import {
+  CatalogImportJobRetryError,
+  runCatalogImportIteration
+} from "./catalog-import-worker.js";
 import { startPollingLoop } from "./polling-loop.js";
 
 export function getWorkerStatus(): ServiceStatus {
@@ -58,7 +62,7 @@ function startWorker(): void {
     heartbeat.end();
   }, config.heartbeatMs);
 
-  const polling = startPollingLoop({
+  const mediaPolling = startPollingLoop({
     iteration: async () => {
       await runBusinessMediaIteration({
         observer,
@@ -77,6 +81,23 @@ function startWorker(): void {
     },
     pollMs: config.pollMs
   });
+  const importPolling = startPollingLoop({
+    iteration: async () => {
+      await runCatalogImportIteration({
+        repository: database.catalogImportRepository,
+        visibilityTimeoutSeconds: config.visibilityTimeoutSeconds
+      });
+    },
+    onError: (error) => {
+      if (error instanceof CatalogImportJobRetryError) return;
+      telemetry.logger.warn("catalog_import_queue_retry", {
+        entryPoint: "queue",
+        reason: "queue_unavailable",
+        requestId: randomUUID()
+      });
+    },
+    pollMs: config.pollMs
+  });
 
   let shutdownPromise: Promise<void> | undefined;
   const shutdown = (signal: "SIGINT" | "SIGTERM") => {
@@ -87,7 +108,7 @@ function startWorker(): void {
         signal
       });
       clearInterval(heartbeatTimer);
-      await polling.stop();
+      await Promise.all([mediaPolling.stop(), importPolling.stop()]);
       await database.close();
       await telemetry.sdk.shutdown();
     })();

@@ -17,6 +17,7 @@
     "@platform/database": "workspace:*",
     "@platform/observability": "workspace:*",
     "@supabase/supabase-js": "2.90.1",
+    "read-excel-file": "9.3.12",
     "sharp": "0.35.5"
   },
   "devDependencies": {
