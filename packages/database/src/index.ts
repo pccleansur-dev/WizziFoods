@@ -32,6 +32,13 @@ export {
   type SetCatalogAvailabilityInput
 } from "./catalog-repository.js";
 export {
+  type CatalogImportClaim,
+  type CatalogImportRecord,
+  type CatalogImportRepository,
+  createCatalogImportRepository,
+  type QueuedCatalogImportJob
+} from "./catalog-import-repository.js";
+export {
   type AppendAuditEventInput,
   type AuditActorType,
   type AuditRepository
