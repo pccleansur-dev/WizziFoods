@@ -13,6 +13,7 @@ import {
   sortProductionTickets
 } from "../../../../../staff/production-view";
 import { waiterErrorMessage } from "../../../../../staff/waiter-view";
+import { reportProductionExceptionAction } from "../order-adjustment-actions";
 import { advanceProductionItemAction } from "../production-actions";
 import { newId } from "../../../../../lib/new-id";
 
@@ -43,6 +44,8 @@ export function ProductionBoardView({
   const [stale, setStale] = useState(false);
   const [expired, setExpired] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [now, setNow] = useState(() => Date.parse(initialBoard.generatedAt));
   // One command id per item and target: a retry after an unknown outcome or a
@@ -134,6 +137,45 @@ export function ProductionBoardView({
     setBusy(null);
   }
 
+  async function reportShortage(orderId: string, item: ProductionTicketItem) {
+    const text = reason.trim();
+    if (text.length === 0) return;
+    const key = `exception:${item.lineId}:${text}`;
+    let commandId = commands.current.get(key);
+    if (!commandId) {
+      commandId = newId();
+      commands.current.set(key, commandId);
+    }
+    setBusy(key);
+    setNotice(null);
+    const result = await reportProductionExceptionAction(
+      tenantSlug,
+      orderId,
+      item.lineId,
+      { commandId, reason: text }
+    );
+    if (result.status === "ok" || result.code !== null) {
+      commands.current.delete(key);
+    }
+    if (result.status === "error" && result.code === "STAFF_SESSION_INVALID") {
+      setExpired(true);
+    }
+    if (result.status === "ok") {
+      setReporting(null);
+      setReason("");
+    }
+    setNotice(
+      result.status === "ok"
+        ? {
+            kind: "ok",
+            text: `${item.title}: faltante informado. Avisá al mozo para resolverlo.`
+          }
+        : { kind: "error", text: result.message }
+    );
+    await refresh();
+    setBusy(null);
+  }
+
   if (expired) {
     return (
       <div className="waiter-section" role="alert">
@@ -217,6 +259,51 @@ export function ProductionBoardView({
                       >
                         {busy === key ? "Guardando…" : step.label}
                       </button>
+                    ) : null}
+                    {step ? (
+                      <button
+                        aria-expanded={reporting === item.lineId}
+                        aria-label={`Informar faltante: ${item.quantity} × ${item.title}, mesa ${ticket.tableLabel}`}
+                        className="button button--secondary"
+                        disabled={busy !== null}
+                        onClick={() => {
+                          setReason("");
+                          setReporting(
+                            reporting === item.lineId ? null : item.lineId
+                          );
+                        }}
+                        type="button"
+                      >
+                        Faltante…
+                      </button>
+                    ) : null}
+                    {step && reporting === item.lineId ? (
+                      <form
+                        className="waiter-reject orders-item-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void reportShortage(ticket.orderId, item);
+                        }}
+                      >
+                        <label htmlFor={`shortage-${item.lineId}`}>
+                          Motivo del faltante (obligatorio)
+                        </label>
+                        <textarea
+                          id={`shortage-${item.lineId}`}
+                          maxLength={200}
+                          onChange={(event) => setReason(event.target.value)}
+                          required
+                          rows={2}
+                          value={reason}
+                        />
+                        <button
+                          className="button button--secondary"
+                          disabled={busy !== null || reason.trim().length === 0}
+                          type="submit"
+                        >
+                          Informar faltante
+                        </button>
+                      </form>
                     ) : null}
                   </li>
                 );

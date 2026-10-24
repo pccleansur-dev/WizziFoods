@@ -1,4 +1,8 @@
-import { parseCatalogDraft, parseWaiterSalonView } from "@platform/contracts";
+import {
+  parseCatalogDraft,
+  parseWaiterOrdersView,
+  parseWaiterSalonView
+} from "@platform/contracts";
 import { redirect } from "next/navigation";
 
 import { loadStaffSession } from "../../../../../staff/load-staff-session";
@@ -43,6 +47,25 @@ async function loadSalon(tenantSlug: string) {
   }
 }
 
+async function loadOrders(tenantSlug: string) {
+  const empty = { generatedAt: new Date().toISOString(), orders: [] };
+  try {
+    const response = await callStaffApi(
+      tenantSlug,
+      "GET",
+      "/v1/staff/orders/in-progress"
+    );
+    if ("sessionMissing" in response || !response.ok) return empty;
+    return (
+      parseWaiterOrdersView(
+        (response.body as { data?: unknown } | null)?.data
+      ) ?? empty
+    );
+  } catch {
+    return empty;
+  }
+}
+
 export default async function WaiterSalonPage({
   params,
   searchParams
@@ -58,6 +81,7 @@ export default async function WaiterSalonPage({
     redirect(`/interno/${tenantSlug}/operacion`);
   }
 
+  const orders = await loadOrders(tenantSlug);
   const salon = await loadSalon(tenantSlug);
   if (salon === "expired") redirect(`/interno/${tenantSlug}`);
   const view = salon;
@@ -93,8 +117,13 @@ export default async function WaiterSalonPage({
           <WaiterWorkspace
             canCreateOrders={canCreateOrders}
             canValidate={capabilities.includes("orders.validate")}
+            initialOrders={orders}
             initialTab={
-              vista === "comanda" && canCreateOrders ? "comanda" : "salon"
+              vista === "comanda" && canCreateOrders
+                ? "comanda"
+                : vista === "pedidos"
+                  ? "pedidos"
+                  : "salon"
             }
             initialView={view}
             isManager={session.identity.staff.role === "manager"}

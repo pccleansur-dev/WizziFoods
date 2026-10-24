@@ -10,10 +10,12 @@ import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
  */
 export function ConfirmedOrderPanel({
   onDismiss,
+  onOpenOrders,
   order,
   tableLabel
 }: {
   onDismiss(): void;
+  onOpenOrders(): void;
   order: WaiterOrderResult;
   tableLabel: string;
 }) {
@@ -70,6 +72,13 @@ export function ConfirmedOrderPanel({
           separadas de la confirmación.
         </small>
       </div>
+      <button
+        className="button button--primary"
+        onClick={onOpenOrders}
+        type="button"
+      >
+        Ver en pedidos en curso
+      </button>
       <button
         className="button button--secondary"
         onClick={onDismiss}

@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  parseWaiterOrdersView,
   parseWaiterSalonView,
   type WaiterOrderResult,
+  type WaiterOrdersView,
   type WaiterSalonView
 } from "@platform/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,21 +16,33 @@ import {
   createManualOrderAction,
   decideIntentAction
 } from "../waiter-actions";
+import {
+  cancelItemAction,
+  decideReplacementAction,
+  deliverItemAction,
+  proposeReplacementAction
+} from "../order-adjustment-actions";
 import type { WaiterActionResult } from "../waiter-action-result";
 import { ConfirmedOrderPanel } from "./confirmed-order-panel";
 import { ManualOrderForm, type ManualOrderDraft } from "./manual-order-form";
+import { OrdersInProgress } from "./orders-in-progress";
 import { WaiterPending } from "./waiter-pending";
 import { WaiterTables } from "./waiter-tables";
 import { newId } from "../../../../../lib/new-id";
+import {
+  attentionCount,
+  differenceLabel
+} from "../../../../../staff/orders-in-progress-view";
 
 const POLL_MS = 5_000;
 
 type Notice = { kind: "error" | "ok"; text: string };
-type Tab = "comanda" | "salon";
+type Tab = "comanda" | "pedidos" | "salon";
 
 export function WaiterWorkspace({
   canCreateOrders,
   canValidate,
+  initialOrders,
   initialTab,
   initialView,
   isManager,
@@ -37,6 +51,7 @@ export function WaiterWorkspace({
 }: {
   canCreateOrders: boolean;
   canValidate: boolean;
+  initialOrders: WaiterOrdersView;
   initialTab: Tab;
   initialView: WaiterSalonView;
   isManager: boolean;
@@ -44,6 +59,7 @@ export function WaiterWorkspace({
   tenantSlug: string;
 }) {
   const [view, setView] = useState(initialView);
+  const [orders, setOrders] = useState(initialOrders);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [stale, setStale] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -68,17 +84,24 @@ export function WaiterWorkspace({
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch(`/interno/${tenantSlug}/operacion/vista`, {
-        cache: "no-store"
-      });
-      if (response.status === 401) {
+      const [response, ordersResponse] = await Promise.all([
+        fetch(`/interno/${tenantSlug}/operacion/vista`, { cache: "no-store" }),
+        fetch(`/interno/${tenantSlug}/operacion/pedidos/vista`, {
+          cache: "no-store"
+        })
+      ]);
+      if (response.status === 401 || ordersResponse.status === 401) {
         setExpired(true);
         return;
       }
-      if (!response.ok) throw new Error("salon unavailable");
+      if (!response.ok || !ordersResponse.ok) {
+        throw new Error("salon unavailable");
+      }
       const parsed = parseWaiterSalonView(await response.json());
-      if (!parsed) throw new Error("salon invalid");
+      const parsedOrders = parseWaiterOrdersView(await ordersResponse.json());
+      if (!parsed || !parsedOrders) throw new Error("salon invalid");
       setView(parsed);
+      setOrders(parsedOrders);
       setStale(false);
       setNow(Date.now());
     } catch {
@@ -178,6 +201,84 @@ export function WaiterWorkspace({
     );
   }
 
+  const itemLabel = (orderId: string, lineId: string) => {
+    const item = orders.orders
+      .find((entry) => entry.orderId === orderId)
+      ?.items.find((entry) => entry.lineId === lineId);
+    return item ? `${item.quantity} × ${item.title}` : "El ítem";
+  };
+  const report = (result: WaiterActionResult<unknown>, success: string) =>
+    setNotice(
+      result.status === "ok"
+        ? { kind: "ok", text: success }
+        : { kind: "error", text: result.message }
+    );
+
+  async function deliver(orderId: string, lineId: string) {
+    const label = itemLabel(orderId, lineId);
+    const result = await perform(`deliver:${lineId}`, (commandId) =>
+      deliverItemAction(tenantSlug, orderId, lineId, { commandId })
+    );
+    report(result, `Entregaste ${label}.`);
+  }
+
+  async function propose(
+    orderId: string,
+    lineId: string,
+    productId: string,
+    variantId: string | null
+  ) {
+    const result = await perform(
+      `propose:${lineId}:${productId}:${variantId ?? ""}`,
+      (commandId) =>
+        proposeReplacementAction(tenantSlug, orderId, lineId, {
+          commandId,
+          productId,
+          variantId
+        })
+    );
+    report(
+      result,
+      result.status === "ok"
+        ? `Propuesta: ${result.data.replacementTitle} (${differenceLabel(
+            result.data.differenceCents
+          )}). Preguntale al comensal.`
+        : ""
+    );
+  }
+
+  async function decideReplacement(
+    adjustmentId: string,
+    decision: "accept" | "reject",
+    reason: string | null
+  ) {
+    const result = await perform(
+      `decide:${adjustmentId}:${decision}:${reason ?? ""}`,
+      (commandId) =>
+        decideReplacementAction(
+          tenantSlug,
+          adjustmentId,
+          decision === "accept"
+            ? { commandId, decision, reason: null }
+            : { commandId, decision, reason: reason ?? "" }
+        )
+    );
+    report(
+      result,
+      decision === "accept"
+        ? "Reemplazo aceptado: va a producción."
+        : "Reemplazo rechazado. El faltante sigue abierto."
+    );
+  }
+
+  async function cancelItem(orderId: string, lineId: string, reason: string) {
+    const label = itemLabel(orderId, lineId);
+    const result = await perform(`cancel:${lineId}:${reason}`, (commandId) =>
+      cancelItemAction(tenantSlug, orderId, lineId, { commandId, reason })
+    );
+    report(result, `Cancelaste ${label}.`);
+  }
+
   async function createOrder(draft: ManualOrderDraft): Promise<boolean> {
     const result = await perform(
       `manual:${JSON.stringify(draft)}`,
@@ -215,6 +316,10 @@ export function WaiterWorkspace({
     .filter((table) => table.inScope)
     .map((table) => ({ id: table.id, label: table.label }));
   const openCalls = view.calls.length;
+  const attention = orders.orders.reduce(
+    (sum, order) => sum + attentionCount(order.items),
+    0
+  );
 
   return (
     <div className="waiter-workspace">
@@ -234,6 +339,21 @@ export function WaiterWorkspace({
           type="button"
         >
           Salón y llamados
+        </button>
+        <button
+          aria-pressed={tab === "pedidos"}
+          onClick={() => setTab("pedidos")}
+          type="button"
+        >
+          Pedidos en curso
+          {attention > 0 ? (
+            <span
+              aria-label={`${attention} requieren atención`}
+              className="waiter-count"
+            >
+              {attention}
+            </span>
+          ) : null}
         </button>
         {canCreateOrders ? (
           <button
@@ -258,12 +378,34 @@ export function WaiterWorkspace({
       {confirmed ? (
         <ConfirmedOrderPanel
           onDismiss={() => setConfirmed(null)}
+          onOpenOrders={() => {
+            setConfirmed(null);
+            setTab("pedidos");
+          }}
           order={confirmed.order}
           tableLabel={confirmed.tableLabel}
         />
       ) : null}
 
-      {tab === "salon" ? (
+      {tab === "pedidos" ? (
+        <OrdersInProgress
+          busy={busy}
+          isManager={isManager}
+          menu={menu}
+          now={now}
+          onCancel={(orderId, lineId, reason) =>
+            void cancelItem(orderId, lineId, reason)
+          }
+          onDecide={(adjustmentId, decision, reason) =>
+            void decideReplacement(adjustmentId, decision, reason)
+          }
+          onDeliver={(orderId, lineId) => void deliver(orderId, lineId)}
+          onPropose={(orderId, lineId, productId, variantId) =>
+            void propose(orderId, lineId, productId, variantId)
+          }
+          orders={orders.orders}
+        />
+      ) : tab === "salon" ? (
         <>
           {canValidate ? (
             <WaiterPending
