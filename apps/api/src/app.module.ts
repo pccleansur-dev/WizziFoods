@@ -43,6 +43,8 @@ import {
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { StaffSessionGuard } from "./staff-auth/staff-session.guard.js";
+import { ProductionController } from "./production/production.controller.js";
+import { ProductionService } from "./production/production.service.js";
 import { WaiterController } from "./waiter/waiter.controller.js";
 import { WaiterService } from "./waiter/waiter.service.js";
 import { AnthropicTranslationGateway } from "./translation/anthropic-translation.gateway.js";
@@ -108,6 +110,7 @@ export class AppModule {
         TeamAdminController,
         TranslationAdminController,
         TenantSuspensionController,
+        ProductionController,
         WaiterController
       ],
       module: AppModule,
@@ -270,6 +273,12 @@ export class AppModule {
               database.identityAccessRepository,
               database.tenantSuspensionRepository
             )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: ProductionService,
+          useFactory: (database: TenantDatabase) =>
+            new ProductionService(database.productionRepository)
         },
         {
           inject: [TENANT_DATABASE],

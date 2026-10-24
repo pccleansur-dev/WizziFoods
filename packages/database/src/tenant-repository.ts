@@ -31,6 +31,10 @@ import {
   type OrderIntentRepository
 } from "./order-intent-repository.js";
 import {
+  createProductionRepository,
+  type ProductionRepository
+} from "./production-repository.js";
+import {
   createWaiterOperationsRepository,
   type WaiterOperationsRepository
 } from "./waiter-operations-repository.js";
@@ -113,6 +117,7 @@ export type TenantDatabase = {
   floorPlanRepository: FloorPlanRepository;
   identityAccessRepository: IdentityAccessRepository;
   orderIntentRepository: OrderIntentRepository;
+  productionRepository: ProductionRepository;
   waiterOperationsRepository: WaiterOperationsRepository;
   paymentMethodsRepository: PaymentMethodsRepository;
   readinessRepository: ReadinessRepository;
@@ -192,6 +197,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     close: async () => client.end(),
     floorPlanRepository: createFloorPlanRepository(client),
     orderIntentRepository: createOrderIntentRepository(client),
+    productionRepository: createProductionRepository(client),
     waiterOperationsRepository: createWaiterOperationsRepository(client),
     paymentMethodsRepository: createPaymentMethodsRepository(client),
     readinessRepository: createReadinessRepository(client),
