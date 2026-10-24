@@ -37,6 +37,14 @@ export {
   type DinerDraftRequest
 } from "./diner-draft.js";
 export {
+  parseOrderIntentRequest,
+  type OrderAttribution,
+  type OrderIntentRequest,
+  type OrderIntentResult,
+  type OrderIntentStatus,
+  type OrderPaymentPath
+} from "./order-intent.js";
+export {
   CATALOG_IMPORT_MAX_BYTES,
   evaluateCatalogImportUpload,
   parseCatalogImportDraft,
