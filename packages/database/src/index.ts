@@ -103,6 +103,12 @@ export {
   type UpdatePaymentMethodInput
 } from "./payment-methods-repository.js";
 export {
+  type AvailablePaymentMethod,
+  type CreateOrderIntentInput,
+  createOrderIntentRepository,
+  type OrderIntentRepository
+} from "./order-intent-repository.js";
+export {
   createReadinessRepository,
   type ReadinessRepository
 } from "./readiness-repository.js";

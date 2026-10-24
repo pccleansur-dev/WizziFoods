@@ -26,6 +26,8 @@ import { CatalogImportController } from "./catalog-import/catalog-import.control
 import { CatalogImportService } from "./catalog-import/catalog-import.service.js";
 import { DinerDraftController } from "./diner-draft/diner-draft.controller.js";
 import { DinerDraftService } from "./diner-draft/diner-draft.service.js";
+import { OrderIntentController } from "./order-intent/order-intent.controller.js";
+import { OrderIntentService } from "./order-intent/order-intent.service.js";
 import { FloorPlanAdminController } from "./floor-plan/floor-plan.controller.js";
 import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
 import { TableEntryController } from "./table-entry/table-entry.controller.js";
@@ -87,6 +89,7 @@ export class AppModule {
         CatalogAdminController,
         DinerDraftController,
         FloorPlanAdminController,
+        OrderIntentController,
         PaymentMethodsAdminController,
         PublicCatalogController,
         ReadinessAdminController,
@@ -164,6 +167,12 @@ export class AppModule {
             database: TenantDatabase
           ) =>
             new DinerDraftService(tableEntryService, database.catalogRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: OrderIntentService,
+          useFactory: (database: TenantDatabase) =>
+            new OrderIntentService(database.orderIntentRepository)
         },
         {
           inject: [TENANT_DATABASE],

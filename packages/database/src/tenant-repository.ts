@@ -27,6 +27,10 @@ import {
   type PaymentMethodsRepository
 } from "./payment-methods-repository.js";
 import {
+  createOrderIntentRepository,
+  type OrderIntentRepository
+} from "./order-intent-repository.js";
+import {
   createReadinessRepository,
   type ReadinessRepository
 } from "./readiness-repository.js";
@@ -104,6 +108,7 @@ export type TenantDatabase = {
   close(): Promise<void>;
   floorPlanRepository: FloorPlanRepository;
   identityAccessRepository: IdentityAccessRepository;
+  orderIntentRepository: OrderIntentRepository;
   paymentMethodsRepository: PaymentMethodsRepository;
   readinessRepository: ReadinessRepository;
   staffAuthRepository: StaffAuthRepository;
@@ -181,6 +186,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     catalogRepository: createCatalogRepository(client),
     close: async () => client.end(),
     floorPlanRepository: createFloorPlanRepository(client),
+    orderIntentRepository: createOrderIntentRepository(client),
     paymentMethodsRepository: createPaymentMethodsRepository(client),
     readinessRepository: createReadinessRepository(client),
     teamRepository: createTeamRepository(client),
