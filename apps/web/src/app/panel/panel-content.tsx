@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import Link from "next/link";
+
 import type { AdministrativeAccess } from "../../auth/admin-access";
 import type { PlatformOperations } from "./platform-operations";
 import { PlatformOperationsPanel } from "./platform-operations-panel";
@@ -127,7 +129,9 @@ export function PanelContent({
         </div>
         <div>
           <span>Operación</span>
-          <strong>Configurar salón</strong>
+          <Link className="panel-module-link" href="/panel/plano">
+            <strong>Configurar salón</strong>
+          </Link>
         </div>
         <div>
           <span>Personas</span>

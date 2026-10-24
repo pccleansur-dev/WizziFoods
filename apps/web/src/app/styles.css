@@ -1757,3 +1757,204 @@ dd {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.panel-module-link {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.panel-module-link:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 2px;
+}
+
+.floor-plan,
+.floor-plan section {
+  width: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.floor-plan {
+  width: min(100%, 90rem);
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+.floor-plan h1 {
+  max-width: none;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+}
+
+.floor-plan h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.floor-plan-header,
+.floor-plan-save,
+.floor-plan-toolbar,
+.floor-plan-inline,
+.floor-plan-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.floor-plan-header {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.floor-plan-hint {
+  display: none;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #d09a52;
+  background: #fbf3e4;
+  font-size: 0.9375rem;
+}
+
+.floor-plan-layout {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.floor-plan-viewport {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid #cfc8bc;
+  border-radius: 0.75rem;
+  background: #ffffff;
+}
+
+.floor-plan-svg {
+  display: block;
+  min-width: 100%;
+}
+
+.floor-plan-table {
+  cursor: grab;
+  touch-action: none;
+}
+
+.floor-plan-table:focus-visible {
+  outline: none;
+}
+
+.floor-plan-table:focus-visible rect,
+.floor-plan-table:focus-visible circle:first-of-type {
+  stroke: #d09a52;
+  stroke-width: 10;
+}
+
+.floor-plan-field {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.floor-plan-field--grow {
+  flex: 1 1 10rem;
+}
+
+.floor-plan input,
+.floor-plan select {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid #bcb5a9;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #221f1a;
+  font: inherit;
+}
+
+.floor-plan input:focus-visible,
+.floor-plan select:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 1px;
+}
+
+.floor-plan .button {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+.floor-plan-toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.floor-plan-side {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
+}
+
+.floor-plan-form {
+  display: grid;
+  gap: 0.625rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.floor-plan-form > :first-child,
+.floor-plan-form > button {
+  grid-column: 1 / -1;
+}
+
+.floor-plan-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.floor-plan-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.floor-plan-list li > input {
+  flex: 1 1 8rem;
+}
+
+.floor-plan-swatch {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid #6b6455;
+  border-radius: 0.25rem;
+}
+
+.floor-plan-qr {
+  border: 1px solid #cfc8bc;
+  border-radius: 0.25rem;
+  background: #ffffff;
+}
+
+.floor-plan-help,
+.floor-plan-empty {
+  margin: 0.5rem 0 0;
+  color: #625b51;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 959px) {
+  .floor-plan-hint {
+    display: block;
+  }
+}
+
+@media (min-width: 960px) {
+  .floor-plan-layout {
+    grid-template-columns: minmax(0, 1fr) 24rem;
+    align-items: start;
+  }
+}
