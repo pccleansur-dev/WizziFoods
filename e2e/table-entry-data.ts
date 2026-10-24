@@ -1,10 +1,6 @@
 import postgres from "postgres";
 
-import {
-  adminDatabaseUrl,
-  e2eHostname,
-  ownerDatabaseUrl
-} from "./stack-env";
+import { adminDatabaseUrl, e2eHostname, ownerDatabaseUrl } from "./stack-env";
 
 const tenantId = "fe000000-0000-4000-8000-000000000013";
 const userId = "fe000000-0000-4000-8000-000000000011";

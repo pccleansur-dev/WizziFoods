@@ -51,15 +51,24 @@ export function DinerExperience({
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(storageKey, JSON.stringify(items));
-    const controller = new AbortController();
+    let active = true;
     const timer = window.setTimeout(() => {
       setLoading(true);
       setError(null);
+      if (items.length === 0) {
+        setQuote({
+          canConfirm: false,
+          catalogRevision: catalog?.revision ?? null,
+          items: [],
+          totalCents: 0
+        });
+        setLoading(false);
+        return;
+      }
       void fetch("/api/diner-draft", {
         body: JSON.stringify({ items, token }),
         headers: { "content-type": "application/json" },
-        method: "POST",
-        signal: controller.signal
+        method: "POST"
       })
         .then(async (response) =>
           response.ok
@@ -68,23 +77,30 @@ export function DinerExperience({
         )
         .then((nextQuote) => {
           if (!nextQuote) throw new Error("invalid quote");
-          setQuote(nextQuote);
+          if (active) setQuote(nextQuote);
         })
         .catch((caught: unknown) => {
-          if ((caught as Error).name !== "AbortError") {
+          if (active && (caught as Error).name !== "AbortError") {
             setQuote(null);
             setError("No pudimos actualizar tu pedido. Intentá nuevamente.");
           }
         })
         .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
+          if (active) setLoading(false);
         });
     }, 0);
     return () => {
+      active = false;
       window.clearTimeout(timer);
-      controller.abort();
     };
-  }, [availabilitySignature, hydrated, items, storageKey, token]);
+  }, [
+    availabilitySignature,
+    catalog?.revision,
+    hydrated,
+    items,
+    storageKey,
+    token
+  ]);
 
   if (!catalog) {
     return (

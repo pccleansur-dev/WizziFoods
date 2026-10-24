@@ -40,4 +40,17 @@ describe("POST /api/diner-draft", () => {
       })
     );
   });
+
+  it("rejects an oversized body before forwarding it", async () => {
+    const { POST } = await import("./route");
+    const response = await POST(
+      new Request("http://bar.localhost:3100/api/diner-draft", {
+        body: "x".repeat(65_537),
+        headers: { host: "bar.localhost:3100" },
+        method: "POST"
+      })
+    );
+    expect(response.status).toBe(413);
+    expect(tenantFetch).not.toHaveBeenCalled();
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CatalogProduct } from "@platform/contracts";
 
 import {
@@ -22,6 +22,7 @@ export function DinerMenu({
     quantity: number
   ): void;
 }) {
+  const openerRef = useRef<HTMLButtonElement | null>(null);
   const [selected, setSelected] = useState<CatalogProduct | null>(null);
   const categories = [...catalog.catalog.categories].sort(
     (left, right) => left.position - right.position
@@ -53,7 +54,10 @@ export function DinerMenu({
                     >
                       <button
                         aria-label={`Ver detalle de ${catalogTitle(product.content)}`}
-                        onClick={() => setSelected(product)}
+                        onClick={(event) => {
+                          openerRef.current = event.currentTarget;
+                          setSelected(product);
+                        }}
                         type="button"
                       >
                         <span>
@@ -77,7 +81,10 @@ export function DinerMenu({
         <DinerProductDetail
           isAvailable={catalog.availability[selected.id]?.isAvailable ?? true}
           onAdd={(variantId, quantity) => onAdd(selected, variantId, quantity)}
-          onClose={() => setSelected(null)}
+          onClose={() => {
+            setSelected(null);
+            window.setTimeout(() => openerRef.current?.focus(), 0);
+          }}
           product={selected}
         />
       ) : null}

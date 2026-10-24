@@ -2,6 +2,8 @@ import { readWebConfig } from "@platform/config";
 
 import { tenantFetch } from "../../panel/tenant-fetch";
 
+const maximumBodyBytes = 65_536;
+
 export async function POST(request: Request): Promise<Response> {
   const host = request.headers.get("host") ?? "";
   if (!host) {
@@ -11,11 +13,29 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
   try {
+    const declaredLength = Number(request.headers.get("content-length") ?? 0);
+    if (declaredLength > maximumBodyBytes) {
+      return Response.json(
+        {
+          error: { code: "DINER_DRAFT_TOO_LARGE", message: "Pedido inválido." }
+        },
+        { status: 413 }
+      );
+    }
+    const body = await request.text();
+    if (new TextEncoder().encode(body).byteLength > maximumBodyBytes) {
+      return Response.json(
+        {
+          error: { code: "DINER_DRAFT_TOO_LARGE", message: "Pedido inválido." }
+        },
+        { status: 413 }
+      );
+    }
     const config = readWebConfig(process.env);
     const upstream = await tenantFetch(
       `${config.apiUrl}/v1/public/drafts/recalculate`,
       {
-        body: await request.text(),
+        body,
         cache: "no-store",
         headers: { "content-type": "application/json", host },
         method: "POST"

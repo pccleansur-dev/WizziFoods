@@ -3292,27 +3292,27 @@ dd {
   color: #6c655b;
 }
 
-.diner-dialog-backdrop {
-  position: fixed;
-  z-index: 20;
-  inset: 0;
-  display: grid;
-  align-items: end;
-  padding: 1rem;
+.diner-dialog::backdrop {
   background: rgb(34 31 26 / 55%);
 }
 
 .diner-dialog {
-  position: relative;
-  display: grid;
+  position: fixed;
+  inset: auto 1rem 1rem;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
   width: min(100%, 34rem);
   max-height: calc(100vh - 2rem);
   margin: 0 auto;
   padding: 1.5rem;
   overflow: auto;
+  border: 0;
   border-radius: 1rem 1rem 0.5rem 0.5rem;
   background: #fff;
+}
+
+.diner-dialog[open] {
+  display: grid;
 }
 
 .diner-dialog h2 {
@@ -3451,11 +3451,9 @@ dd {
 }
 
 @media (min-width: 42rem) {
-  .diner-dialog-backdrop {
-    align-items: center;
-  }
-
   .diner-dialog {
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
     border-radius: 1rem;
   }
 
