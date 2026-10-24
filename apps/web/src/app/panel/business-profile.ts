@@ -5,6 +5,7 @@ import {
 } from "@platform/contracts";
 
 import { createAuthServerClient } from "../../auth/supabase-server";
+import { tenantFetch } from "./tenant-fetch";
 
 export type SavedBusinessProfileDraft = BusinessProfileDraft & {
   revision: number;
@@ -54,7 +55,7 @@ export async function loadBusinessProfileDraft(
   if (session.error || !accessToken || !host) return { status: "unavailable" };
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(
+    const response = await tenantFetch(
       `${config.apiUrl}/v1/tenant/business-profile`,
       {
         cache: "no-store",

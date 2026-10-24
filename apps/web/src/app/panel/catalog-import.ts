@@ -7,6 +7,7 @@ import {
 } from "@platform/contracts";
 
 import { createAuthServerClient } from "../../auth/supabase-server";
+import { tenantFetch } from "./tenant-fetch";
 
 export type CatalogImportView = {
   attemptCount: number;
@@ -92,10 +93,13 @@ export async function loadCatalogImports(
   if (session.error || !accessToken || !host) return { status: "unavailable" };
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog-imports`, {
-      cache: "no-store",
-      headers: { authorization: `Bearer ${accessToken}`, host }
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/catalog-imports`,
+      {
+        cache: "no-store",
+        headers: { authorization: `Bearer ${accessToken}`, host }
+      }
+    );
     if (!response.ok) return { status: "unavailable" };
     return {
       data: parseCatalogImportsResponse(await response.json()),

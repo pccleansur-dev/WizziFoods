@@ -2,6 +2,7 @@ import { readWebConfig } from "@platform/config";
 import { parseCatalogDraft, type CatalogDraft } from "@platform/contracts";
 
 import { createAuthServerClient } from "../../auth/supabase-server";
+import { tenantFetch } from "./tenant-fetch";
 
 export type SavedCatalogDraft = {
   basePublishedRevision: number | null;
@@ -152,10 +153,13 @@ export async function loadCatalogDraft(
   if (session.error || !accessToken || !host) return { status: "unavailable" };
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog/draft`, {
-      cache: "no-store",
-      headers: { authorization: `Bearer ${accessToken}`, host }
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/catalog/draft`,
+      {
+        cache: "no-store",
+        headers: { authorization: `Bearer ${accessToken}`, host }
+      }
+    );
     if (!response.ok) return { status: "unavailable" };
     return {
       data: parseCatalogDraftResponse(await response.json()),
@@ -177,10 +181,13 @@ export async function loadPublishedCatalog(
   if (session.error || !accessToken || !host) return { status: "unavailable" };
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog/current`, {
-      cache: "no-store",
-      headers: { authorization: `Bearer ${accessToken}`, host }
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/catalog/current`,
+      {
+        cache: "no-store",
+        headers: { authorization: `Bearer ${accessToken}`, host }
+      }
+    );
     if (!response.ok) return { status: "unavailable" };
     return {
       data: parsePublishedCatalogResponse(await response.json()),
