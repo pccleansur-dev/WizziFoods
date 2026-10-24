@@ -95,11 +95,45 @@ describe("floor plan repository", () => {
 
   it("resolves a QR token only inside the verified scope", async () => {
     const client = clientReturning([
-      { label: "1", sector_name: "Salón", table_id: tableId }
+      {
+        group_id: null,
+        group_name: null,
+        group_table_labels: null,
+        label: "1",
+        sector_name: "Salón",
+        table_id: tableId
+      }
     ]);
     await expect(
       createFloorPlanRepository(client).resolveQr(scope, token)
-    ).resolves.toEqual({ label: "1", sectorName: "Salón", tableId });
+    ).resolves.toEqual({
+      group: null,
+      label: "1",
+      sectorName: "Salón",
+      tableId
+    });
+  });
+
+  it("tells which group a QR belongs to", async () => {
+    const groupId = "d1000000-0000-4000-8000-000000000001";
+    const client = clientReturning([
+      {
+        group_id: groupId,
+        group_name: "Cumpleaños",
+        group_table_labels: ["17", "18"],
+        label: "18",
+        sector_name: "Salón",
+        table_id: tableId
+      }
+    ]);
+    await expect(
+      createFloorPlanRepository(client).resolveQr(scope, token)
+    ).resolves.toEqual({
+      group: { id: groupId, name: "Cumpleaños", tableLabels: ["17", "18"] },
+      label: "18",
+      sectorName: "Salón",
+      tableId
+    });
   });
 
   it("answers null for malformed tokens without touching the database", async () => {

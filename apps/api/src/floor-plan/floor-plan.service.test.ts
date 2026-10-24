@@ -83,12 +83,17 @@ describe("FloorPlanService", () => {
   it("verifies a token against the host scope and hides everything else", async () => {
     const resolveQr = vi
       .fn()
-      .mockResolvedValueOnce({ label: "1", sectorName: "Salón", tableId })
+      .mockResolvedValueOnce({
+        group: null,
+        label: "1",
+        sectorName: "Salón",
+        tableId
+      })
       .mockResolvedValueOnce(null);
     const service = new FloorPlanService(repository({ resolveQr }) as never);
 
     await expect(service.verifyQr(context, token)).resolves.toEqual({
-      table: { label: "1", sectorName: "Salón", tableId },
+      table: { group: null, label: "1", sectorName: "Salón", tableId },
       valid: true
     });
     await expect(service.verifyQr(context, token)).resolves.toEqual({

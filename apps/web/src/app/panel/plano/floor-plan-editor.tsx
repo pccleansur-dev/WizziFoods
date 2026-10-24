@@ -16,6 +16,7 @@ import {
   addSector,
   addTable,
   ensureDefaultFloor,
+  groupOfTable,
   groupTables,
   moveTable,
   moveTableToFloor,
@@ -502,8 +503,9 @@ export function FloorPlanEditor({
               </h2>
               <p className="floor-plan-help">
                 Cada mesa física tiene un QR propio que no cambia al moverla,
-                pasarla de planta, editarla ni agruparla. Los QR de mesas nuevas
-                se generan al guardar.
+                pasarla de planta, editarla ni agruparla. Las mesas de un grupo
+                siguen teniendo su QR, pero todos llevan a la misma reunión. Los
+                QR de mesas nuevas se generan al guardar.
               </p>
               <div className="floor-plan-qr-actions">
                 {floorQrEntries.filter(({ saved }) => saved).length > 1 ? (
@@ -551,6 +553,15 @@ export function FloorPlanEditor({
                         />
                       ) : null}
                       <strong>Mesa {table.label}</strong>
+                      {saved && groupOfTable(savedPlan, table.id) ? (
+                        <span className="floor-plan-qr-group-tag">
+                          Grupo «{groupOfTable(savedPlan, table.id)?.name}» ·
+                          junto con{" "}
+                          {groupOfTable(savedPlan, table.id)?.withLabels.join(
+                            ", "
+                          )}
+                        </span>
+                      ) : null}
                       {!saved ? (
                         <span className="floor-plan-help">
                           Guardá para generar el QR

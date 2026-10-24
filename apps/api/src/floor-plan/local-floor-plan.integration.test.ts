@@ -292,7 +292,7 @@ describeWithLocalStack("floor plan with local Supabase", () => {
     const token = /\/m\/([0-9a-f]{64})$/u.exec(qrBefore[0]!.url)![1];
     const verified = await call(one, "POST", "/qr/verify", { token });
     expect(verified.json().data).toMatchObject({
-      table: { label: "1", sectorName: "Salón", tableId: tableA },
+      table: { group: null, label: "1", sectorName: "Salón", tableId: tableA },
       valid: true
     });
   });

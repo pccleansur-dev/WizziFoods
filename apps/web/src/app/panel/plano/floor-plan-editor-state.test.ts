@@ -12,6 +12,7 @@ import {
   clampZoom,
   createEmptyFloorPlan,
   groupTables,
+  groupOfTable,
   moveTable,
   nudgeTable,
   planIsDirty,
@@ -673,5 +674,23 @@ describe("seats of grouped tables", () => {
     const seats = seatPositionsWithin(round, [square(60, 240)]);
     expect(seats.length).toBeLessThan(4);
     expect(seats.length).toBeGreaterThan(0);
+  });
+});
+
+describe("QR of grouped tables", () => {
+  it("says which group a table belongs to and which tables share its QR destination", () => {
+    const plan = planWithTables(3);
+    const [a, b, c] = plan.tables;
+    const grouped = groupTables(plan, [a!.id, b!.id], ids(), "Cumpleaños");
+    expect(groupOfTable(grouped, a!.id)).toEqual({
+      name: "Cumpleaños",
+      withLabels: [b!.label]
+    });
+    expect(groupOfTable(grouped, b!.id)).toEqual({
+      name: "Cumpleaños",
+      withLabels: [a!.label]
+    });
+    expect(groupOfTable(grouped, c!.id)).toBeNull();
+    expect(groupOfTable(plan, a!.id)).toBeNull();
   });
 });

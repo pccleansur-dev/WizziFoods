@@ -84,3 +84,14 @@ Un local puede tener varias plantas («Planta baja», «Planta alta», «Terraza
   crea con la primera mesa.
 - **Rollback.** Revertir la migración descarta las plantas y restaura las funciones de T13
   con una sola planta implícita.
+
+## Grupos: sillas y QR
+
+- **Sillas.** Al agrupar, las mesas siguen siendo mesas distintas. En el plano, el lado de cada
+  mesa que toca a otra del grupo queda sin sillas y esas sillas pasan a los lados libres (el
+  total no cambia). Es solo dibujo (`seatPositionsWithin`); no se guarda nada extra.
+- **QR.** Cada mesa conserva su QR y su token. `private.resolve_floor_table_qr` (migración
+  `20261024061000_resolve_qr_with_group.sql`, rollback y pgTap `floor_plan_group_qr.test.sql`)
+  devuelve además `group_id`, `group_name` y `group_table_labels` (mesas activas del grupo), y
+  `FloorTableQrResolution.group` los expone. T16 debe tratar a todo el grupo como una sola
+  sesión usando `group.id`. La vista de códigos QR marca las mesas agrupadas.

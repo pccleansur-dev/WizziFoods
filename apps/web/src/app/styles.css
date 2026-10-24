@@ -3114,3 +3114,12 @@ dd {
   padding-block: 0.25rem;
   font-size: 0.85rem;
 }
+
+.floor-plan-qr-group-tag {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #efe3cc;
+  color: #6b4a14;
+  font-size: 0.75rem;
+  font-weight: 700;
+}

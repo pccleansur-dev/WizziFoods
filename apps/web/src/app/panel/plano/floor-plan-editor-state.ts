@@ -843,3 +843,19 @@ export function qrEntriesByFloor(
           (planOrder.get(right.floor.id) ?? 0)
     );
 }
+
+/** The group a table is in and the labels of the other tables whose QR leads to the same party. */
+export function groupOfTable(
+  plan: FloorPlanDraft,
+  tableId: string
+): { name: string; withLabels: string[] } | null {
+  const group = plan.groups.find(({ tableIds }) => tableIds.includes(tableId));
+  if (!group) return null;
+  const labels = new Map(plan.tables.map(({ id, label }) => [id, label]));
+  return {
+    name: group.name,
+    withLabels: group.tableIds
+      .filter((id) => id !== tableId)
+      .flatMap((id) => labels.get(id) ?? [])
+  };
+}

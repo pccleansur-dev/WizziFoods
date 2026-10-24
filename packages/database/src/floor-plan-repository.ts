@@ -22,6 +22,8 @@ export type FloorTableQrCode = {
 };
 
 export type FloorTableQrResolution = {
+  /** The group the table is part of: its QR then stands for the whole group. */
+  group: { id: string; name: string; tableLabels: string[] } | null;
   label: string;
   sectorName: string;
   tableId: string;
@@ -94,7 +96,14 @@ function mapRecord(value: unknown): FloorPlanRecord {
 type PlanRow = { result: unknown };
 type SaveRow = { applied: boolean; result: unknown };
 type QrRow = { label: string; table_id: string; token: string };
-type ResolveRow = { label: string; sector_name: string; table_id: string };
+type ResolveRow = {
+  group_id: string | null;
+  group_name: string | null;
+  group_table_labels: string[] | null;
+  label: string;
+  sector_name: string;
+  table_id: string;
+};
 type ReadinessRow = { active_tables: number; tables_with_qr: number };
 
 export function createFloorPlanRepository(client: Sql): FloorPlanRepository {
@@ -162,6 +171,14 @@ export function createFloorPlanRepository(client: Sql): FloorPlanRepository {
       `;
       return row
         ? {
+            group:
+              row.group_id && row.group_name
+                ? {
+                    id: row.group_id,
+                    name: row.group_name,
+                    tableLabels: row.group_table_labels ?? []
+                  }
+                : null,
             label: row.label,
             sectorName: row.sector_name,
             tableId: row.table_id
