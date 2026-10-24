@@ -132,9 +132,10 @@ select lives_ok($$
     (select t1 from scope), (select l1 from scope), 'd1000000-0000-4000-8000-000000000001',
     'd9000000-0000-4000-8000-000000000009', 0,
     jsonb_build_object(
+      'floors', jsonb_build_array(jsonb_build_object('id','dc000000-0000-4000-8000-00000000000c','name','Planta baja','position',0,'shortName',null)),
       'sectors', jsonb_build_array(jsonb_build_object('id','da000000-0000-4000-8000-00000000000a','name','Salón','position',0)),
       'tables', jsonb_build_array(jsonb_build_object(
-        'id','db000000-0000-4000-8000-00000000000b','label','1','sectorId','da000000-0000-4000-8000-00000000000a',
+        'id','db000000-0000-4000-8000-00000000000b','label','1','sectorId','da000000-0000-4000-8000-00000000000a','floorId','dc000000-0000-4000-8000-00000000000c',
         'shape','rectangle','x',40,'y',40,'width',100,'height',80,'rotation',0,'seatCount',4,'seatLayout','perimeter')),
       'groups', '[]'::jsonb))
 $$, 'a table with a QR is saved');

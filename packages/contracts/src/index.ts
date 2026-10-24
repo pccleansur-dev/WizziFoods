@@ -52,6 +52,7 @@ export {
   parseFloorPlanCommand,
   parseFloorPlanDraft,
   type FloorPlanCommand,
+  type FloorLevel,
   type FloorPlanDraft,
   type FloorPlanIssue,
   type FloorPlanIssueCode,

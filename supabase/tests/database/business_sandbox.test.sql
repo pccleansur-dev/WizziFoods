@@ -83,9 +83,10 @@ perform private.save_floor_plan(
   (select t1 from scope), (select l1 from scope), 'e1000000-0000-4000-8000-000000000001',
   'e9000000-0000-4000-8000-000000000009', 0,
   jsonb_build_object(
+    'floors', jsonb_build_array(jsonb_build_object('id','ec000000-0000-4000-8000-00000000000c','name','Planta baja','position',0,'shortName',null)),
     'sectors', jsonb_build_array(jsonb_build_object('id','ea000000-0000-4000-8000-00000000000a','name','Salón','position',0)),
     'tables', jsonb_build_array(jsonb_build_object(
-      'id','eb000000-0000-4000-8000-00000000000b','label','1','sectorId','ea000000-0000-4000-8000-00000000000a',
+      'id','eb000000-0000-4000-8000-00000000000b','label','1','sectorId','ea000000-0000-4000-8000-00000000000a','floorId','ec000000-0000-4000-8000-00000000000c',
       'shape','rectangle','x',40,'y',40,'width',100,'height',80,'rotation',0,'seatCount',4,'seatLayout','perimeter')),
     'groups', '[]'::jsonb));
 end $fixture$;

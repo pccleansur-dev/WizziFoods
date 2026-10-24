@@ -39,7 +39,7 @@ $$;
 create function pg_temp.tbl(id text, label text, x integer, width integer, sector text default 'b5000000-0000-4000-8000-000000000005')
 returns jsonb language sql as $$
   select jsonb_build_object(
-    'id', id, 'label', label, 'sectorId', sector, 'shape', 'rectangle',
+    'id', id, 'label', label, 'sectorId', sector, 'floorId', 'b7000000-0000-4000-8000-000000000007', 'shape', 'rectangle',
     'x', x, 'y', 40, 'width', width, 'height', 80, 'rotation', 0,
     'seatCount', 4, 'seatLayout', 'perimeter')
 $$;
@@ -47,6 +47,7 @@ $$;
 create temporary table plans (name text primary key, plan jsonb not null);
 insert into plans values
 ('v1', jsonb_build_object(
+  'floors', jsonb_build_array(jsonb_build_object('id','b7000000-0000-4000-8000-000000000007','name','Planta baja','position',0,'shortName',null)),
   'sectors', jsonb_build_array(
     jsonb_build_object('id','b5000000-0000-4000-8000-000000000005','name','Salón','position',0),
     jsonb_build_object('id','b6000000-0000-4000-8000-000000000006','name','Terraza','position',1)),
@@ -56,6 +57,7 @@ insert into plans values
     pg_temp.tbl('c3000000-0000-4000-8000-000000000003','3',360,100,'b6000000-0000-4000-8000-000000000006')),
   'groups', '[]'::jsonb)),
 ('v2', jsonb_build_object(
+  'floors', jsonb_build_array(jsonb_build_object('id','b7000000-0000-4000-8000-000000000007','name','Planta baja','position',0,'shortName',null)),
   'sectors', jsonb_build_array(
     jsonb_build_object('id','b5000000-0000-4000-8000-000000000005','name','Salón','position',0),
     jsonb_build_object('id','b6000000-0000-4000-8000-000000000006','name','Terraza','position',1)),

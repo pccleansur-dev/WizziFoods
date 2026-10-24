@@ -8,6 +8,8 @@ import {
 } from "./floor-plan.js";
 
 const sectorId = "f1000000-0000-4000-8000-000000000001";
+const floorId = "fa000000-0000-4000-8000-00000000000a";
+const upperFloorId = "fb000000-0000-4000-8000-00000000000b";
 const tableA = "f2000000-0000-4000-8000-000000000002";
 const tableB = "f3000000-0000-4000-8000-000000000003";
 const groupId = "f4000000-0000-4000-8000-000000000004";
@@ -15,12 +17,16 @@ const commandId = "f5000000-0000-4000-8000-000000000005";
 
 function validPlan(): FloorPlanDraft {
   return {
+    floors: [
+      { id: floorId, name: "Planta baja", position: 0, shortName: "PB" }
+    ],
     groups: [{ id: groupId, name: "Familia", tableIds: [tableA, tableB] }],
     sectors: [{ id: sectorId, name: "Salón", position: 0 }],
     tables: [
       {
         height: 100,
         id: tableA,
+        floorId,
         label: "1",
         rotation: 0,
         seatCount: 4,
@@ -34,6 +40,7 @@ function validPlan(): FloorPlanDraft {
       {
         height: 80,
         id: tableB,
+        floorId,
         label: "2",
         rotation: 90,
         seatCount: 6,
@@ -62,7 +69,7 @@ describe("parseFloorPlanDraft", () => {
 
   it("accepts an empty plan so progress can be saved before any table exists", () => {
     expect(
-      parseFloorPlanDraft({ groups: [], sectors: [], tables: [] })
+      parseFloorPlanDraft({ floors: [], groups: [], sectors: [], tables: [] })
     ).toMatchObject({ ok: true });
   });
 
@@ -209,6 +216,101 @@ describe("parseFloorPlanDraft", () => {
         sectors: [{ id: sectorId, name: "", position: 0 }]
       })
     ).toContain("INVALID_FIELD");
+  });
+});
+
+describe("floors (plantas)", () => {
+  const upper = {
+    id: upperFloorId,
+    name: "Planta alta",
+    position: 1,
+    shortName: null
+  };
+
+  it("accepts several floors and tables on each of them", () => {
+    const base = validPlan();
+    const plan = {
+      ...base,
+      floors: [...base.floors, upper],
+      groups: [],
+      tables: [base.tables[0], { ...base.tables[1], floorId: upperFloorId }]
+    };
+    expect(parseFloorPlanDraft(plan)).toMatchObject({ ok: true });
+  });
+
+  it("rejects a table on a floor that does not exist", () => {
+    const base = validPlan();
+    const orphan = { ...base.tables[1], floorId: upperFloorId };
+    expect(issueCodes({ ...base, tables: [base.tables[0], orphan] })).toContain(
+      "UNKNOWN_FLOOR"
+    );
+  });
+
+  it("keeps every table of a group on the same floor", () => {
+    const base = validPlan();
+    const plan = {
+      ...base,
+      floors: [...base.floors, upper],
+      tables: [base.tables[0], { ...base.tables[1], floorId: upperFloorId }]
+    };
+    expect(issueCodes(plan)).toContain("MIXED_FLOORS");
+  });
+
+  it("rejects repeated floor ids and repeated names, ignoring case", () => {
+    const base = validPlan();
+    expect(
+      issueCodes({
+        ...base,
+        floors: [...base.floors, { ...upper, id: floorId }]
+      })
+    ).toContain("DUPLICATE_ID");
+    expect(
+      issueCodes({
+        ...base,
+        floors: [...base.floors, { ...upper, name: "planta BAJA" }]
+      })
+    ).toContain("DUPLICATE_LABEL");
+  });
+
+  it("validates names, the optional short name and the amount of floors", () => {
+    const base = validPlan();
+    for (const floor of [
+      { ...upper, name: "" },
+      { ...upper, name: " Alta " },
+      { ...upper, shortName: "" },
+      {
+        ...upper,
+        shortName: "x".repeat(FLOOR_PLAN_LIMITS.maxShortNameLength + 1)
+      },
+      { ...upper, position: -1 },
+      { ...upper, extra: 1 }
+    ]) {
+      expect(
+        issueCodes({ ...base, floors: [...base.floors, floor] })
+      ).not.toEqual([]);
+    }
+    const many = Array.from(
+      { length: FLOOR_PLAN_LIMITS.maxFloors + 1 },
+      (_, n) => ({
+        id: `fc000000-0000-4000-8000-${String(n).padStart(12, "0")}`,
+        name: `Planta ${n}`,
+        position: n,
+        shortName: null
+      })
+    );
+    expect(
+      issueCodes({ ...base, floors: many, groups: [], tables: [] })
+    ).toContain("LIMIT_EXCEEDED");
+  });
+
+  it("requires the floors list and the floor of each table", () => {
+    const { floors: _floors, ...withoutFloors } = validPlan();
+    expect(issueCodes(withoutFloors)).toContain("INVALID_STRUCTURE");
+    const base = validPlan();
+    const { floorId: _floorId, ...bare } = base.tables[0]!;
+    expect(issueCodes({ ...base, tables: [bare, base.tables[1]] })).toContain(
+      "INVALID_STRUCTURE"
+    );
   });
 });
 
