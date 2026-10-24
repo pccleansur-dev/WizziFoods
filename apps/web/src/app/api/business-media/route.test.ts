@@ -4,9 +4,11 @@ const tenantFetch = vi.fn();
 vi.mock("../../panel/tenant-fetch", () => ({
   tenantFetch: (...args: unknown[]) => tenantFetch(...args)
 }));
+const uploadToSignedUrl = vi.fn();
 vi.mock("../../../auth/supabase-server", () => ({
   createAuthServerClient: () =>
     Promise.resolve({
+      storage: { from: () => ({ uploadToSignedUrl }) },
       auth: {
         getClaims: () =>
           Promise.resolve({ data: { claims: { aal: "aal2" } }, error: null }),
@@ -66,6 +68,48 @@ describe("business media routes reach the API through tenantFetch", () => {
     );
     expect(init.headers.host).toBe(hostname);
     expect(init.headers.authorization).toBe("Bearer session-token");
+  });
+
+  it("queues processing without a JSON content type, since it has no body", async () => {
+    const assetUuid = "a2000000-0000-4000-8000-000000000002";
+    const reservation = {
+      data: {
+        contentType: "image/png",
+        expiresAt: "2026-10-24T12:00:00.000Z",
+        id: assetUuid,
+        kind: "logo",
+        objectPath: `t/${assetUuid}.png`,
+        sourceSizeBytes: 8,
+        status: "reserved",
+        uploadUrl:
+          "http://localhost:18000/storage/v1/object/upload/sign/business-media/x?token=abc"
+      }
+    };
+    tenantFetch
+      .mockResolvedValueOnce(Response.json(reservation))
+      .mockResolvedValueOnce(new Response("{}", { status: 500 }));
+    uploadToSignedUrl.mockResolvedValue({ error: null });
+    const form = new FormData();
+    form.set("kind", "logo");
+    form.set(
+      "file",
+      new File([new Uint8Array(8)], "logo.png", { type: "image/png" })
+    );
+    await POST(
+      new Request(`http://${hostname}/api/business-media`, {
+        body: form,
+        headers: { host: hostname, origin: `http://${hostname}` },
+        method: "POST"
+      })
+    );
+    const [url, init] = tenantFetch.mock.calls[1] as [
+      string,
+      { body?: string; headers: Record<string, string> }
+    ];
+    expect(url).toContain(`/${assetUuid}/processing`);
+    expect(init.body).toBeUndefined();
+    expect(init.headers["content-type"]).toBeUndefined();
+    expect(init.headers.host).toBe(hostname);
   });
 
   it("reads the asset status with the tenant host", async () => {

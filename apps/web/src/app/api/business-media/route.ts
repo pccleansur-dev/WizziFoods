@@ -68,7 +68,6 @@ export async function POST(request: Request) {
     const config = readWebConfig(process.env);
     const apiHeaders = {
       authorization: `Bearer ${accessToken}`,
-      "content-type": "application/json",
       host
     };
     const reservationResponse = await tenantFetch(
@@ -80,7 +79,7 @@ export async function POST(request: Request) {
           kind: kind as BusinessMediaKind
         }),
         cache: "no-store",
-        headers: apiHeaders,
+        headers: { ...apiHeaders, "content-type": "application/json" },
         method: "POST"
       }
     );
