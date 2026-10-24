@@ -39,9 +39,12 @@ export function ConfirmedOrderPanel({
       <p className="waiter-total">
         Total del pedido <b>{formatMoney(order.totalCents)}</b>
       </p>
+      <p className="waiter-sent" role="status">
+        ✓ Enviado a producción: cada ítem fue a Cocina o Barra según su sector.
+      </p>
       <p className="waiter-note">
-        Pago: <strong>no registrado</strong>. Confirmar no cobra, no abre la
-        cuenta de la mesa ni envía el pedido a producción.
+        Pago: <strong>no registrado</strong>. Confirmar no cobra ni abre la
+        cuenta de la mesa (eso llega con la etapa de cuenta).
       </p>
       <div
         aria-label="Decisiones posteriores sobre la cuenta"
@@ -72,8 +75,12 @@ export function ConfirmedOrderPanel({
         onClick={onDismiss}
         type="button"
       >
-        Entendido
+        Cerrar aviso
       </button>
+      <p className="waiter-note">
+        Cerrar el aviso no cancela ni borra el pedido: sigue su curso en Cocina
+        y Barra.
+      </p>
     </section>
   );
 }

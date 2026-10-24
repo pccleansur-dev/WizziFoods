@@ -4021,3 +4021,9 @@ main:has(.diner-experience) .diner-entry {
   font-weight: 700;
   box-shadow: 0 6px 20px rgb(34 31 26 / 25%);
 }
+
+.waiter-sent {
+  margin: 0;
+  color: #1f4d2c;
+  font-weight: 700;
+}
