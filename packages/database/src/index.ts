@@ -47,7 +47,9 @@ export {
   type FloorTableQrCode,
   type FloorTableQrResolution,
   type RotateFloorTableQrInput,
-  type SaveFloorPlanInput
+  type SaveFloorPlanInput,
+  type TableEntryResolution,
+  type TableServiceState
 } from "./floor-plan-repository.js";
 export {
   type AppendAuditEventInput,

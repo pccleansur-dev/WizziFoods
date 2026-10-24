@@ -29,6 +29,19 @@ export type FloorTableQrResolution = {
   tableId: string;
 };
 
+export type TableServiceState =
+  "available" | "needs_cleaning" | "occupied" | "out_of_service";
+
+/** What a diner who scans a table QR finds right now. */
+export type TableEntryResolution = FloorTableQrResolution & {
+  /** False while the business is closing tables for a commercial suspension. */
+  acceptsNewTables: boolean;
+  floorName: string;
+  /** False until the Administrator publishes the business. */
+  published: boolean;
+  serviceState: TableServiceState;
+};
+
 export type FloorPlanReadiness = {
   activeTables: number;
   ready: boolean;
@@ -58,6 +71,10 @@ export interface FloorPlanRepository {
     scope: TenantScope,
     token: string
   ): Promise<FloorTableQrResolution | null>;
+  resolveTableEntry(
+    scope: TenantScope,
+    token: string
+  ): Promise<TableEntryResolution | null>;
   rotateQr(input: RotateFloorTableQrInput): Promise<void>;
   savePlan(input: SaveFloorPlanInput): Promise<FloorPlanSaveRecord>;
 }
@@ -104,7 +121,29 @@ type ResolveRow = {
   sector_name: string;
   table_id: string;
 };
+type EntryRow = ResolveRow & {
+  accepts_new_tables: boolean;
+  floor_name: string;
+  published: boolean;
+  service_state: TableServiceState;
+};
 type ReadinessRow = { active_tables: number; tables_with_qr: number };
+
+function mapResolution(row: ResolveRow): FloorTableQrResolution {
+  return {
+    group:
+      row.group_id && row.group_name
+        ? {
+            id: row.group_id,
+            name: row.group_name,
+            tableLabels: row.group_table_labels ?? []
+          }
+        : null,
+    label: row.label,
+    sectorName: row.sector_name,
+    tableId: row.table_id
+  };
+}
 
 export function createFloorPlanRepository(client: Sql): FloorPlanRepository {
   return {
@@ -169,19 +208,27 @@ export function createFloorPlanRepository(client: Sql): FloorPlanRepository {
           ${token}
         )
       `;
+      return row ? mapResolution(row) : null;
+    },
+
+    async resolveTableEntry(untrustedScope, token) {
+      const scope = assertScope(untrustedScope);
+      if (typeof token !== "string" || !tokenPattern.test(token)) return null;
+      const [row] = await client<EntryRow[]>`
+        select *
+        from private.resolve_table_entry(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${token}
+        )
+      `;
       return row
         ? {
-            group:
-              row.group_id && row.group_name
-                ? {
-                    id: row.group_id,
-                    name: row.group_name,
-                    tableLabels: row.group_table_labels ?? []
-                  }
-                : null,
-            label: row.label,
-            sectorName: row.sector_name,
-            tableId: row.table_id
+            ...mapResolution(row),
+            acceptsNewTables: row.accepts_new_tables,
+            floorName: row.floor_name,
+            published: row.published,
+            serviceState: row.service_state
           }
         : null;
     },

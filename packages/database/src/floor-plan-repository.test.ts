@@ -136,6 +136,50 @@ describe("floor plan repository", () => {
     });
   });
 
+  it("resolves what a QR scan means for a table", async () => {
+    const client = clientReturning([
+      {
+        accepts_new_tables: true,
+        floor_name: "Terraza",
+        group_id: null,
+        group_name: null,
+        group_table_labels: null,
+        label: "5",
+        published: true,
+        sector_name: "Salón",
+        service_state: "occupied",
+        table_id: tableId
+      }
+    ]);
+    await expect(
+      createFloorPlanRepository(client).resolveTableEntry(scope, token)
+    ).resolves.toEqual({
+      acceptsNewTables: true,
+      floorName: "Terraza",
+      group: null,
+      label: "5",
+      published: true,
+      sectorName: "Salón",
+      serviceState: "occupied",
+      tableId
+    });
+  });
+
+  it("answers null to an unknown or malformed entry token", async () => {
+    await expect(
+      createFloorPlanRepository(clientReturning([])).resolveTableEntry(
+        scope,
+        token
+      )
+    ).resolves.toBeNull();
+    await expect(
+      createFloorPlanRepository(unreachableClient).resolveTableEntry(
+        scope,
+        "short"
+      )
+    ).resolves.toBeNull();
+  });
+
   it("answers null for malformed tokens without touching the database", async () => {
     const repository = createFloorPlanRepository(unreachableClient);
     await expect(repository.resolveQr(scope, "short")).resolves.toBeNull();
