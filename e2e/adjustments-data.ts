@@ -105,6 +105,9 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
   await owner.begin(async (tx) => {
     await tx`set local session_replication_role = replica`;
     for (const table of [
+      "account_entries",
+      "account_decisions",
+      "table_sessions",
       "order_adjustments",
       "production_item_events",
       "production_items",

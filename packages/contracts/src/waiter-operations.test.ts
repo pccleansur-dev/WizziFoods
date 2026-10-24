@@ -142,4 +142,45 @@ describe("waiter operation results", () => {
     ).toBeNull();
     expect(parseWaiterSalonView({ ...view, tenantId: tableId })).toBeNull();
   });
+
+  it("reports the open session and the derived balance of a unit, or neither", () => {
+    const floorId = "55555555-5555-4555-8555-555555555555";
+    const sessionId = "66666666-6666-4666-8666-666666666666";
+    const unit = {
+      balanceCents: 15_000,
+      floorId,
+      id: tableId,
+      kind: "table",
+      label: "Mesa 5",
+      name: null,
+      openCalls: 0,
+      pendingIntents: 0,
+      sectorName: "Salón",
+      session: { id: sessionId },
+      state: "occupied",
+      tables: [{ id: tableId, inScope: true, label: "5" }]
+    };
+    const view = (entry: unknown) => ({
+      calls: [],
+      floors: [{ id: floorId, name: "Planta baja", shortName: null }],
+      generatedAt: "2026-10-24T12:00:00.000Z",
+      intents: [],
+      units: [entry]
+    });
+    expect(parseWaiterSalonView(view(unit))?.units[0]).toMatchObject({
+      balanceCents: 15_000,
+      session: { id: sessionId }
+    });
+    expect(
+      parseWaiterSalonView(view({ ...unit, balanceCents: null, session: null }))
+    ).not.toBeNull();
+    // A balance without a session, or a session without a balance, is incoherent.
+    expect(parseWaiterSalonView(view({ ...unit, session: null }))).toBeNull();
+    expect(
+      parseWaiterSalonView(view({ ...unit, balanceCents: null }))
+    ).toBeNull();
+    expect(
+      parseWaiterSalonView(view({ ...unit, session: { id: sessionId, x: 1 } }))
+    ).toBeNull();
+  });
 });

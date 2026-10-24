@@ -97,35 +97,23 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
     [tenantId, userId],
     [otherTenantId, otherUserId]
   ] as const) {
-    await owner`alter table private.confirmed_order_items disable trigger confirmed_order_items_append_only`;
-    await owner`alter table private.confirmed_order_items disable trigger confirmed_order_items_no_truncate`;
-    await owner`alter table private.confirmed_orders disable trigger confirmed_orders_append_only`;
-    await owner`alter table private.confirmed_orders disable trigger confirmed_orders_no_truncate`;
-    await owner`alter table private.order_intent_decisions disable trigger order_intent_decisions_append_only`;
-    await owner`alter table private.order_intents disable trigger order_intents_guard_change`;
-    await owner`alter table private.production_item_events disable trigger production_item_events_append_only`;
-    await owner`alter table private.production_items disable trigger production_items_guard_change`;
-    try {
-      await owner`delete from private.production_item_events where tenant_id = ${tenant}`;
-      await owner`delete from private.production_items where tenant_id = ${tenant}`;
-      await owner`delete from private.confirmed_order_items where tenant_id = ${tenant}`;
-      await owner`delete from private.confirmed_orders where tenant_id = ${tenant}`;
-      await owner`delete from private.order_intent_decisions where tenant_id = ${tenant}`;
-      await owner`delete from private.waiter_commands where tenant_id = ${tenant}`;
-      await owner`delete from private.waiter_calls where tenant_id = ${tenant}`;
-      await owner`delete from private.order_intent_items where tenant_id = ${tenant}`;
-      await owner`delete from private.order_intents where tenant_id = ${tenant}`;
-      await owner`delete from private.order_intent_commands where tenant_id = ${tenant}`;
-    } finally {
-      await owner`alter table private.confirmed_order_items enable trigger confirmed_order_items_append_only`;
-      await owner`alter table private.confirmed_order_items enable trigger confirmed_order_items_no_truncate`;
-      await owner`alter table private.confirmed_orders enable trigger confirmed_orders_append_only`;
-      await owner`alter table private.confirmed_orders enable trigger confirmed_orders_no_truncate`;
-      await owner`alter table private.order_intent_decisions enable trigger order_intent_decisions_append_only`;
-      await owner`alter table private.order_intents enable trigger order_intents_guard_change`;
-      await owner`alter table private.production_item_events enable trigger production_item_events_append_only`;
-      await owner`alter table private.production_items enable trigger production_items_guard_change`;
-    }
+    await owner.begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`delete from private.account_entries where tenant_id = ${tenant}`;
+      await tx`delete from private.account_decisions where tenant_id = ${tenant}`;
+      await tx`delete from private.table_sessions where tenant_id = ${tenant}`;
+      await tx`delete from private.order_adjustments where tenant_id = ${tenant}`;
+      await tx`delete from private.production_item_events where tenant_id = ${tenant}`;
+      await tx`delete from private.production_items where tenant_id = ${tenant}`;
+      await tx`delete from private.confirmed_order_items where tenant_id = ${tenant}`;
+      await tx`delete from private.confirmed_orders where tenant_id = ${tenant}`;
+      await tx`delete from private.order_intent_decisions where tenant_id = ${tenant}`;
+      await tx`delete from private.order_intent_items where tenant_id = ${tenant}`;
+      await tx`delete from private.order_intents where tenant_id = ${tenant}`;
+    });
+    await owner`delete from private.waiter_commands where tenant_id = ${tenant}`;
+    await owner`delete from private.waiter_calls where tenant_id = ${tenant}`;
+    await owner`delete from private.order_intent_commands where tenant_id = ${tenant}`;
     await owner`delete from private.published_catalogs where tenant_id = ${tenant}`;
     await sql`delete from private.location_publications where tenant_id = ${tenant}`;
     await sql`delete from private.audit_events where tenant_id = ${tenant}`;

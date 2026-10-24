@@ -216,6 +216,27 @@ export {
   type WaiterTableState
 } from "./waiter-operations.js";
 export {
+  parseApplyDiscountRequest,
+  parseDiscountResult,
+  parseKeepOpenRequest,
+  parseKeepOpenResult,
+  parsePaymentResult,
+  parseRecordPaymentRequest,
+  parseWaiterAccountsView,
+  type AccountEntryView,
+  type AccountMovementKind,
+  type AccountPaymentMethod,
+  type AccountSummary,
+  type ApplyDiscountRequest,
+  type DiscountResult,
+  type KeepOpenRequest,
+  type KeepOpenResult,
+  type PaymentResult,
+  type RecordPaymentRequest,
+  type WaiterAccount,
+  type WaiterAccountsView
+} from "./table-accounts.js";
+export {
   parseCancelItemRequest,
   parseCancelItemResult,
   parseDeliverItemRequest,

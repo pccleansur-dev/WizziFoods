@@ -129,7 +129,7 @@ test("client → call → waiter → confirmed order, without payment or product
   expect(await business.intentStatus(dinerName)).toBe("confirmed");
   expect(await business.orderCounts()).toEqual({ confirmed: 1, manual: 0 });
   expect(await business.forbiddenArtifacts()).toEqual([]);
-  expect(await business.tableStateRows()).toBe(0);
+  expect(await business.tableStateRows()).toBe(1);
 });
 
 test("each waiter only sees the tables of their sectors", async ({

@@ -86,47 +86,25 @@ describeWithLocalStack("waiter operations with local Supabase", () => {
 
   async function cleanup() {
     for (const fixture of [one, two]) {
-      await admin`delete from private.waiter_calls where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.production_item_events disable trigger production_item_events_append_only`;
-      await admin`alter table private.production_items disable trigger production_items_guard_change`;
-      await admin`delete from private.production_item_events where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.production_items where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.production_item_events enable trigger production_item_events_append_only`;
-      await admin`alter table private.production_items enable trigger production_items_guard_change`;
-      await admin`
-        alter table private.confirmed_orders disable trigger confirmed_orders_append_only
-      `;
-      await admin`
-        alter table private.confirmed_orders disable trigger confirmed_orders_no_truncate
-      `;
-      await admin`
-        alter table private.confirmed_order_items disable trigger confirmed_order_items_append_only
-      `;
-      await admin`
-        alter table private.confirmed_order_items disable trigger confirmed_order_items_no_truncate
-      `;
-      await admin`delete from private.confirmed_order_items where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.confirmed_orders where tenant_id = ${fixture.tenantId}`;
-      await admin`
-        alter table private.confirmed_orders enable trigger confirmed_orders_append_only
-      `;
-      await admin`
-        alter table private.confirmed_orders enable trigger confirmed_orders_no_truncate
-      `;
-      await admin`
-        alter table private.confirmed_order_items enable trigger confirmed_order_items_append_only
-      `;
-      await admin`
-        alter table private.confirmed_order_items enable trigger confirmed_order_items_no_truncate
-      `;
-      await admin`alter table private.order_intent_decisions disable trigger order_intent_decisions_append_only`;
-      await admin`delete from private.order_intent_decisions where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.order_intent_decisions enable trigger order_intent_decisions_append_only`;
-      await admin`delete from private.waiter_commands where tenant_id = ${fixture.tenantId}`;
-      await admin`delete from private.order_intent_items where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.order_intents disable trigger order_intents_guard_change`;
-      await admin`delete from private.order_intents where tenant_id = ${fixture.tenantId}`;
-      await admin`alter table private.order_intents enable trigger order_intents_guard_change`;
+      const tenant = fixture.tenantId;
+      // Triggers stay enabled for everyone else: other integration files assert
+      // the append-only guards at the same time.
+      await admin.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from private.account_entries where tenant_id = ${tenant}`;
+        await tx`delete from private.account_decisions where tenant_id = ${tenant}`;
+        await tx`delete from private.table_sessions where tenant_id = ${tenant}`;
+        await tx`delete from private.order_adjustments where tenant_id = ${tenant}`;
+        await tx`delete from private.production_item_events where tenant_id = ${tenant}`;
+        await tx`delete from private.production_items where tenant_id = ${tenant}`;
+        await tx`delete from private.confirmed_order_items where tenant_id = ${tenant}`;
+        await tx`delete from private.confirmed_orders where tenant_id = ${tenant}`;
+        await tx`delete from private.order_intent_decisions where tenant_id = ${tenant}`;
+        await tx`delete from private.order_intent_items where tenant_id = ${tenant}`;
+        await tx`delete from private.order_intents where tenant_id = ${tenant}`;
+      });
+      await admin`delete from private.waiter_commands where tenant_id = ${tenant}`;
+      await admin`delete from private.waiter_calls where tenant_id = ${tenant}`;
       await admin`delete from private.order_intent_commands where tenant_id = ${fixture.tenantId}`;
       await admin`delete from private.product_operational_stock where tenant_id = ${fixture.tenantId}`;
       await admin`delete from private.audit_events where tenant_id = ${fixture.tenantId}`;
@@ -530,7 +508,8 @@ describeWithLocalStack("waiter operations with local Supabase", () => {
     const states = await admin`
       select 1 from private.floor_table_service_states where tenant_id = ${one.tenantId}
     `;
-    expect(states).toHaveLength(0);
+    // T22: confirming opens the table session and occupies the table.
+    expect(states).toHaveLength(1);
     const leaked = await admin<{ table_name: string }[]>`
       select table_name from information_schema.tables
       where table_schema = 'private'

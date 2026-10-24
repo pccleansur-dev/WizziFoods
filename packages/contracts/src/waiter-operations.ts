@@ -242,8 +242,8 @@ export type WaiterTableState =
   "available" | "needs_cleaning" | "occupied" | "out_of_service";
 
 export type WaiterSalonUnit = {
-  /** Always null until T22 introduces table sessions and the ledger. */
-  balanceCents: null;
+  /** Pending balance of the open account, derived from the ledger. */
+  balanceCents: number | null;
   floorId: string;
   id: string;
   kind: "group" | "table";
@@ -252,8 +252,8 @@ export type WaiterSalonUnit = {
   openCalls: number;
   pendingIntents: number;
   sectorName: string;
-  /** Always null until T22 introduces table sessions. */
-  session: null;
+  /** The open table session, or null while nobody has ordered. */
+  session: { id: string } | null;
   state: WaiterTableState;
   tables: { id: string; inScope: boolean; label: string }[];
 };
@@ -589,8 +589,6 @@ function unitView(value: unknown): WaiterSalonUnit | null {
       "state",
       "tables"
     ]) ||
-    unit.balanceCents !== null ||
-    unit.session !== null ||
     (unit.kind !== "group" && unit.kind !== "table") ||
     !Array.isArray(unit.tables) ||
     unit.tables.length < 1 ||
@@ -620,6 +618,21 @@ function unitView(value: unknown): WaiterSalonUnit | null {
     }
     tables.push({ id: tableId, inScope: table.inScope, label: tableLabel });
   }
+  const session =
+    unit.session === null
+      ? null
+      : record(unit.session) &&
+          hasExactKeys(record(unit.session)!, ["id"]) &&
+          uuid(record(unit.session)!.id)
+        ? { id: uuid(record(unit.session)!.id)! }
+        : undefined;
+  const balanceCents =
+    unit.balanceCents === null
+      ? null
+      : typeof unit.balanceCents === "number" &&
+          Number.isSafeInteger(unit.balanceCents)
+        ? unit.balanceCents
+        : undefined;
   const openCalls = cents(unit.openCalls);
   const pendingIntents = cents(unit.pendingIntents);
   if (
@@ -629,13 +642,16 @@ function unitView(value: unknown): WaiterSalonUnit | null {
     (unit.name !== null && !name) ||
     !sectorName ||
     !state ||
+    session === undefined ||
+    balanceCents === undefined ||
+    (session === null) !== (balanceCents === null) ||
     openCalls === null ||
     pendingIntents === null
   ) {
     return null;
   }
   return {
-    balanceCents: null,
+    balanceCents,
     floorId,
     id,
     kind: unit.kind,
@@ -644,7 +660,7 @@ function unitView(value: unknown): WaiterSalonUnit | null {
     openCalls,
     pendingIntents,
     sectorName,
-    session: null,
+    session,
     state,
     tables
   };

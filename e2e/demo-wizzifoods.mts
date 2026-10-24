@@ -79,21 +79,104 @@ type Item = [
   variants?: [string, number][]
 ];
 const items: Item[] = [
-  [0, kitchen, "Provoleta", "Provolone a la parrilla con orégano y tomate.", 9500],
-  [0, kitchen, "Empanadas de carne", "Cortadas a cuchillo, horno de barro. Por 3 unidades.", 8700],
+  [
+    0,
+    kitchen,
+    "Provoleta",
+    "Provolone a la parrilla con orégano y tomate.",
+    9500
+  ],
+  [
+    0,
+    kitchen,
+    "Empanadas de carne",
+    "Cortadas a cuchillo, horno de barro. Por 3 unidades.",
+    8700
+  ],
   [0, kitchen, "Rabas", "Anillas de calamar con alioli de limón.", 13800],
-  [0, kitchen, "Tabla de fiambres", "Jamón crudo, salame, queso y aceitunas.", 16500],
-  [1, kitchen, "Milanesa con papas", "De lomo, con papas rústicas.", 14500, [["Napolitana", 2500]]],
-  [1, kitchen, "Bife de chorizo", "350 g a la parrilla con guarnición a elección.", 21500],
-  [1, kitchen, "Ravioles de ricota", "Con salsa fileto o crema de hongos.", 13200, [["Crema de hongos", 1800]]],
-  [1, kitchen, "Salmón grillado", "Con puré de calabaza y vegetales salteados.", 22800],
-  [1, kitchen, "Ensalada Wisi", "Rúcula, parmesano, tomates cherry y nueces.", 11200],
-  [2, kitchen, "Pizza Muzzarella", "Salsa de tomate, muzzarella y aceitunas.", 12800, [["Grande", 3500]]],
-  [2, kitchen, "Pizza Fugazzeta", "Cebolla, muzzarella y orégano.", 14200, [["Grande", 3500]]],
+  [
+    0,
+    kitchen,
+    "Tabla de fiambres",
+    "Jamón crudo, salame, queso y aceitunas.",
+    16500
+  ],
+  [
+    1,
+    kitchen,
+    "Milanesa con papas",
+    "De lomo, con papas rústicas.",
+    14500,
+    [["Napolitana", 2500]]
+  ],
+  [
+    1,
+    kitchen,
+    "Bife de chorizo",
+    "350 g a la parrilla con guarnición a elección.",
+    21500
+  ],
+  [
+    1,
+    kitchen,
+    "Ravioles de ricota",
+    "Con salsa fileto o crema de hongos.",
+    13200,
+    [["Crema de hongos", 1800]]
+  ],
+  [
+    1,
+    kitchen,
+    "Salmón grillado",
+    "Con puré de calabaza y vegetales salteados.",
+    22800
+  ],
+  [
+    1,
+    kitchen,
+    "Ensalada Wisi",
+    "Rúcula, parmesano, tomates cherry y nueces.",
+    11200
+  ],
+  [
+    2,
+    kitchen,
+    "Pizza Muzzarella",
+    "Salsa de tomate, muzzarella y aceitunas.",
+    12800,
+    [["Grande", 3500]]
+  ],
+  [
+    2,
+    kitchen,
+    "Pizza Fugazzeta",
+    "Cebolla, muzzarella y orégano.",
+    14200,
+    [["Grande", 3500]]
+  ],
   [3, kitchen, "Flan casero", "Con dulce de leche y crema.", 6800],
-  [3, kitchen, "Brownie con helado", "Chocolate tibio y helado de crema.", 8200],
-  [4, bar, "Cerveza artesanal", "IPA o Honey, pinta de 500 ml.", 6200, [["Honey", 0]]],
-  [4, bar, "Limonada con menta", "Exprimida en el momento. Jarra de 1 litro.", 5800],
+  [
+    3,
+    kitchen,
+    "Brownie con helado",
+    "Chocolate tibio y helado de crema.",
+    8200
+  ],
+  [
+    4,
+    bar,
+    "Cerveza artesanal",
+    "IPA o Honey, pinta de 500 ml.",
+    6200,
+    [["Honey", 0]]
+  ],
+  [
+    4,
+    bar,
+    "Limonada con menta",
+    "Exprimida en el momento. Jarra de 1 litro.",
+    5800
+  ],
   [4, bar, "Copa de vino", "Malbec de la casa.", 6900],
   [4, bar, "Gaseosa", "Línea Coca-Cola, 500 ml.", 3800],
   [4, bar, "Agua mineral", "Con o sin gas, 500 ml.", 2900],
@@ -141,6 +224,10 @@ const owner = postgres(ownerDatabaseUrl(), { prepare: false });
 await owner.begin(async (tx) => {
   await tx`set local session_replication_role = replica`;
   for (const table of [
+    "account_entries",
+    "account_decisions",
+    "table_sessions",
+    "order_adjustments",
     "production_item_events",
     "production_items",
     "confirmed_order_items",
@@ -246,10 +333,14 @@ spawn("node", ["./node_modules/tsx/dist/cli.mjs", "src/main.ts"], {
   env,
   stdio: "inherit"
 });
-spawn("corepack", ["pnpm", "exec", "next", "dev", "--webpack", "-p", String(webPort)], {
-  cwd: path.join(root, "apps/web"),
-  env,
-  shell: true,
-  stdio: "inherit"
-});
+spawn(
+  "corepack",
+  ["pnpm", "exec", "next", "dev", "--webpack", "-p", String(webPort)],
+  {
+    cwd: path.join(root, "apps/web"),
+    env,
+    shell: true,
+    stdio: "inherit"
+  }
+);
 setInterval(() => undefined, 1 << 30);
