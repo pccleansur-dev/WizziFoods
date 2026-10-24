@@ -71,7 +71,7 @@ function table(id: string, label: string, sector: string, x: number) {
 }
 
 function uuid(seed: number): string {
-  return `fe900000-0000-4000-8000-${String(seed).padStart(12, "0")}`;
+  return `ff900000-0000-4000-8000-${String(seed).padStart(12, "0")}`;
 }
 
 describeWithLocalStack("waiter operations with local Supabase", () => {
