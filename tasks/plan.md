@@ -123,7 +123,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 3 — Alta: identidad y carta
 
 - [x] T10. Guardar perfil, imágenes y propuesta visual del negocio.
-- [ ] T11. Administrar carta, sectores y publicación versionada.
+- [x] T11. Administrar carta, sectores y publicación versionada.
 - [ ] T12. Importar carta a un borrador revisable.
 
 ### Fase 4 — Alta: operación y publicación

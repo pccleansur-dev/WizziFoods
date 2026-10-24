@@ -281,20 +281,22 @@ ruta pública.
 
 **Tamaño:** M.
 
-### T11. Administrar carta, sectores y publicación versionada
+### T11. Administrar carta, sectores y publicación versionada — completada
 
 **Descripción:** Construir categorías, productos y sectores con borrador publicable, manteniendo disponibilidad como cambio inmediato separado.
 
 **Criterios de aceptación:**
 
-- [ ] Producto asigna sector, precio, variantes, imagen y contenido por idioma.
-- [ ] Precio, texto y estructura quedan en borrador hasta una publicación atómica.
-- [ ] Disponibilidad cambia inmediatamente sin publicar el resto del borrador.
+- [x] Producto asigna sector, precio, variantes, imagen y contenido por idioma.
+- [x] Precio, texto y estructura quedan en borrador hasta una publicación atómica.
+- [x] Disponibilidad cambia inmediatamente sin publicar el resto del borrador.
 
 **Verificación:**
 
-- [ ] Pruebas de versionado, publicación atómica y toggle concurrente.
-- [ ] Recorrido E2E que compare borrador, vista previa y carta publicada.
+- [x] Pruebas de versionado, publicación atómica y toggle concurrente.
+- [x] Recorrido E2E que compare borrador, vista previa y carta publicada.
+
+**Resultado:** el Administrador puede editar categorías, sectores, productos, variantes, imágenes y contenido para cada idioma configurado, con una vista previa responsive. Texto, precio y estructura permanecen en un borrador versionado hasta una publicación atómica; una validación autoritativa exige identidad del negocio, categoría, sector, producto y títulos revisados en todos los idiomas. La disponibilidad se persiste por separado, cambia de inmediato con control de concurrencia y no publica cambios pendientes. Las pruebas unitarias, de integración local y de base de datos, junto con el recorrido real de navegador, validan aislamiento multitenant, seguridad y el flujo borrador → vista previa → publicación → cambio de disponibilidad.
 
 **Dependencias:** T10.
 
@@ -325,7 +327,7 @@ ruta pública.
 
 ### Checkpoint 3
 
-- [ ] Un Administrador puede crear y publicar una carta mínima aislada.
+- [x] Un Administrador puede crear y publicar una carta mínima aislada.
 - [ ] Se aprueba la diferencia visual entre borrador, publicado y disponibilidad inmediata.
 
 ## Fase 4 — Alta: operación y publicación
