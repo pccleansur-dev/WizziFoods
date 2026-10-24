@@ -58,7 +58,11 @@ export function BusinessMediaUploadField({
         className="button button--secondary media-upload-field__button"
         htmlFor={inputId}
       >
-        {working ? "Procesando…" : "Elegir imagen"}
+        {working
+          ? "Procesando…"
+          : status === "ready" || hasAsset
+            ? "Cambiar"
+            : "Elegir imagen"}
       </label>
       <input
         accept="image/jpeg,image/png,image/webp"

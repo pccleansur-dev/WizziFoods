@@ -9,13 +9,11 @@ import {
   addCatalogCategory,
   addCatalogProduct,
   addCatalogSector,
-  addCatalogVariant,
   createEmptyCatalogDraft,
   formatPrice,
   normalizeProductPositions,
   parsePriceToCents,
   removeCatalogCategory,
-  removeCatalogVariant,
   synchronizeCatalogLanguages,
   updateCatalogLocalizedContent
 } from "./catalog-editor-state";
@@ -24,6 +22,7 @@ import {
   catalogLanguageName
 } from "./catalog-localized-fields";
 import { CatalogPreview } from "./catalog-preview";
+import { ProductVariants } from "./catalog-product-variants";
 import type { PublishedCatalog, SavedCatalogDraft } from "./catalog";
 import { BusinessMediaUploadField } from "./business-media-upload-field";
 import { CatalogAvailabilityControl } from "./catalog-availability";
@@ -470,110 +469,12 @@ export function CatalogEditor({
                             : undefined
                         }
                       />
-                      <div className="catalog-variants">
-                        <div className="catalog-card__heading">
-                          <div>
-                            <h4>Variantes</h4>
-                            <p>
-                              Ejemplo: tamaño, presentación o acompañamiento.
-                            </p>
-                          </div>
-                          <button
-                            className="button button--secondary"
-                            disabled={product.variants.length >= 30}
-                            onClick={() =>
-                              change((current) =>
-                                addCatalogVariant(
-                                  current,
-                                  product.id,
-                                  undefined,
-                                  languages
-                                )
-                              )
-                            }
-                            type="button"
-                          >
-                            + Agregar variante
-                          </button>
-                        </div>
-                        {product.variants.map((variant) => (
-                          <div className="catalog-variant" key={variant.id}>
-                            <div className="catalog-product__heading">
-                              <strong>
-                                {variant.content.find(
-                                  ({ language }) => language === previewLanguage
-                                )?.title || "Variante sin nombre"}
-                              </strong>
-                              <button
-                                className="catalog-remove"
-                                onClick={() =>
-                                  change((current) =>
-                                    removeCatalogVariant(
-                                      current,
-                                      product.id,
-                                      variant.id
-                                    )
-                                  )
-                                }
-                                type="button"
-                              >
-                                Eliminar variante
-                              </button>
-                            </div>
-                            <label className="field-group catalog-variant__price">
-                              <span>Adicional en pesos</span>
-                              <input
-                                inputMode="decimal"
-                                onChange={(event) => {
-                                  const cents = parsePriceToCents(
-                                    event.target.value
-                                  );
-                                  if (cents !== null) {
-                                    change((current) => ({
-                                      ...current,
-                                      products: current.products.map((value) =>
-                                        value.id === product.id
-                                          ? {
-                                              ...value,
-                                              variants: value.variants.map(
-                                                (item) =>
-                                                  item.id === variant.id
-                                                    ? {
-                                                        ...item,
-                                                        priceDeltaCents: cents
-                                                      }
-                                                    : item
-                                              )
-                                            }
-                                          : value
-                                      )
-                                    }));
-                                  }
-                                }}
-                                pattern="[0-9]+(?:,[0-9]{1,2})?"
-                                value={formatPrice(variant.priceDeltaCents)}
-                              />
-                            </label>
-                            <CatalogLocalizedFields
-                              content={variant.content}
-                              languages={languages}
-                              legend="Contenido de la variante"
-                              onChange={(language, field, value) =>
-                                change((current) =>
-                                  updateCatalogLocalizedContent(
-                                    current,
-                                    { id: variant.id, type: "variant" },
-                                    language,
-                                    field,
-                                    value
-                                  )
-                                )
-                              }
-                              showDescription={false}
-                            />
-                          </div>
-                        ))}
-                      </div>
+                      <ProductVariants
+                        change={change}
+                        languages={languages}
+                        previewLanguage={previewLanguage}
+                        product={product}
+                      />
                     </article>
                   ))}
                 </>
