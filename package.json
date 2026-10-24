@@ -24,17 +24,20 @@
     "demo:api": "tsx packages/infra/src/demo-onboarding.ts api",
     "demo:down": "tsx packages/infra/src/demo-onboarding.ts down",
     "demo:reset": "tsx packages/infra/src/demo-onboarding.ts reset",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
     "security:secrets": "tsx packages/infra/src/secret-scan.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.60.0",
     "@types/node": "24.19.2",
     "@vitest/coverage-v8": "5.0.5",
     "eslint": "10.13.0",
     "eslint-config-next": "16.4.2",
+    "postgres": "3.4.9",
     "prettier": "3.9.10",
-    "turbo": "2.11.9",
     "tsx": "4.23.15",
+    "turbo": "2.11.9",
     "typescript": "5.9.3",
     "typescript-eslint": "8.72.0",
     "vitest": "5.0.5"

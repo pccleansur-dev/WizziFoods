@@ -30,3 +30,7 @@ Thumbs.db
 # Local infrastructure data
 .supabase/
 /volumes/
+
+# Playwright
+test-results/
+playwright-report/

@@ -79,6 +79,10 @@ sesión abierta debe pedir confirmación y nunca mover deuda (ver `plano-salon.m
   ajeno/desconocido/malformado, host inexistente, cierre comercial, sin publicar y
   suspendido). Se corre con `DATABASE_URL`, `DATABASE_ADMIN_URL`, `SUPABASE_URL` y
   `SUPABASE_SECRET_KEY` locales; sin ellos se omite.
+- E2E con Playwright (`pnpm e2e`, carpeta `e2e/`): 8 recorridos en móvil (375 px) y en
+  escritorio, escaneo simulado abriendo la URL del QR. Requiere `pnpm infra:up`; levanta
+  la API (3101) y la web (3100) por su cuenta sin tocar la demo, siembra dos negocios
+  `e2e-*` y los borra al terminar. No corre en CI todavía (no hay Supabase local ahí).
 - Navegador real (escritorio y 375 px; cambiar el estado en la base con la página abierta
   la actualiza sola) contra un negocio de prueba temporal con mesa
   libre, mesa agrupada con la vecina ocupada, pendiente de limpieza, fuera de servicio,
