@@ -357,21 +357,61 @@ export function seatPositions(
       return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
     });
   }
-  const boxWidth = halfWidth + SEAT_GAP;
-  const boxHeight = halfHeight + SEAT_GAP;
-  const perimeter = 4 * (boxWidth + boxHeight);
-  return Array.from({ length: count }, (_, index) => {
-    let distance = ((index + 0.5) / count) * perimeter;
-    const topLength = 2 * boxWidth;
-    const sideLength = 2 * boxHeight;
-    if (distance < topLength) return { x: -boxWidth + distance, y: -boxHeight };
-    distance -= topLength;
-    if (distance < sideLength) return { x: boxWidth, y: -boxHeight + distance };
-    distance -= sideLength;
-    if (distance < topLength) return { x: boxWidth - distance, y: boxHeight };
-    distance -= topLength;
-    return { x: -boxWidth, y: boxHeight - distance };
-  });
+  // Mesa rectangular o cuadrada: se reparte por lados según la forma.
+  const sides = perimeterSideCounts(count, table.width, table.height);
+  const sideX = halfWidth + SEAT_GAP;
+  const alongHeight = (total: number, x: number) =>
+    Array.from({ length: total }, (_, index) => ({
+      x,
+      y: -halfHeight + ((index + 0.5) * table.height) / total
+    }));
+  return [
+    ...along(sides.top, topY),
+    ...alongHeight(sides.right, sideX),
+    ...along(sides.bottom, bottomY),
+    ...alongHeight(sides.left, -sideX)
+  ];
+}
+
+/**
+ * Cuántas sillas van en cada lado cuando la disposición es «alrededor». En una
+ * mesa alargada va una silla en cada extremo y el resto en los lados largos
+ * (8 sillas: 3-1-3-1); en una cuadrada se reparten parejo (8 sillas: 2-2-2-2).
+ */
+export function perimeterSideCounts(
+  count: number,
+  width: number,
+  height: number
+): { bottom: number; left: number; right: number; top: number } {
+  const longer = Math.max(width, height);
+  const shorter = Math.max(1, Math.min(width, height));
+  if (longer / shorter < 1.25) {
+    const base = Math.floor(count / 4);
+    const extra = count - base * 4;
+    return {
+      bottom: base + (extra > 1 ? 1 : 0),
+      left: base + (extra > 3 ? 1 : 0),
+      right: base + (extra > 2 ? 1 : 0),
+      top: base + (extra > 0 ? 1 : 0)
+    };
+  }
+  const ends = count >= 4 ? 1 : 0;
+  const rest = count - 2 * ends;
+  const first = Math.ceil(rest / 2);
+  const second = rest - first;
+  return width >= height
+    ? { bottom: second, left: ends, right: ends, top: first }
+    : { bottom: ends, left: second, right: first, top: ends };
+}
+
+/** Gira la mesa en pasos (por ejemplo 90°) y vuelve a 0° al completar la vuelta. */
+export function rotateTable(
+  plan: FloorPlanDraft,
+  tableId: string,
+  degrees: number
+): FloorPlanDraft {
+  const current = plan.tables.find(({ id }) => id === tableId)?.rotation ?? 0;
+  return updateTable(plan, tableId, { rotation: current + degrees });
 }
 
 export function tableLabelForIssue(

@@ -16,6 +16,7 @@ import {
   removeSector,
   removeTable,
   resizeTable,
+  rotateTable,
   seatPositions,
   tableLabelForIssue,
   ungroupTables,
@@ -197,5 +198,86 @@ describe("floor plan editor state", () => {
     const plan = planWithTables(2);
     expect(tableLabelForIssue(plan, "tables[1].x")).toBe("2");
     expect(tableLabelForIssue(plan, "sectors[0].name")).toBeNull();
+  });
+});
+
+describe("seats around a rectangular table", () => {
+  const sidesOf = (
+    seats: { x: number; y: number }[],
+    width: number,
+    height: number
+  ) => ({
+    bottom: seats.filter(({ y }) => y > height / 2).length,
+    left: seats.filter(
+      ({ x, y }) => x < -width / 2 && Math.abs(y) <= height / 2
+    ).length,
+    right: seats.filter(
+      ({ x, y }) => x > width / 2 && Math.abs(y) <= height / 2
+    ).length,
+    top: seats.filter(({ y }) => y < -height / 2).length
+  });
+  const tableOf = (width: number, height: number, seatCount: number) => ({
+    height,
+    seatCount,
+    seatLayout: "perimeter" as const,
+    shape: "rectangle" as const,
+    width
+  });
+
+  it("puts one seat on each short end and the rest on the long sides", () => {
+    const seats = seatPositions(tableOf(160, 90, 8));
+    expect(seats).toHaveLength(8);
+    expect(sidesOf(seats, 160, 90)).toEqual({
+      bottom: 3,
+      left: 1,
+      right: 1,
+      top: 3
+    });
+  });
+
+  it("follows the long side when the table is taller than wide", () => {
+    const seats = seatPositions(tableOf(90, 160, 8));
+    expect(sidesOf(seats, 90, 160)).toEqual({
+      bottom: 1,
+      left: 3,
+      right: 3,
+      top: 1
+    });
+  });
+
+  it("spreads seats evenly around a square table", () => {
+    const seats = seatPositions(tableOf(100, 100, 8));
+    expect(sidesOf(seats, 100, 100)).toEqual({
+      bottom: 2,
+      left: 2,
+      right: 2,
+      top: 2
+    });
+  });
+
+  it("keeps every seat count and never stacks two seats on the same spot", () => {
+    for (const [width, height] of [
+      [160, 90],
+      [100, 100],
+      [90, 160]
+    ] as const) {
+      for (let count = 1; count <= 24; count += 1) {
+        const seats = seatPositions(tableOf(width, height, count));
+        expect(seats).toHaveLength(count);
+        expect(new Set(seats.map(({ x, y }) => `${x},${y}`)).size).toBe(count);
+      }
+    }
+  });
+});
+
+describe("rotating a table by quarter turns", () => {
+  it("adds 90 degrees and wraps around", () => {
+    let plan = planWithTables(1);
+    const id = plan.tables[0]!.id;
+    for (const expected of [90, 180, 270, 0]) {
+      plan = rotateTable(plan, id, 90);
+      expect(plan.tables[0]?.rotation).toBe(expected);
+    }
+    expect(rotateTable(plan, id, -90).tables[0]?.rotation).toBe(270);
   });
 });

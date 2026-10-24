@@ -21,6 +21,7 @@ import {
   removeTable,
   renameSector,
   resizeTable,
+  rotateTable,
   SEAT_LAYOUT_LABELS,
   SHAPE_LABELS,
   tableLabelForIssue,
@@ -629,6 +630,14 @@ export function FloorPlanEditor({
                   0,
                   359
                 )}
+                <button
+                  className="button button--secondary"
+                  disabled={busy}
+                  onClick={() => edit(rotateTable(plan, selectedTable.id, 90))}
+                  type="button"
+                >
+                  ↻ Rotar 90°
+                </button>
                 {numberField(
                   "Sillas",
                   selectedTable.seatCount,
