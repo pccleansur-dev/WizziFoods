@@ -27,6 +27,10 @@ import {
   type PaymentMethodsRepository
 } from "./payment-methods-repository.js";
 import {
+  createReadinessRepository,
+  type ReadinessRepository
+} from "./readiness-repository.js";
+import {
   createTeamRepository,
   type TeamRepository
 } from "./team-repository.js";
@@ -101,6 +105,7 @@ export type TenantDatabase = {
   floorPlanRepository: FloorPlanRepository;
   identityAccessRepository: IdentityAccessRepository;
   paymentMethodsRepository: PaymentMethodsRepository;
+  readinessRepository: ReadinessRepository;
   staffAuthRepository: StaffAuthRepository;
   teamRepository: TeamRepository;
   supportAccessRepository: SupportAccessRepository;
@@ -177,6 +182,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     close: async () => client.end(),
     floorPlanRepository: createFloorPlanRepository(client),
     paymentMethodsRepository: createPaymentMethodsRepository(client),
+    readinessRepository: createReadinessRepository(client),
     teamRepository: createTeamRepository(client),
     identityAccessRepository: {
       async resolveForIdentity(
