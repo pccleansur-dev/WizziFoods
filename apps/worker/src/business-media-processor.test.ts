@@ -61,6 +61,31 @@ describe("business media processor", () => {
     });
   });
 
+  it("bounds a product image for menu delivery", async () => {
+    const source = await sharp({
+      create: {
+        background: "#c58c52",
+        channels: 3,
+        height: 1800,
+        width: 2400
+      }
+    })
+      .webp()
+      .toBuffer();
+
+    const result = await processBusinessMedia({
+      bytes: source,
+      contentType: "image/webp",
+      kind: "product"
+    });
+
+    expect(result).toMatchObject({
+      contentType: "image/webp",
+      height: 1200,
+      width: 1600
+    });
+  });
+
   it("rejects a source whose bytes do not match its declared type", async () => {
     const png = await sharp({
       create: {

@@ -42,6 +42,7 @@ const outputBounds: Record<
 > = {
   cover: { height: 1280, width: 1920 },
   logo: { height: 1024, width: 1024 },
+  product: { height: 1600, width: 1600 },
   reference: { height: 1600, width: 1600 }
 };
 
