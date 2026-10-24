@@ -115,8 +115,14 @@ export async function POST(request: Request) {
     if (!queueResponse.ok) {
       return errorResponse("La imagen subió, pero no pudo procesarse.", 502);
     }
-    const status = parseBusinessMediaStatus(await queueResponse.json());
-    return NextResponse.json({ data: status }, { status: 202 });
+    // La API sólo informa { assetId, status }; el tipo es el que se subió.
+    const queued = parseBusinessMediaStatus({
+      data: {
+        ...(((await queueResponse.json()) as { data?: object }).data ?? {}),
+        kind
+      }
+    });
+    return NextResponse.json({ data: queued }, { status: 202 });
   } catch {
     return errorResponse("No pudimos procesar la imagen.", 502);
   }

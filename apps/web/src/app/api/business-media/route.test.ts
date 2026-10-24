@@ -87,7 +87,12 @@ describe("business media routes reach the API through tenantFetch", () => {
     };
     tenantFetch
       .mockResolvedValueOnce(Response.json(reservation))
-      .mockResolvedValueOnce(new Response("{}", { status: 500 }));
+      .mockResolvedValueOnce(
+        Response.json(
+          { data: { assetId: assetUuid, status: "processing" } },
+          { status: 202 }
+        )
+      );
     uploadToSignedUrl.mockResolvedValue({ error: null });
     const form = new FormData();
     form.set("kind", "logo");
@@ -95,13 +100,18 @@ describe("business media routes reach the API through tenantFetch", () => {
       "file",
       new File([new Uint8Array(8)], "logo.png", { type: "image/png" })
     );
-    await POST(
+    const response = await POST(
       new Request(`http://${hostname}/api/business-media`, {
         body: form,
         headers: { host: hostname, origin: `http://${hostname}` },
         method: "POST"
       })
     );
+    // La API responde sólo { assetId, status }: el tipo sale de lo que se subió.
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({
+      data: { assetId: assetUuid, kind: "logo", status: "processing" }
+    });
     const [url, init] = tenantFetch.mock.calls[1] as [
       string,
       { body?: string; headers: Record<string, string> }
