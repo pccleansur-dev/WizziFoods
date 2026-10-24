@@ -36,8 +36,6 @@ type PendingCommand = {
   serialized: string;
 };
 
-const ZOOM_STEPS = [1, 1.5, 2, 3, 4] as const;
-
 function downloadSvg(code: FloorPlanQr) {
   const blob = new Blob([code.svg], { type: "image/svg+xml" });
   const url = URL.createObjectURL(blob);
@@ -383,42 +381,6 @@ export function FloorPlanEditor({
             >
               Agregar mesa
             </button>
-            <span className="floor-plan-zoom">
-              <button
-                aria-label="Alejar"
-                className="button button--secondary"
-                disabled={zoom === ZOOM_STEPS[0]}
-                onClick={() =>
-                  setZoom(
-                    ZOOM_STEPS[
-                      Math.max(0, ZOOM_STEPS.indexOf(zoom as never) - 1)
-                    ] ?? 1
-                  )
-                }
-                type="button"
-              >
-                −
-              </button>
-              <output aria-label="Zoom">{Math.round(zoom * 100)}%</output>
-              <button
-                aria-label="Acercar"
-                className="button button--secondary"
-                disabled={zoom === ZOOM_STEPS[ZOOM_STEPS.length - 1]}
-                onClick={() =>
-                  setZoom(
-                    ZOOM_STEPS[
-                      Math.min(
-                        ZOOM_STEPS.length - 1,
-                        ZOOM_STEPS.indexOf(zoom as never) + 1
-                      )
-                    ] ?? 1
-                  )
-                }
-                type="button"
-              >
-                +
-              </button>
-            </span>
           </div>
 
           {plan.sectors.length === 0 ? (
@@ -432,6 +394,7 @@ export function FloorPlanEditor({
             onKeyDown={onTableKeyDown}
             onMove={(tableId, x, y) => edit(moveTable(plan, tableId, x, y))}
             onSelect={select}
+            onZoom={setZoom}
             plan={plan}
             selected={selected}
             zoom={zoom}

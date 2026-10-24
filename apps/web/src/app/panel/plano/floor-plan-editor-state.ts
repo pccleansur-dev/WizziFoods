@@ -169,11 +169,9 @@ export function moveTable(
   x: number,
   y: number
 ): FloorPlanDraft {
-  return mapTable(plan, tableId, (table) => ({
-    ...table,
-    x: clamp(integer(x), 0, FLOOR_PLAN_LIMITS.canvasWidth - table.width),
-    y: clamp(integer(y), 0, FLOOR_PLAN_LIMITS.canvasHeight - table.height)
-  }));
+  return mapTable(plan, tableId, (table) =>
+    fitInsideCanvas({ ...table, x: integer(x), y: integer(y) })
+  );
 }
 
 export function nudgeTable(
@@ -198,14 +196,77 @@ export function resizeTable(
     const nextHeight = isSquareShape(table.shape)
       ? nextWidth
       : clamp(integer(height), minTableSize, maxTableSize);
-    return {
+    return fitInsideCanvas({
       ...table,
       height: nextHeight,
-      width: nextWidth,
-      x: clamp(table.x, 0, FLOOR_PLAN_LIMITS.canvasWidth - nextWidth),
-      y: clamp(table.y, 0, FLOOR_PLAN_LIMITS.canvasHeight - nextHeight)
-    };
+      width: nextWidth
+    });
   });
+}
+
+/**
+ * Mantiene la mesa dentro del lienzo teniendo en cuenta su giro: el contrato
+ * valida la caja sin girar, y a la vista la mesa girada no debe sobresalir.
+ * Conserva el centro siempre que sea posible.
+ */
+export function fitInsideCanvas(table: FloorTable): FloorTable {
+  const radians = (table.rotation * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(radians));
+  const sin = Math.abs(Math.sin(radians));
+  const halfWidth = table.width / 2;
+  const halfHeight = table.height / 2;
+  const needX = Math.max(halfWidth, cos * halfWidth + sin * halfHeight);
+  const needY = Math.max(halfHeight, sin * halfWidth + cos * halfHeight);
+  const centerX = clamp(
+    table.x + halfWidth,
+    needX,
+    FLOOR_PLAN_LIMITS.canvasWidth - needX
+  );
+  const centerY = clamp(
+    table.y + halfHeight,
+    needY,
+    FLOOR_PLAN_LIMITS.canvasHeight - needY
+  );
+  return {
+    ...table,
+    x: clamp(
+      Math.round(centerX - halfWidth),
+      0,
+      FLOOR_PLAN_LIMITS.canvasWidth - table.width
+    ),
+    y: clamp(
+      Math.round(centerY - halfHeight),
+      0,
+      FLOOR_PLAN_LIMITS.canvasHeight - table.height
+    )
+  };
+}
+
+export const ZOOM_LIMITS = { max: 4, min: 0.1 } as const;
+
+const ZOOM_LEVELS = [
+  0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4
+] as const;
+
+/** Zoom del plano entre 10% y 400%, con dos decimales. */
+export function clampZoom(value: number): number {
+  return Math.round(clamp(value, ZOOM_LIMITS.min, ZOOM_LIMITS.max) * 100) / 100;
+}
+
+/** Un paso de los botones: va al siguiente nivel (…25%, 30%, 40%, 50%, 75%, 100%, 125%…). */
+export function stepZoom(zoom: number, direction: 1 | -1): number {
+  if (direction === 1) {
+    return ZOOM_LEVELS.find((level) => level > zoom + 0.001) ?? ZOOM_LIMITS.max;
+  }
+  return (
+    [...ZOOM_LEVELS].reverse().find((level) => level < zoom - 0.001) ??
+    ZOOM_LIMITS.min
+  );
+}
+
+/** Zoom con la rueda (o el gesto de pellizco del trackpad), más fino que los botones. */
+export function wheelZoom(zoom: number, deltaY: number): number {
+  return clampZoom(zoom * Math.exp(-deltaY * 0.0015));
 }
 
 export type TableEdit = Partial<
@@ -234,10 +295,8 @@ export function updateTable(
     }
     if (edit.shape !== undefined && isSquareShape(edit.shape)) {
       next = { ...next, height: next.width };
-      next.x = clamp(next.x, 0, FLOOR_PLAN_LIMITS.canvasWidth - next.width);
-      next.y = clamp(next.y, 0, FLOOR_PLAN_LIMITS.canvasHeight - next.height);
     }
-    return next;
+    return fitInsideCanvas(next);
   });
 }
 

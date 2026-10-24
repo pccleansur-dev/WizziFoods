@@ -1835,7 +1835,6 @@ dd {
 
 .floor-plan-svg {
   display: block;
-  min-width: 100%;
 }
 
 .floor-plan-svg text {
@@ -2876,4 +2875,57 @@ dd {
 
 .onboarding-steps {
   margin-bottom: 1.5rem;
+}
+
+/* Zoom manejado desde el propio plano. */
+.floor-plan-stage {
+  position: relative;
+}
+
+.floor-plan-zoom-controls {
+  position: absolute;
+  top: 0.6rem;
+  right: 1.4rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid #cfc8bc;
+  border-radius: 0.6rem;
+  background: rgb(255 255 255 / 92%);
+}
+
+.floor-plan-zoom-controls button {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: #221f1a;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.floor-plan-zoom-controls button:hover:not(:disabled) {
+  background: #f1ece2;
+}
+
+.floor-plan-zoom-controls button:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 1px;
+}
+
+.floor-plan-zoom-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.floor-plan-zoom-controls output {
+  min-width: 3rem;
+  font-size: 0.85rem;
+  font-weight: 750;
+  text-align: center;
 }

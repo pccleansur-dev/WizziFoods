@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   addSector,
   addTable,
+  clampZoom,
   createEmptyFloorPlan,
   groupTables,
   moveTable,
@@ -18,9 +19,11 @@ import {
   resizeTable,
   rotateTable,
   seatPositions,
+  stepZoom,
   tableLabelForIssue,
   ungroupTables,
-  updateTable
+  updateTable,
+  wheelZoom
 } from "./floor-plan-editor-state";
 
 const ids = (() => {
@@ -279,5 +282,73 @@ describe("rotating a table by quarter turns", () => {
       expect(plan.tables[0]?.rotation).toBe(expected);
     }
     expect(rotateTable(plan, id, -90).tables[0]?.rotation).toBe(270);
+  });
+});
+
+describe("rotated tables stay inside the canvas", () => {
+  function rectTableAt(x: number, y: number) {
+    let plan = planWithTables(1);
+    const id = plan.tables[0]!.id;
+    plan = updateTable(plan, id, { shape: "rectangle" });
+    plan = resizeTable(plan, id, 160, 90);
+    plan = moveTable(plan, id, x, y);
+    return { id, plan };
+  }
+
+  it("moves a table away from the top edge when a quarter turn makes it taller", () => {
+    const { id, plan } = rectTableAt(100, 0);
+    const turned = rotateTable(plan, id, 90).tables[0]!;
+    expect(turned.rotation).toBe(90);
+    // centro 45 -> mitad del alto girado es 80
+    expect(turned.y + turned.height / 2).toBeGreaterThanOrEqual(80);
+    expect(turned.x).toBe(100);
+  });
+
+  it("keeps a turned table inside while dragging toward the edges", () => {
+    const { id, plan } = rectTableAt(100, 200);
+    const turned = rotateTable(plan, id, 90);
+    const top = moveTable(turned, id, 100, 0).tables[0]!;
+    expect(top.y + top.height / 2).toBe(80);
+    const farRight = moveTable(turned, id, FLOOR_PLAN_LIMITS.canvasWidth, 200)
+      .tables[0]!;
+    expect(farRight.x + farRight.width).toBeLessThanOrEqual(
+      FLOOR_PLAN_LIMITS.canvasWidth
+    );
+  });
+
+  it("does not change anything for an unrotated table", () => {
+    const { id, plan } = rectTableAt(100, 0);
+    expect(moveTable(plan, id, 100, 0).tables[0]?.y).toBe(0);
+  });
+});
+
+describe("plan zoom", () => {
+  it("goes from 10% out to 400% in", () => {
+    expect(clampZoom(10)).toBe(4);
+    expect(clampZoom(0.01)).toBe(0.1);
+    expect(clampZoom(1.234)).toBe(1.23);
+  });
+
+  it("steps through friendly levels, including 25% and 30%, and stops at the limits", () => {
+    expect(stepZoom(1, -1)).toBe(0.75);
+    expect(stepZoom(0.75, -1)).toBe(0.5);
+    expect(stepZoom(0.5, -1)).toBe(0.4);
+    expect(stepZoom(0.4, -1)).toBe(0.3);
+    expect(stepZoom(0.3, -1)).toBe(0.25);
+    expect(stepZoom(0.25, -1)).toBe(0.2);
+    expect(stepZoom(0.1, -1)).toBe(0.1);
+    expect(stepZoom(1, 1)).toBe(1.25);
+    expect(stepZoom(4, 1)).toBe(4);
+  });
+
+  it("moves to the next level from an in-between zoom set by the wheel", () => {
+    expect(stepZoom(0.62, -1)).toBe(0.5);
+    expect(stepZoom(0.62, 1)).toBe(0.75);
+  });
+
+  it("zooms in when the wheel goes up and out when it goes down", () => {
+    expect(wheelZoom(1, -100)).toBeGreaterThan(1);
+    expect(wheelZoom(1, 100)).toBeLessThan(1);
+    expect(wheelZoom(4, -100)).toBe(4);
   });
 });

@@ -1,9 +1,20 @@
 "use client";
 
 import { FLOOR_PLAN_LIMITS, type FloorPlanDraft } from "@platform/contracts";
-import { useRef, type KeyboardEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type KeyboardEvent,
+  type PointerEvent
+} from "react";
 
-import { seatPositions } from "./floor-plan-editor-state";
+import {
+  seatPositions,
+  stepZoom,
+  wheelZoom,
+  ZOOM_LIMITS
+} from "./floor-plan-editor-state";
 
 export const SECTOR_COLORS = [
   "#dbe8df",
@@ -43,6 +54,7 @@ export function FloorPlanCanvas({
   onKeyDown,
   onMove,
   onSelect,
+  onZoom,
   plan,
   selected,
   zoom
@@ -51,6 +63,8 @@ export function FloorPlanCanvas({
   onKeyDown: (event: KeyboardEvent, tableId: string) => void;
   onMove: (tableId: string, x: number, y: number) => void;
   onSelect: (tableId: string, additive: boolean) => void;
+  /** El zoom se maneja desde el propio plano (botones, rueda con Ctrl y pellizco). */
+  onZoom: (zoom: number) => void;
   plan: FloorPlanDraft;
   selected: string[];
   zoom: number;
@@ -61,6 +75,65 @@ export function FloorPlanCanvas({
     offsetX: number;
     offsetY: number;
   } | null>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef(zoom);
+  const onZoomRef = useRef(onZoom);
+  const anchorRef = useRef<{
+    fx: number;
+    fy: number;
+    px: number;
+    py: number;
+  } | null>(null);
+
+  /** Cambia el zoom manteniendo fijo el punto del plano que está bajo el cursor (o el centro). */
+  function zoomTo(next: number, clientX?: number, clientY?: number) {
+    const element = viewportRef.current;
+    if (!element || next === zoomRef.current) return;
+    const rect = element.getBoundingClientRect();
+    const px = clientX === undefined ? rect.width / 2 : clientX - rect.left;
+    const py = clientY === undefined ? rect.height / 2 : clientY - rect.top;
+    anchorRef.current = {
+      fx: (element.scrollLeft + px) / element.scrollWidth,
+      fy: (element.scrollTop + py) / element.scrollHeight,
+      px,
+      py
+    };
+    onZoomRef.current(next);
+  }
+
+  // Los valores vigentes quedan disponibles para los manejadores de eventos.
+  useEffect(() => {
+    zoomRef.current = zoom;
+    onZoomRef.current = onZoom;
+  });
+
+  useLayoutEffect(() => {
+    const element = viewportRef.current;
+    const anchor = anchorRef.current;
+    if (!element || !anchor) return;
+    element.scrollLeft = anchor.fx * element.scrollWidth - anchor.px;
+    element.scrollTop = anchor.fy * element.scrollHeight - anchor.py;
+    anchorRef.current = null;
+  }, [zoom]);
+
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+    // Ctrl/⌘ + rueda (y el pellizco del trackpad, que llega así) hace zoom;
+    // la rueda sola sigue desplazando el plano.
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      zoomTo(
+        wheelZoom(zoomRef.current, event.deltaY),
+        event.clientX,
+        event.clientY
+      );
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, []);
+
   const view = viewBoxFor(plan);
   const sectorIndex = new Map(plan.sectors.map(({ id }, index) => [id, index]));
   const tableById = new Map(plan.tables.map((table) => [table.id, table]));
@@ -80,171 +153,204 @@ export function FloorPlanCanvas({
   }
 
   return (
-    <div className="floor-plan-viewport">
-      <svg
-        aria-label="Plano del salón"
-        className="floor-plan-svg"
-        ref={svgRef}
+    <div className="floor-plan-stage">
+      <div
+        className="floor-plan-zoom-controls"
         role="group"
-        style={{ width: `${zoom * 100}%` }}
-        viewBox={`0 0 ${view.width} ${view.height}`}
+        aria-label="Zoom del plano"
       >
-        <defs>
-          <pattern
-            height="100"
-            id="floor-plan-grid"
-            patternUnits="userSpaceOnUse"
-            width="100"
-          >
-            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#e5dfd3" />
-          </pattern>
-        </defs>
-        <rect fill="url(#floor-plan-grid)" height="100%" width="100%" />
-
-        {plan.groups.map((group, index) => {
-          const members = group.tableIds.flatMap((id) => {
-            const table = tableById.get(id);
-            return table ? [table] : [];
-          });
-          if (members.length === 0) return null;
-          const left = Math.min(...members.map((table) => table.x)) - 50;
-          const top = Math.min(...members.map((table) => table.y)) - 50;
-          const right =
-            Math.max(...members.map((table) => table.x + table.width)) + 50;
-          const bottom =
-            Math.max(...members.map((table) => table.y + table.height)) + 50;
-          const color = GROUP_COLORS[index % GROUP_COLORS.length];
-          return (
-            <g aria-hidden="true" key={group.id}>
-              <rect
-                fill="none"
-                height={bottom - top}
-                rx="24"
-                stroke={color}
-                strokeDasharray="14 10"
-                strokeWidth="4"
-                width={right - left}
-                x={left}
-                y={top}
-              />
-              <text
-                fill={color}
-                fontSize="30"
-                fontWeight="700"
-                x={left + 14}
-                y={top + 34}
-              >
-                {group.name}
-              </text>
-            </g>
-          );
-        })}
-
-        {plan.tables.map((table) => {
-          const isSelected = selected.includes(table.id);
-          const sectorPosition = sectorIndex.get(table.sectorId) ?? 0;
-          const sector = plan.sectors[sectorPosition];
-          const centerX = table.x + table.width / 2;
-          const centerY = table.y + table.height / 2;
-          const fill = SECTOR_COLORS[sectorPosition % SECTOR_COLORS.length];
-          const stroke = isSelected ? "#0f3d2e" : "#6b6455";
-          return (
-            <g
-              aria-describedby="floor-plan-keyboard-help"
-              aria-label={`Mesa ${table.label}, ${table.seatCount} sillas, sector ${
-                sector?.name ?? "sin sector"
-              }${isSelected ? ", seleccionada" : ""}`}
-              aria-pressed={isSelected}
-              className="floor-plan-table"
-              data-table-id={table.id}
-              key={table.id}
-              onKeyDown={(event) => onKeyDown(event, table.id)}
-              onPointerDown={(event) => {
-                if (disabled) return;
-                const point = toPlanPoint(event);
-                if (!point) return;
-                event.currentTarget.setPointerCapture(event.pointerId);
-                dragRef.current = {
-                  id: table.id,
-                  offsetX: point.x - table.x,
-                  offsetY: point.y - table.y
-                };
-                onSelect(
-                  table.id,
-                  event.shiftKey || event.ctrlKey || event.metaKey
-                );
-              }}
-              onPointerMove={(event) => {
-                const drag = dragRef.current;
-                if (!drag || drag.id !== table.id) return;
-                const point = toPlanPoint(event);
-                if (point) {
-                  onMove(
-                    table.id,
-                    snap(point.x - drag.offsetX),
-                    snap(point.y - drag.offsetY)
-                  );
-                }
-              }}
-              onPointerUp={() => {
-                dragRef.current = null;
-              }}
-              onPointerCancel={() => {
-                dragRef.current = null;
-              }}
-              role="button"
-              tabIndex={0}
+        <button
+          aria-label="Alejar"
+          disabled={zoom <= ZOOM_LIMITS.min}
+          onClick={() => zoomTo(stepZoom(zoom, -1))}
+          type="button"
+        >
+          −
+        </button>
+        <output aria-label="Zoom">{Math.round(zoom * 100)}%</output>
+        <button
+          aria-label="Acercar"
+          disabled={zoom >= ZOOM_LIMITS.max}
+          onClick={() => zoomTo(stepZoom(zoom, 1))}
+          type="button"
+        >
+          +
+        </button>
+        <button
+          aria-label="Restablecer zoom"
+          disabled={zoom === 1}
+          onClick={() => zoomTo(1)}
+          type="button"
+        >
+          100%
+        </button>
+      </div>
+      <div className="floor-plan-viewport" ref={viewportRef}>
+        <svg
+          aria-label="Plano del salón"
+          className="floor-plan-svg"
+          ref={svgRef}
+          role="group"
+          style={{ minWidth: zoom >= 1 ? "100%" : 0, width: `${zoom * 100}%` }}
+          viewBox={`0 0 ${view.width} ${view.height}`}
+        >
+          <defs>
+            <pattern
+              height="100"
+              id="floor-plan-grid"
+              patternUnits="userSpaceOnUse"
+              width="100"
             >
-              <g
-                transform={`translate(${centerX} ${centerY}) rotate(${table.rotation})`}
-              >
-                {seatPositions(table).map((seat, index) => (
-                  <circle
-                    cx={seat.x}
-                    cy={seat.y}
-                    fill="#ffffff"
-                    key={index}
-                    r="12"
-                    stroke="#6b6455"
-                    strokeWidth="3"
-                  />
-                ))}
-                {table.shape === "round" ? (
-                  <circle
-                    fill={fill}
-                    r={table.width / 2}
-                    stroke={stroke}
-                    strokeWidth={isSelected ? 8 : 4}
-                  />
-                ) : (
-                  <rect
-                    fill={fill}
-                    height={table.height}
-                    rx="10"
-                    stroke={stroke}
-                    strokeWidth={isSelected ? 8 : 4}
-                    width={table.width}
-                    x={-table.width / 2}
-                    y={-table.height / 2}
-                  />
-                )}
+              <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#e5dfd3" />
+            </pattern>
+          </defs>
+          <rect fill="url(#floor-plan-grid)" height="100%" width="100%" />
+
+          {plan.groups.map((group, index) => {
+            const members = group.tableIds.flatMap((id) => {
+              const table = tableById.get(id);
+              return table ? [table] : [];
+            });
+            if (members.length === 0) return null;
+            const left = Math.min(...members.map((table) => table.x)) - 50;
+            const top = Math.min(...members.map((table) => table.y)) - 50;
+            const right =
+              Math.max(...members.map((table) => table.x + table.width)) + 50;
+            const bottom =
+              Math.max(...members.map((table) => table.y + table.height)) + 50;
+            const color = GROUP_COLORS[index % GROUP_COLORS.length];
+            return (
+              <g aria-hidden="true" key={group.id}>
+                <rect
+                  fill="none"
+                  height={bottom - top}
+                  rx="24"
+                  stroke={color}
+                  strokeDasharray="14 10"
+                  strokeWidth="4"
+                  width={right - left}
+                  x={left}
+                  y={top}
+                />
+                <text
+                  fill={color}
+                  fontSize="30"
+                  fontWeight="700"
+                  x={left + 14}
+                  y={top + 34}
+                >
+                  {group.name}
+                </text>
               </g>
-              <text
-                dominantBaseline="central"
-                fill="#221f1a"
-                fontSize="34"
-                fontWeight="700"
-                pointerEvents="none"
-                textAnchor="middle"
-                x={centerX}
-                y={centerY}
+            );
+          })}
+
+          {plan.tables.map((table) => {
+            const isSelected = selected.includes(table.id);
+            const sectorPosition = sectorIndex.get(table.sectorId) ?? 0;
+            const sector = plan.sectors[sectorPosition];
+            const centerX = table.x + table.width / 2;
+            const centerY = table.y + table.height / 2;
+            const fill = SECTOR_COLORS[sectorPosition % SECTOR_COLORS.length];
+            const stroke = isSelected ? "#0f3d2e" : "#6b6455";
+            return (
+              <g
+                aria-describedby="floor-plan-keyboard-help"
+                aria-label={`Mesa ${table.label}, ${table.seatCount} sillas, sector ${
+                  sector?.name ?? "sin sector"
+                }${isSelected ? ", seleccionada" : ""}`}
+                aria-pressed={isSelected}
+                className="floor-plan-table"
+                data-table-id={table.id}
+                key={table.id}
+                onKeyDown={(event) => onKeyDown(event, table.id)}
+                onPointerDown={(event) => {
+                  if (disabled) return;
+                  const point = toPlanPoint(event);
+                  if (!point) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  dragRef.current = {
+                    id: table.id,
+                    offsetX: point.x - table.x,
+                    offsetY: point.y - table.y
+                  };
+                  onSelect(
+                    table.id,
+                    event.shiftKey || event.ctrlKey || event.metaKey
+                  );
+                }}
+                onPointerMove={(event) => {
+                  const drag = dragRef.current;
+                  if (!drag || drag.id !== table.id) return;
+                  const point = toPlanPoint(event);
+                  if (point) {
+                    onMove(
+                      table.id,
+                      snap(point.x - drag.offsetX),
+                      snap(point.y - drag.offsetY)
+                    );
+                  }
+                }}
+                onPointerUp={() => {
+                  dragRef.current = null;
+                }}
+                onPointerCancel={() => {
+                  dragRef.current = null;
+                }}
+                role="button"
+                tabIndex={0}
               >
-                {table.label}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+                <g
+                  transform={`translate(${centerX} ${centerY}) rotate(${table.rotation})`}
+                >
+                  {seatPositions(table).map((seat, index) => (
+                    <circle
+                      cx={seat.x}
+                      cy={seat.y}
+                      fill="#ffffff"
+                      key={index}
+                      r="12"
+                      stroke="#6b6455"
+                      strokeWidth="3"
+                    />
+                  ))}
+                  {table.shape === "round" ? (
+                    <circle
+                      fill={fill}
+                      r={table.width / 2}
+                      stroke={stroke}
+                      strokeWidth={isSelected ? 8 : 4}
+                    />
+                  ) : (
+                    <rect
+                      fill={fill}
+                      height={table.height}
+                      rx="10"
+                      stroke={stroke}
+                      strokeWidth={isSelected ? 8 : 4}
+                      width={table.width}
+                      x={-table.width / 2}
+                      y={-table.height / 2}
+                    />
+                  )}
+                </g>
+                <text
+                  dominantBaseline="central"
+                  fill="#221f1a"
+                  fontSize="34"
+                  fontWeight="700"
+                  pointerEvents="none"
+                  textAnchor="middle"
+                  x={centerX}
+                  y={centerY}
+                >
+                  {table.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
     </div>
   );
 }
