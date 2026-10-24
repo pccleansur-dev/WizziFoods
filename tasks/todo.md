@@ -398,20 +398,44 @@ prueba contra la API real en lugar de pasar por el inicio de sesión/MFA de T05.
 
 **Criterios de aceptación:**
 
-- [ ] Administrador crea, desactiva y asigna roles/sectores a empleados.
-- [ ] Efectivo inicia habilitado y sólo puede desactivarse si existe otro medio.
-- [ ] Credenciales externas se almacenan cifradas/referenciadas y nunca vuelven al navegador.
+- [x] Administrador crea, desactiva y asigna roles/sectores a empleados.
+- [x] Efectivo inicia habilitado y sólo puede desactivarse si existe otro medio.
+- [x] Credenciales externas se almacenan cifradas/referenciadas y nunca vuelven al navegador.
 
 **Verificación:**
 
-- [ ] Pruebas de reglas de medios, permisos y desactivación de usuario activo.
-- [ ] Revisión manual de red y logs para comprobar ausencia de secretos.
+- [x] Pruebas de reglas de medios, permisos y desactivación de usuario activo.
+- [x] Revisión manual de red y logs para comprobar ausencia de secretos.
 
 **Dependencias:** T06, T11.
 
 **Archivos probables:** módulo team, módulo payment-settings, pasos UI, pruebas.
 
 **Tamaño:** M.
+
+**Resultado:** el Administrador gestiona `/panel/equipo` y `/panel/pagos`. Equipo:
+crea empleados (usuario, nombre, rol de T06, PIN de seis dígitos que sólo viaja
+hasheado a SQL, sectores), los edita, los desactiva o reactiva y restablece su PIN.
+Los sectores asignables son los del **salón** (`private.floor_sectors`, T13) y sólo
+para el rol Mozo; Cocina y Barra ya quedan ligados a su sector de producción de T11
+por rol. No se puede desactivar ni degradar al último Encargado activo (bloqueo de
+filas, `PT001`), y desactivar, cambiar de rol o restablecer el PIN revoca las
+sesiones abiertas. Pagos: efectivo inicia habilitado y sólo se deshabilita si queda
+otro medio disponible (función con bloqueo de la ubicación más un _constraint
+trigger_ diferido, `PT004`); la clave pública vive en `public_config` y la
+credencial privada se cifra en la API (AES-256-GCM, tenant/ubicación/medio como
+datos autenticados) y sólo el _ciphertext_ llega a SQL; ninguna lectura la devuelve.
+Todas las altas, bajas, cambios de rol/sector y de medios se auditan sin PIN, hash,
+usuario ni credencial. Verificado con 24 aserciones pgTap de equipo y 24 de pagos
+(dos tenants), 24 pruebas de contrato, 8 de repositorio, 25 de API/controladores,
+integración HTTP con dos tenants contra Supabase local (7 pruebas: aislamiento,
+alta y login real de T06, desactivación que cierra la sesión, último Encargado,
+reglas de medios, credencial cifrada y ausencia de PIN/hash/credencial en toda
+respuesta) y un recorrido real en navegador (inicio de sesión con contraseña y
+TOTP; escritorio y 375 px sin desborde): se inspeccionaron red, DOM, almacenamiento,
+logs de API/web/proxy y la base. Esa inspección detectó que el servidor de
+desarrollo de Next imprimía los argumentos de las Server Actions (PIN y
+credencial); se corrigió con `logging.serverFunctions: false` y una prueba.
 
 ### T15. Validar, probar y publicar el negocio
 

@@ -67,6 +67,52 @@ API; `pnpm audit --prod --audit-level high` no reporta hallazgos altos.
   `floor_group_members`.
 - Eventos de auditoría nuevos: `floor_plan.saved` y `floor_table.qr_rotated`.
 
+## Estado de T14 — completada
+
+Commits en `chore/workspace-bootstrap`, sobre `302b4f1`: funciones de equipo y
+sectores; medios de pago con regla del último medio y credenciales selladas;
+contratos; repositorios; API; prueba de integración con dos tenants; paneles
+`/panel/equipo` y `/panel/pagos`; y la corrección de logs de Server Actions.
+Runbook: `docs/runbooks/equipo-y-pagos.md`.
+
+Migraciones (con rollback en `supabase/rollbacks`, probadas aplicar → revertir →
+reaplicar) y pgTap:
+
+- `20261024030000_create_team_management.sql` → `staff_team.test.sql` (24).
+- `20261024031000_create_payment_methods.sql` → `payment_methods.test.sql` (24).
+
+Decisiones:
+
+- **Sectores.** Sólo el Mozo se asigna a sectores del salón
+  (`private.staff_sector_assignments` → `private.floor_sectors`). Cocina y Barra no
+  se asignan: su rol ya es su sector de producción de T11. Quitar un sector del plano
+  borra sus asignaciones (el acceso sólo se reduce). Un Mozo sin sectores no tiene
+  mesas asignadas; T16 define el uso.
+- **PIN.** Lo fija el Administrador y nunca se devuelve. Restablecerlo, desactivar o
+  cambiar el rol revoca las sesiones abiertas. No se puede desactivar ni degradar al
+  último Encargado activo de la ubicación (lectura nuestra de la regla de T06).
+- **Pagos.** Cinco medios por ubicación, creados al primer uso con efectivo
+  habilitado. «Disponible» = habilitado y, en Mercado Pago, con clave pública y
+  credencial. La regla del último medio es una función con bloqueo de filas más un
+  _constraint trigger_ diferido. La credencial se cifra en la API con
+  `PAYMENT_SECRET_KEY` (opcional; sin ella se responde 503) y sólo el _ciphertext_ está
+  en SQL; no existe función ni endpoint que lo devuelva.
+- **Host.** `apps/web/src/app/panel/admin-api.ts` llama a la API con `tenantFetch`.
+  Con él se verificó el recorrido real sin proxy.
+- Eventos de auditoría nuevos: `staff.*` (created, role_changed, renamed,
+  sectors_changed, deactivated, activated, credential_reset) y `payment_method.*`
+  (enabled, disabled, configured, secret_stored, secret_cleared).
+
+### Punto de partida para T15
+
+- Equipo: `TeamRepository.getSummary(scope)` (`activeMembers`, `activeManagers`) o
+  `private.staff_team_summary`. Crear empleados **no** es requisito para publicar.
+- Pagos: `PaymentMethodsRepository.getReadiness(scope)` (`availableMethods`, `ready`)
+  o `private.payment_readiness`; hace falta al menos un medio disponible. Efectivo
+  inicia habilitado, así que un negocio nuevo ya lo cumple mientras no lo deshabilite
+  con otro medio disponible.
+- La simulación de T15 no debe tocar `payment_methods` ni credenciales reales.
+
 ## Invariantes que Fase 4 debe preservar
 
 - El tenant y la ubicación se resuelven desde sesión y dominio; ningún body,
@@ -97,7 +143,7 @@ API; `pnpm audit --prod --audit-level high` no reporta hallazgos altos.
 4. Entregar el editor responsive con recomendación no bloqueante de pantalla
    amplia y verificar serialización, teclado y geometría en navegador real.
 
-### T14 — Equipo y medios de pago
+### T14 — Equipo y medios de pago (completada, ver arriba)
 
 Puede avanzar en paralelo con T13 después de fijar contratos compartidos.
 
@@ -153,8 +199,16 @@ secretos no salen del servidor.
   `Host`; la API sigue validando el Bearer y no recibe `tenantId`, `locationId` ni
   `X-Forwarded-Host`. **Pendiente:** las llamadas de T10–T12 (perfil, carta,
   importaciones) siguen usando `fetch` y deben migrarse a `tenantFetch`, igual que
-  toda llamada administrativa nueva de T14 y T15. La corrección completa está en la
+  toda llamada administrativa nueva de T15 (T14 ya usa `tenantFetch` desde
+  `admin-api.ts`). La corrección completa está en la
   rama `claude/interesting-proskuriakova-25c6df` (commit `173c15d`).
+- **Servidor de desarrollo de Next.** Imprimía los argumentos de las Server Actions
+  (PIN y credenciales). `next.config.ts` fija `logging.serverFunctions: false`; toda
+  acción nueva con datos sensibles depende de ello y de que no se registren cuerpos.
+- `pnpm format:check` falla únicamente en `apps/web/next-env.d.ts`, archivo que Next
+  regenera idéntico al commit (sin cambios desde `0b40071`); no es de T14.
+- Rotación de `PAYMENT_SECRET_KEY` y descifrado servidor-servidor pendientes: T24 los
+  necesita (`PaymentSecretSealer.open` ya existe con pruebas).
 - Local: `catalog_media_validation.test.sql` falla en la base de desarrollo incluso
   sin la migración de T13, y `local-catalog.integration.test.ts` no puede limpiar
   `published_catalogs` porque las tablas de T11 pertenecen a `supabase_admin` y las

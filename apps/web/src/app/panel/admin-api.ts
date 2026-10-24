@@ -2,6 +2,7 @@ import { readWebConfig } from "@platform/config";
 import { headers } from "next/headers";
 
 import { createAuthServerClient } from "../../auth/supabase-server";
+import { tenantFetch } from "./tenant-fetch";
 
 export type AdminApiResult =
   | { body: unknown; ok: true; status: number }
@@ -35,7 +36,7 @@ export async function adminApi(
   }
 
   const config = readWebConfig(process.env);
-  const response = await fetch(`${config.apiUrl}${path}`, {
+  const response = await tenantFetch(`${config.apiUrl}${path}`, {
     ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
     cache: "no-store",
     headers: {
