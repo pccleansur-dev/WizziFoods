@@ -345,7 +345,11 @@ export function createBusinessMediaRepository(
       if (!uuidPattern.test(input.requesterId)) {
         throw new Error("requesterId must be a UUID");
       }
-      if (!(["cover", "logo", "reference"] as string[]).includes(input.kind)) {
+      if (
+        !(["cover", "logo", "product", "reference"] as string[]).includes(
+          input.kind
+        )
+      ) {
         throw new Error("business media kind must be canonical");
       }
       const decision = evaluateBusinessMediaUpload({

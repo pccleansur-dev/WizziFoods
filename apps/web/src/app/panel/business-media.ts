@@ -35,7 +35,12 @@ function dataRecord(value: unknown): Record<string, unknown> {
 }
 
 function isKind(value: unknown): value is BusinessMediaKind {
-  return value === "cover" || value === "logo" || value === "reference";
+  return (
+    value === "cover" ||
+    value === "logo" ||
+    value === "product" ||
+    value === "reference"
+  );
 }
 
 function hasExactKeys(value: Record<string, unknown>, keys: string[]): boolean {

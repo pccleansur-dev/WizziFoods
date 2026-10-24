@@ -40,6 +40,34 @@ describe("business media repository", () => {
     });
   });
 
+  it("reserves product photos like every other kind of the contract", async () => {
+    const client = (() =>
+      Promise.resolve([
+        {
+          content_type: "image/jpeg",
+          id: "e6000000-0000-4000-8000-000000000006",
+          kind: "product",
+          object_path:
+            "tenants/e3000000-0000-4000-8000-000000000003/locations/e5000000-0000-4000-8000-000000000005/business-profile/product/e6000000-0000-4000-8000-000000000006.jpg",
+          reservation_expires_at: "2026-10-23 14:00:00+00",
+          source_size_bytes: 2048,
+          status: "reserved"
+        }
+      ])) as never;
+    await expect(
+      createBusinessMediaRepository(client).reserve({
+        ...validInput,
+        kind: "product"
+      })
+    ).resolves.toMatchObject({ kind: "product", status: "reserved" });
+    await expect(
+      createBusinessMediaRepository(unreachableClient).reserve({
+        ...validInput,
+        kind: "avatar" as never
+      })
+    ).rejects.toThrow("canonical");
+  });
+
   it("rejects malformed worker claims before querying", async () => {
     const repository = createBusinessMediaRepository(unreachableClient);
     await expect(

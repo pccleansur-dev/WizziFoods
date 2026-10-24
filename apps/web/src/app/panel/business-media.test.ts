@@ -25,6 +25,28 @@ describe("business media API responses", () => {
     ).toMatchObject({ id: assetId, status: "reserved" });
   });
 
+  it("accepts product photos in reservations and status", () => {
+    expect(
+      parseBusinessMediaReservation({
+        data: {
+          contentType: "image/png",
+          expiresAt: "2026-10-23T12:00:00.000Z",
+          id: assetId,
+          kind: "product",
+          objectPath: "tenants/t/locations/l/business-profile/product/id.png",
+          sourceSizeBytes: 1024,
+          status: "reserved",
+          uploadUrl: "http://storage.local/upload?token=signed"
+        }
+      })
+    ).toMatchObject({ kind: "product" });
+    expect(
+      parseBusinessMediaStatus({
+        data: { assetId, kind: "product", status: "ready" }
+      })
+    ).toMatchObject({ kind: "product" });
+  });
+
   it("accepts only canonical processing status", () => {
     expect(
       parseBusinessMediaStatus({
