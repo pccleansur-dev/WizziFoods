@@ -228,7 +228,7 @@ export async function seedWaiterBusiness(): Promise<WaiterBusiness> {
       const found = await sql<{ table_name: string }[]>`
         select table_name from information_schema.tables
         where table_schema = 'private'
-          and table_name ~ '(ledger|payment_transaction|production|kds)'
+          and table_name ~ '(ledger|payment_transaction|kds)'
       `;
       return found.map((row) => row.table_name);
     },

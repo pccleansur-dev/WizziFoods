@@ -189,6 +189,9 @@ export function ProductionBoardView({
               <p className="waiter-chip">
                 {productionStatusLabel(ticket.status)}
               </p>
+              <p className="waiter-note">
+                Pedido completo: {productionStatusLabel(ticket.orderStatus)}
+              </p>
             </header>
             <ul className="waiter-lines">
               {ticket.items.map((item) => {
