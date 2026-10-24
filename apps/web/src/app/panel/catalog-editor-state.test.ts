@@ -1,3 +1,4 @@
+import { parseCatalogDraft } from "@platform/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,6 +8,7 @@ import {
   addCatalogVariant,
   createEmptyCatalogDraft,
   formatPrice,
+  trimCatalogText,
   parsePriceToCents,
   removeCatalogCategory,
   removeCatalogVariant,
@@ -158,5 +160,63 @@ describe("catalog editor state", () => {
   it("formats cents without hiding decimals", () => {
     expect(formatPrice(1_250_050)).toBe("12500,50");
     expect(formatPrice(1_250_000)).toBe("12500");
+  });
+});
+
+describe("trimCatalogText", () => {
+  const withSpaces = {
+    baseRevision: null,
+    categories: [
+      {
+        content: [{ description: " rico ", language: "es", title: " Platos " }],
+        id: "a1000000-0000-4000-8000-000000000001",
+        position: 0
+      }
+    ],
+    products: [
+      {
+        categoryId: "a1000000-0000-4000-8000-000000000001",
+        content: [{ description: "", language: "es", title: "Milanesa " }],
+        id: "a2000000-0000-4000-8000-000000000002",
+        imageAssetId: null,
+        position: 0,
+        priceCents: 1000,
+        sectorId: "a3000000-0000-4000-8000-000000000003",
+        variants: [
+          {
+            content: [{ description: "", language: "es", title: " Doble" }],
+            id: "a4000000-0000-4000-8000-000000000004",
+            position: 0,
+            priceDeltaCents: 100
+          }
+        ]
+      }
+    ],
+    sectors: [
+      {
+        id: "a3000000-0000-4000-8000-000000000003",
+        kind: "kitchen",
+        name: " Cocina ",
+        position: 0
+      }
+    ]
+  };
+
+  it("removes the spaces around names and descriptions the contract refuses", () => {
+    const trimmed = trimCatalogText(withSpaces) as typeof withSpaces;
+    expect(trimmed.categories[0]?.content[0]).toMatchObject({
+      description: "rico",
+      title: "Platos"
+    });
+    expect(trimmed.products[0]?.content[0]?.title).toBe("Milanesa");
+    expect(trimmed.products[0]?.variants[0]?.content[0]?.title).toBe("Doble");
+    expect(trimmed.sectors[0]?.name).toBe("Cocina");
+    expect(parseCatalogDraft(trimmed)).not.toBeNull();
+    expect(parseCatalogDraft(withSpaces)).toBeNull();
+  });
+
+  it("leaves anything it does not understand for the contract to reject", () => {
+    expect(trimCatalogText("nope")).toBe("nope");
+    expect(trimCatalogText({ categories: "x" })).toEqual({ categories: "x" });
   });
 });

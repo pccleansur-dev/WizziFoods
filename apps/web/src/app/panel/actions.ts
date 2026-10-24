@@ -16,6 +16,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createAuthServerClient } from "../../auth/supabase-server";
+import { trimCatalogText } from "./catalog-editor-state";
 import { tenantFetch } from "./tenant-fetch";
 import {
   parseProvisionedTenant,
@@ -386,14 +387,14 @@ export async function saveCatalogAction(
   }
   let draft;
   try {
-    draft = parseCatalogDraft(JSON.parse(serialized));
+    draft = parseCatalogDraft(trimCatalogText(JSON.parse(serialized)));
   } catch {
     draft = null;
   }
   if (!draft) {
     return catalogError(
       previousState,
-      "Revisá categorías, sectores, productos y precios."
+      "Revisá que cada categoría, sector y producto tenga nombre, que los nombres no superen 120 caracteres y que los precios sean números."
     );
   }
   const auth = await tenantMutationContext();

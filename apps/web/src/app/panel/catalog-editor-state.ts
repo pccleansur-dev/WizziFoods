@@ -278,3 +278,66 @@ export function formatPrice(cents: number): string {
     ? `${units},${String(decimals).padStart(2, "0")}`
     : `${units}`;
 }
+
+type Json = Record<string, unknown>;
+
+function plain(value: unknown): Json | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Json)
+    : null;
+}
+
+function trimmed(value: unknown): unknown {
+  return typeof value === "string" ? value.trim() : value;
+}
+
+function trimContent(content: unknown): unknown {
+  if (!Array.isArray(content)) return content;
+  return content.map((entry) => {
+    const item = plain(entry);
+    return item
+      ? {
+          ...item,
+          description: trimmed(item.description),
+          title: trimmed(item.title)
+        }
+      : entry;
+  });
+}
+
+function mapList(value: unknown, change: (item: Json) => Json): unknown {
+  if (!Array.isArray(value)) return value;
+  return value.map((entry) => {
+    const item = plain(entry);
+    return item ? change(item) : entry;
+  });
+}
+
+/**
+ * Quita los espacios al borde de nombres y descripciones antes de validar: el
+ * contrato rechaza el borrador entero por un espacio de más y el mensaje no dice
+ * cuál. Lo que no reconoce lo deja igual para que el contrato lo rechace.
+ */
+export function trimCatalogText(input: unknown): unknown {
+  const draft = plain(input);
+  if (!draft) return input;
+  return {
+    ...draft,
+    categories: mapList(draft.categories, (category) => ({
+      ...category,
+      content: trimContent(category.content)
+    })),
+    products: mapList(draft.products, (product) => ({
+      ...product,
+      content: trimContent(product.content),
+      variants: mapList(product.variants, (variant) => ({
+        ...variant,
+        content: trimContent(variant.content)
+      }))
+    })),
+    sectors: mapList(draft.sectors, (sector) => ({
+      ...sector,
+      name: trimmed(sector.name)
+    }))
+  };
+}
