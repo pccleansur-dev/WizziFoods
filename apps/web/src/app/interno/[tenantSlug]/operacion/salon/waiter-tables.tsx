@@ -6,6 +6,7 @@ import {
   groupUnitsByFloor,
   tableStateLabel
 } from "../../../../../staff/waiter-view";
+import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
 
 export function WaiterTables({ view }: { view: WaiterSalonView }) {
   const groups = groupUnitsByFloor(view);
@@ -41,8 +42,14 @@ export function WaiterTables({ view }: { view: WaiterSalonView }) {
                         : ""}
                     </small>
                   ) : null}
-                  <small>Sin sesión</small>
-                  <small>Saldo disponible desde T22</small>
+                  {unit.session ? (
+                    <small>
+                      Cuenta abierta · Saldo{" "}
+                      {formatMoney(unit.balanceCents ?? 0)}
+                    </small>
+                  ) : (
+                    <small>Sin cuenta abierta</small>
+                  )}
                   {unit.openCalls > 0 || unit.pendingIntents > 0 ? (
                     <b className="waiter-badge">
                       {unit.openCalls} llamado{unit.openCalls === 1 ? "" : "s"}

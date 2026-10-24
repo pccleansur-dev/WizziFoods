@@ -8,7 +8,7 @@ import {
   orderStatusSummary
 } from "./orders-in-progress-view";
 
-const plain = (text: string) => text.replace(/ /gu, " ");
+const plain = (text: string) => text.replaceAll(String.fromCharCode(160), " ");
 
 function item(
   status: WaiterInProgressItem["status"],

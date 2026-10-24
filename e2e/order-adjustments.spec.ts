@@ -55,7 +55,16 @@ async function signIn(browser: Browser, username: string): Promise<Page> {
  */
 async function clickUntil(button: Locator, done: () => Promise<void>) {
   await expect(async () => {
-    if (await button.count()) await button.click({ timeout: 2_000 });
+    // The effect may already be there (a slow response, a button that is now
+    // disabled): check it before clicking again.
+    const already = await done().then(
+      () => true,
+      () => false
+    );
+    if (already) return;
+    if (await button.count()) {
+      await button.click({ timeout: 2_000 }).catch(() => undefined);
+    }
     await done();
   }).toPass({ timeout: 30_000 });
 }

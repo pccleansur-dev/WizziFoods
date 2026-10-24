@@ -4081,3 +4081,52 @@ main:has(.diner-experience) .diner-entry {
   background: #fff;
   font: inherit;
 }
+
+.account-summary {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.account-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.account-summary dt,
+.account-summary dd {
+  margin: 0;
+}
+
+.account-balance {
+  margin: 0.125rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.account-movements summary {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.account-form input {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #8f8576;
+  border-radius: 0.5rem;
+  background: #fff;
+  font: inherit;
+}
+
+.account-form select {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #8f8576;
+  border-radius: 0.5rem;
+  background: #fff;
+  font: inherit;
+}

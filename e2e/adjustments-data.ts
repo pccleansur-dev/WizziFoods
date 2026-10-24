@@ -97,6 +97,8 @@ export type AdjustmentsBusiness = {
   adjustments(): Promise<
     { difference: number; kind: string; status: string }[]
   >;
+  /** Ledger movements of the business, oldest first. */
+  entries(): Promise<{ amount: number; kind: string }[]>;
   /** Confirms an order of the given products on table 5 or 6, as the manager. */
   placeOrder(table: "5" | "6", items: ProductKey[]): Promise<string>;
 };
@@ -201,6 +203,14 @@ export async function seedAdjustmentsBusiness(): Promise<AdjustmentsBusiness> {
         from private.order_adjustments
         where tenant_id = ${tenantId}
         order by created_at, id
+      `;
+      return [...rows];
+    },
+    async entries() {
+      const rows = await owner<{ amount: number; kind: string }[]>`
+        select kind, amount_cents as amount from private.account_entries
+        where tenant_id = ${tenantId}
+        order by id
       `;
       return [...rows];
     },

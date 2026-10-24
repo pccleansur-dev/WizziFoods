@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  parseWaiterAccountsView,
   parseWaiterOrdersView,
   parseWaiterSalonView,
+  type WaiterAccountsView,
   type WaiterOrderResult,
   type WaiterOrdersView,
   type WaiterSalonView
@@ -17,6 +19,11 @@ import {
   decideIntentAction
 } from "../waiter-actions";
 import {
+  applyDiscountAction,
+  keepAccountOpenAction,
+  recordPaymentAction
+} from "../account-actions";
+import {
   cancelItemAction,
   decideReplacementAction,
   deliverItemAction,
@@ -25,10 +32,19 @@ import {
 import type { WaiterActionResult } from "../waiter-action-result";
 import { ConfirmedOrderPanel } from "./confirmed-order-panel";
 import { ManualOrderForm, type ManualOrderDraft } from "./manual-order-form";
+import {
+  AccountsPanel,
+  type DiscountDraft,
+  type PaymentDraft
+} from "./accounts-panel";
 import { OrdersInProgress } from "./orders-in-progress";
 import { WaiterPending } from "./waiter-pending";
 import { WaiterTables } from "./waiter-tables";
 import { newId } from "../../../../../lib/new-id";
+import {
+  accountBalanceLabel,
+  accountForTable
+} from "../../../../../staff/account-view";
 import {
   attentionCount,
   differenceLabel
@@ -37,11 +53,12 @@ import {
 const POLL_MS = 5_000;
 
 type Notice = { kind: "error" | "ok"; text: string };
-type Tab = "comanda" | "pedidos" | "salon";
+type Tab = "comanda" | "cuentas" | "pedidos" | "salon";
 
 export function WaiterWorkspace({
   canCreateOrders,
   canValidate,
+  initialAccounts,
   initialOrders,
   initialTab,
   initialView,
@@ -51,6 +68,7 @@ export function WaiterWorkspace({
 }: {
   canCreateOrders: boolean;
   canValidate: boolean;
+  initialAccounts: WaiterAccountsView;
   initialOrders: WaiterOrdersView;
   initialTab: Tab;
   initialView: WaiterSalonView;
@@ -60,6 +78,9 @@ export function WaiterWorkspace({
 }) {
   const [view, setView] = useState(initialView);
   const [orders, setOrders] = useState(initialOrders);
+  const [accounts, setAccounts] = useState(initialAccounts);
+  // Account whose collection form opens when the accounts tab is shown.
+  const [collectSession, setCollectSession] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [stale, setStale] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -84,24 +105,37 @@ export function WaiterWorkspace({
 
   const refresh = useCallback(async () => {
     try {
-      const [response, ordersResponse] = await Promise.all([
+      const [response, ordersResponse, accountsResponse] = await Promise.all([
         fetch(`/interno/${tenantSlug}/operacion/vista`, { cache: "no-store" }),
         fetch(`/interno/${tenantSlug}/operacion/pedidos/vista`, {
           cache: "no-store"
+        }),
+        fetch(`/interno/${tenantSlug}/operacion/cuentas/vista`, {
+          cache: "no-store"
         })
       ]);
-      if (response.status === 401 || ordersResponse.status === 401) {
+      if (
+        response.status === 401 ||
+        ordersResponse.status === 401 ||
+        accountsResponse.status === 401
+      ) {
         setExpired(true);
         return;
       }
-      if (!response.ok || !ordersResponse.ok) {
+      if (!response.ok || !ordersResponse.ok || !accountsResponse.ok) {
         throw new Error("salon unavailable");
       }
       const parsed = parseWaiterSalonView(await response.json());
       const parsedOrders = parseWaiterOrdersView(await ordersResponse.json());
-      if (!parsed || !parsedOrders) throw new Error("salon invalid");
+      const parsedAccounts = parseWaiterAccountsView(
+        await accountsResponse.json()
+      );
+      if (!parsed || !parsedOrders || !parsedAccounts) {
+        throw new Error("salon invalid");
+      }
       setView(parsed);
       setOrders(parsedOrders);
+      setAccounts(parsedAccounts);
       setStale(false);
       setNow(Date.now());
     } catch {
@@ -279,6 +313,43 @@ export function WaiterWorkspace({
     report(result, `Cancelaste ${label}.`);
   }
 
+  const tableOf = (tableLabel: string) =>
+    accountForTable(accounts.accounts, tableLabel.replace(/^Mesa\s+/u, ""));
+
+  async function pay(sessionId: string, draft: PaymentDraft) {
+    const result = await perform(
+      `pay:${sessionId}:${draft.method}:${draft.amountCents ?? "all"}:${draft.tipCents}`,
+      (commandId) =>
+        recordPaymentAction(tenantSlug, sessionId, { ...draft, commandId })
+    );
+    report(
+      result,
+      result.status === "ok"
+        ? `Cobro registrado. ${
+            result.data.pendingCents === 0
+              ? "La cuenta quedó saldada."
+              : "Queda saldo pendiente."
+          }`
+        : ""
+    );
+  }
+
+  async function discount(sessionId: string, draft: DiscountDraft) {
+    const result = await perform(
+      `discount:${sessionId}:${draft.kind}:${draft.value}:${draft.reason}`,
+      (commandId) =>
+        applyDiscountAction(tenantSlug, sessionId, { ...draft, commandId })
+    );
+    report(result, "Descuento aplicado a la cuenta.");
+  }
+
+  async function keepOpen(sessionId: string) {
+    const result = await perform(`keep:${sessionId}`, (commandId) =>
+      keepAccountOpenAction(tenantSlug, sessionId, { commandId })
+    );
+    report(result, "La cuenta quedó abierta: cobrás después desde Cuentas.");
+  }
+
   async function createOrder(draft: ManualOrderDraft): Promise<boolean> {
     const result = await perform(
       `manual:${JSON.stringify(draft)}`,
@@ -316,6 +387,9 @@ export function WaiterWorkspace({
     .filter((table) => table.inScope)
     .map((table) => ({ id: table.id, label: table.label }));
   const openCalls = view.calls.length;
+  const owing = accounts.accounts.filter(
+    (account) => account.summary.pendingCents > 0
+  ).length;
   const attention = orders.orders.reduce(
     (sum, order) => sum + attentionCount(order.items),
     0
@@ -339,6 +413,21 @@ export function WaiterWorkspace({
           type="button"
         >
           Salón y llamados
+        </button>
+        <button
+          aria-pressed={tab === "cuentas"}
+          onClick={() => setTab("cuentas")}
+          type="button"
+        >
+          Cuentas
+          {owing > 0 ? (
+            <span
+              aria-label={`${owing} con saldo pendiente`}
+              className="waiter-count"
+            >
+              {owing}
+            </span>
+          ) : null}
         </button>
         <button
           aria-pressed={tab === "pedidos"}
@@ -377,7 +466,23 @@ export function WaiterWorkspace({
 
       {confirmed ? (
         <ConfirmedOrderPanel
+          accountLabel={(() => {
+            const account = tableOf(confirmed.tableLabel);
+            return account ? accountBalanceLabel(account.summary) : null;
+          })()}
+          busy={busy !== null}
+          onCollectNow={() => {
+            setCollectSession(tableOf(confirmed.tableLabel)?.sessionId ?? null);
+            setConfirmed(null);
+            setTab("cuentas");
+          }}
           onDismiss={() => setConfirmed(null)}
+          onKeepOpen={() => {
+            const account = tableOf(confirmed.tableLabel);
+            if (!account) return;
+            setConfirmed(null);
+            void keepOpen(account.sessionId);
+          }}
           onOpenOrders={() => {
             setConfirmed(null);
             setTab("pedidos");
@@ -387,7 +492,17 @@ export function WaiterWorkspace({
         />
       ) : null}
 
-      {tab === "pedidos" ? (
+      {tab === "cuentas" ? (
+        <AccountsPanel
+          accounts={accounts.accounts}
+          busy={busy}
+          collectSessionId={collectSession}
+          isManager={isManager}
+          onDiscount={(sessionId, draft) => void discount(sessionId, draft)}
+          onKeepOpen={(sessionId) => void keepOpen(sessionId)}
+          onPay={(sessionId, draft) => void pay(sessionId, draft)}
+        />
+      ) : tab === "pedidos" ? (
         <OrdersInProgress
           busy={busy}
           isManager={isManager}

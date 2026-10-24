@@ -119,12 +119,11 @@ test("client → call → waiter → confirmed order, without payment or product
   await expect(confirmed).toBeVisible();
   await expect(confirmed).toContainText("no registrado");
   await expect(confirmed).toContainText("Total del pedido");
+  // T22: both account decisions are available, separate from confirming.
   for (const name of ["Cobrar ahora", "Dejar cuenta abierta"]) {
-    await expect(confirmed.getByRole("button", { name })).toHaveAttribute(
-      "aria-disabled",
-      "true"
-    );
+    await expect(confirmed.getByRole("button", { name })).toBeEnabled();
   }
+  await expect(confirmed).toContainText("Enviado a producción");
 
   expect(await business.intentStatus(dinerName)).toBe("confirmed");
   expect(await business.orderCounts()).toEqual({ confirmed: 1, manual: 0 });

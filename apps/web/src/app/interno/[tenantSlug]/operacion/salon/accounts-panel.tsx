@@ -1,0 +1,301 @@
+"use client";
+
+import type { AccountPaymentMethod, WaiterAccount } from "@platform/contracts";
+import { useState } from "react";
+
+import {
+  accountBalanceLabel,
+  movementLabel,
+  parseMoneyInput,
+  paymentMethodChoices,
+  paymentMethodName
+} from "../../../../../staff/account-view";
+import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
+
+export type PaymentDraft = {
+  amountCents: number | null;
+  method: AccountPaymentMethod;
+  tipCents: number;
+};
+export type DiscountDraft = {
+  kind: "amount" | "percent";
+  reason: string;
+  value: number;
+};
+
+export type AccountsPanelProps = {
+  accounts: WaiterAccount[];
+  busy: string | null;
+  /** Opens the collection form of this account when the panel mounts. */
+  collectSessionId: string | null;
+  isManager: boolean;
+  onDiscount(sessionId: string, draft: DiscountDraft): void;
+  onKeepOpen(sessionId: string): void;
+  onPay(sessionId: string, draft: PaymentDraft): void;
+};
+
+type Panel = "collect" | "discount" | null;
+
+function signed(cents: number): string {
+  return `${cents < 0 ? "−" : "+"}${formatMoney(Math.abs(cents))}`;
+}
+
+function AccountCard({
+  account,
+  busy,
+  collectSessionId,
+  isManager,
+  onDiscount,
+  onKeepOpen,
+  onPay
+}: Omit<AccountsPanelProps, "accounts"> & { account: WaiterAccount }) {
+  const [panel, setPanel] = useState<Panel>(
+    collectSessionId === account.sessionId ? "collect" : null
+  );
+  const [method, setMethod] = useState<AccountPaymentMethod>("cash");
+  const [amount, setAmount] = useState("");
+  const [tip, setTip] = useState("");
+  const [kind, setKind] = useState<"amount" | "percent">("percent");
+  const [value, setValue] = useState("");
+  const [reason, setReason] = useState("");
+  const { summary } = account;
+  const tables = account.tableLabels.join(" + ");
+  const titleId = `account-${account.sessionId}`;
+  const owes = summary.pendingCents > 0;
+
+  const typedAmount = amount.trim() === "" ? null : parseMoneyInput(amount);
+  const typedTip = tip.trim() === "" ? 0 : parseMoneyInput(tip);
+  const amountValid =
+    (amount.trim() === "" || (typedAmount !== null && typedAmount > 0)) &&
+    typedTip !== null;
+  const typedValue = parseMoneyInput(value);
+  const discountValid =
+    typedValue !== null &&
+    typedValue > 0 &&
+    (kind === "amount" || typedValue <= 10_000) &&
+    reason.trim().length > 0;
+  const toCollect = typedAmount ?? summary.pendingCents;
+
+  return (
+    <article
+      aria-labelledby={titleId}
+      className="waiter-card account-card"
+      data-pending={summary.pendingCents}
+    >
+      <header>
+        <h3 id={titleId}>Mesa {tables}</h3>
+        <p className="account-balance">{accountBalanceLabel(summary)}</p>
+        {account.keptOpen ? (
+          <p className="waiter-chip waiter-chip--claimed">Cuenta abierta</p>
+        ) : null}
+      </header>
+      <dl className="account-summary">
+        <div>
+          <dt>Consumido</dt>
+          <dd>{formatMoney(summary.consumedCents)}</dd>
+        </div>
+        {summary.discountCents > 0 ? (
+          <div>
+            <dt>Descuentos</dt>
+            <dd>−{formatMoney(summary.discountCents)}</dd>
+          </div>
+        ) : null}
+        {summary.tipCents > 0 ? (
+          <div>
+            <dt>Propinas</dt>
+            <dd>{formatMoney(summary.tipCents)}</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt>Cobrado</dt>
+          <dd>{formatMoney(summary.paidCents)}</dd>
+        </div>
+      </dl>
+
+      <details className="account-movements">
+        <summary>Movimientos ({account.entries.length})</summary>
+        <ul className="waiter-lines">
+          {account.entries.map((entry) => (
+            <li key={entry.id}>
+              <span>
+                {movementLabel(entry.kind)} · {entry.cause}
+                {entry.paymentMethod
+                  ? ` · ${paymentMethodName(entry.paymentMethod)}`
+                  : ""}
+              </span>
+              <b>{signed(entry.amountCents)}</b>
+            </li>
+          ))}
+        </ul>
+      </details>
+
+      <div className="waiter-actions">
+        {owes ? (
+          <button
+            aria-expanded={panel === "collect"}
+            aria-label={`Cobrar ahora: mesa ${tables}`}
+            className="button button--primary"
+            disabled={busy !== null}
+            onClick={() => setPanel(panel === "collect" ? null : "collect")}
+            type="button"
+          >
+            Cobrar ahora
+          </button>
+        ) : null}
+        <button
+          aria-label={`Dejar cuenta abierta: mesa ${tables}`}
+          className="button button--secondary"
+          disabled={busy !== null || account.keptOpen}
+          onClick={() => onKeepOpen(account.sessionId)}
+          type="button"
+        >
+          Dejar cuenta abierta
+        </button>
+        {isManager && owes ? (
+          <button
+            aria-expanded={panel === "discount"}
+            aria-label={`Aplicar descuento: mesa ${tables}`}
+            className="button button--secondary"
+            disabled={busy !== null}
+            onClick={() => setPanel(panel === "discount" ? null : "discount")}
+            type="button"
+          >
+            Descuento…
+          </button>
+        ) : null}
+      </div>
+
+      {panel === "collect" && owes ? (
+        <form
+          className="waiter-reject account-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!amountValid || typedTip === null) return;
+            onPay(account.sessionId, {
+              amountCents: typedAmount,
+              method,
+              tipCents: typedTip
+            });
+          }}
+        >
+          <label htmlFor={`method-${account.sessionId}`}>Medio de pago</label>
+          <select
+            id={`method-${account.sessionId}`}
+            onChange={(event) =>
+              setMethod(event.target.value as AccountPaymentMethod)
+            }
+            value={method}
+          >
+            {paymentMethodChoices.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
+              </option>
+            ))}
+          </select>
+          <label htmlFor={`amount-${account.sessionId}`}>
+            Monto a cobrar (vacío: todo el saldo)
+          </label>
+          <input
+            id={`amount-${account.sessionId}`}
+            inputMode="decimal"
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder={formatMoney(summary.pendingCents)}
+            value={amount}
+          />
+          <label htmlFor={`tip-${account.sessionId}`}>Propina (opcional)</label>
+          <input
+            id={`tip-${account.sessionId}`}
+            inputMode="decimal"
+            onChange={(event) => setTip(event.target.value)}
+            value={tip}
+          />
+          <p className="waiter-note">
+            Se registra el cobro, no se pide ningún dato de la tarjeta.
+          </p>
+          <button
+            className="button button--primary"
+            disabled={busy !== null || !amountValid || toCollect <= 0}
+            type="submit"
+          >
+            Registrar cobro de {formatMoney(toCollect + (typedTip ?? 0))}
+          </button>
+        </form>
+      ) : null}
+
+      {panel === "discount" && isManager && owes ? (
+        <form
+          className="waiter-reject account-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!discountValid || typedValue === null) return;
+            onDiscount(account.sessionId, {
+              kind,
+              reason: reason.trim(),
+              value: typedValue
+            });
+          }}
+        >
+          <label htmlFor={`kind-${account.sessionId}`}>Tipo de descuento</label>
+          <select
+            id={`kind-${account.sessionId}`}
+            onChange={(event) =>
+              setKind(event.target.value as "amount" | "percent")
+            }
+            value={kind}
+          >
+            <option value="percent">Porcentaje del saldo</option>
+            <option value="amount">Monto fijo</option>
+          </select>
+          <label htmlFor={`value-${account.sessionId}`}>
+            {kind === "percent" ? "Porcentaje" : "Monto"}
+          </label>
+          <input
+            id={`value-${account.sessionId}`}
+            inputMode="decimal"
+            onChange={(event) => setValue(event.target.value)}
+            value={value}
+          />
+          <label htmlFor={`discount-reason-${account.sessionId}`}>
+            Motivo del descuento (obligatorio)
+          </label>
+          <textarea
+            id={`discount-reason-${account.sessionId}`}
+            maxLength={200}
+            onChange={(event) => setReason(event.target.value)}
+            required
+            rows={2}
+            value={reason}
+          />
+          <button
+            className="button button--secondary"
+            disabled={busy !== null || !discountValid}
+            type="submit"
+          >
+            Aplicar descuento
+          </button>
+        </form>
+      ) : null}
+    </article>
+  );
+}
+
+export function AccountsPanel(props: AccountsPanelProps) {
+  return (
+    <section aria-labelledby="accounts-title" className="waiter-section">
+      <h2 id="accounts-title">Cuentas de mesa</h2>
+      <p className="waiter-note">
+        Consumido, cobrado y pendiente salen del libro de la cuenta: nada se
+        reescribe, cada cobro, descuento o ajuste queda como un movimiento.
+      </p>
+      {props.accounts.length === 0 ? (
+        <p className="waiter-empty">No hay cuentas abiertas en tus mesas.</p>
+      ) : (
+        <div className="waiter-list">
+          {props.accounts.map((account) => (
+            <AccountCard {...props} account={account} key={account.sessionId} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

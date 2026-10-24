@@ -67,11 +67,17 @@ const errorMessages: Record<string, string> = {
     "Los precios de la carta cambiaron. Pedí al comensal que revise el pedido.",
   ORDER_ITEMS_CHANGED:
     "La disponibilidad de la carta cambió. Revisá el pedido.",
+  ACCOUNT_NOT_FOUND: "No encontramos esa cuenta en tu zona.",
   ADJUSTMENT_ALREADY_DECIDED:
     "Ese reemplazo ya fue decidido o ya hay uno pendiente.",
+  DISCOUNT_TOO_LARGE: "El descuento supera el saldo pendiente.",
+  INVALID_ACCOUNT_REQUEST: "Revisá los datos de la operación.",
   INVALID_ORDER_ADJUSTMENT_REQUEST: "Revisá los datos de la operación.",
   ITEM_NOT_READY: "Solo se entrega un ítem que ya está listo.",
-  MANAGER_REQUIRED: "Cancelar un ítem lo decide el Encargado.",
+  MANAGER_REQUIRED: "Esta decisión la toma el Encargado.",
+  NOTHING_TO_COLLECT: "La cuenta no tiene saldo pendiente para cobrar.",
+  PAYMENT_EXCEEDS_PENDING:
+    "El cobro supera el saldo pendiente. Actualizá la cuenta.",
   ORDER_TARGET_NOT_FOUND: "No encontramos ese pedido o ítem en tu zona.",
   PRODUCTION_ITEM_NOT_FOUND: "No encontramos ese ítem en tu sector.",
   PRODUCTION_TRANSITION_INVALID:

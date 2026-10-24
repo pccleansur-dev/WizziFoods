@@ -5,16 +5,25 @@ import type { WaiterOrderResult } from "@platform/contracts";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
 
 /**
- * Confirming is not charging. Both account decisions are shown as separate,
- * later steps and stay unavailable: no payment, balance or ledger exists yet.
+ * Confirming is not charging. Collecting now and leaving the account open are
+ * two separate decisions that come after it, each on the table's account.
  */
 export function ConfirmedOrderPanel({
+  accountLabel,
+  busy,
+  onCollectNow,
   onDismiss,
+  onKeepOpen,
   onOpenOrders,
   order,
   tableLabel
 }: {
+  /** Balance of the table's account, once it is known. */
+  accountLabel: string | null;
+  busy: boolean;
+  onCollectNow(): void;
   onDismiss(): void;
+  onKeepOpen(): void;
   onOpenOrders(): void;
   order: WaiterOrderResult;
   tableLabel: string;
@@ -45,31 +54,34 @@ export function ConfirmedOrderPanel({
         ✓ Enviado a producción: cada ítem fue a Cocina o Barra según su sector.
       </p>
       <p className="waiter-note">
-        Pago: <strong>no registrado</strong>. Confirmar no cobra ni abre la
-        cuenta de la mesa (eso llega con la etapa de cuenta).
+        Pago: <strong>no registrado</strong>. Confirmar no cobra: el pedido ya
+        quedó en la cuenta de la mesa
+        {accountLabel ? ` (${accountLabel})` : ""}.
       </p>
       <div
-        aria-label="Decisiones posteriores sobre la cuenta"
+        aria-label="Decisiones sobre la cuenta"
         className="waiter-next-steps"
         role="group"
       >
         <button
-          aria-disabled="true"
-          className="button button--secondary"
+          className="button button--primary"
+          disabled={busy}
+          onClick={onCollectNow}
           type="button"
         >
           Cobrar ahora
         </button>
         <button
-          aria-disabled="true"
           className="button button--secondary"
+          disabled={busy}
+          onClick={onKeepOpen}
           type="button"
         >
           Dejar cuenta abierta
         </button>
         <small>
-          Disponibles cuando se habilite la cuenta de mesa. Son decisiones
-          separadas de la confirmación.
+          Son decisiones separadas de la confirmación: cobrás ahora o dejás la
+          cuenta abierta y cobrás después desde Cuentas.
         </small>
       </div>
       <button
