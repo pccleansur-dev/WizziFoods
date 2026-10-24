@@ -24,6 +24,8 @@ import {
 import { CatalogService } from "./catalog/catalog.service.js";
 import { CatalogImportController } from "./catalog-import/catalog-import.controller.js";
 import { CatalogImportService } from "./catalog-import/catalog-import.service.js";
+import { FloorPlanAdminController } from "./floor-plan/floor-plan.controller.js";
+import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
 import {
   StaffAuthController,
   StaffSessionController
@@ -69,6 +71,7 @@ export class AppModule {
         BusinessProfileController,
         CatalogImportController,
         CatalogAdminController,
+        FloorPlanAdminController,
         PublicCatalogController,
         StaffAuthController,
         StaffSessionController,
@@ -120,6 +123,12 @@ export class AppModule {
           provide: CatalogService,
           useFactory: (database: TenantDatabase) =>
             new CatalogService(database.catalogRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: FloorPlanService,
+          useFactory: (database: TenantDatabase) =>
+            new FloorPlanService(database.floorPlanRepository)
         },
         {
           inject: [TENANT_DATABASE],
