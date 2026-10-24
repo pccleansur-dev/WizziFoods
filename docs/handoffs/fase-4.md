@@ -175,11 +175,27 @@ dispositivo y no contiene importes; `POST /v1/public/drafts/recalculate` vuelve 
 resolver QR, mesa, carta, variantes y disponibilidad en cada cambio. La UI pública
 ofrece Carta, detalle y «Mi pedido», y marca líneas inválidas sin reservar stock.
 
-T18 debe convertir este borrador en una intención validada y volver a comprobarlo de
-forma atómica. Todavía no existe sesión de mesa ni cuenta (T22), y T17 no envía ítems a
+T18 ya convierte este borrador en una intención validada y vuelve a comprobarlo de
+forma atómica. Todavía no existe sesión de mesa ni cuenta (T22), y nada se envía a
 producción. El E2E usa una conexión `supabase_admin` sólo para sembrar y limpiar las
 tablas locales de catálogo que tienen ese propietario; el runtime sigue usando
 `authenticator` y las APIs tenant-scoped.
+
+### Estado de T18 — intención validada y atención presencial
+
+Hecho: ver `docs/runbooks/intenciones-de-pedido.md`. `POST
+/v1/public/order-intents` recibe sólo el contrato del comensal y obtiene tenant y
+ubicación desde `Host`. `private.create_order_intent` revalida el QR, la mesa, la
+publicación, la selección, los precios, el medio y el stock opcional dentro de una
+transacción; `(tenant, location, commandId)` vuelve los reintentos persistentes e
+idempotentes incluso si llegan juntos. El rol `authenticator` no accede a las tablas,
+sólo a las dos funciones públicas acotadas.
+
+Los medios presenciales dejan `awaiting_waiter` y un llamado abierto
+`order_validation`; T19 debe resolverlo. Mercado Pago deja `payment_pending` sin
+llamado; T24 implementará el cobro real. Ninguno confirma, reserva stock, abre la
+sesión/cuenta ni envía a producción. T20 y T22 conservan esas responsabilidades. La UI
+borra el borrador únicamente después de una respuesta aceptada.
 
 ### Punto de partida para T16 (histórico)
 

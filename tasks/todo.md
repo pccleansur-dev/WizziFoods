@@ -549,20 +549,20 @@ marca el problema sin borrar la selección. Playwright lo verificó con dos cont
 navegador aislados y con una desactivación concurrente, en móvil y escritorio. Runbook:
 `docs/runbooks/carta-y-borrador-comensal.md`.
 
-### T18. Confirmar pedido o solicitar atención presencial
+### T18. Confirmar pedido o solicitar atención presencial — completada
 
 **Descripción:** Convertir el borrador en intención validada, con identificación opcional y caminos online/presencial.
 
 **Criterios de aceptación:**
 
-- [ ] Nombre y silla se solicitan cuando se atribuye/paga consumo individual; silla sigue opcional en el caso general.
-- [ ] Pago online pendiente no confirma ni envía a producción.
-- [ ] Medio presencial crea un llamado con productos y motivo para validación del mozo.
+- [x] Nombre y silla se solicitan cuando se atribuye/paga consumo individual; silla sigue opcional en el caso general.
+- [x] Pago online pendiente no confirma ni envía a producción.
+- [x] Medio presencial crea un llamado con productos y motivo para validación del mozo.
 
 **Verificación:**
 
-- [ ] Pruebas de transición y confirmación atómica de disponibilidad/stock.
-- [ ] E2E para cuenta general, consumo propio y llamado presencial.
+- [x] Pruebas de transición y confirmación atómica de disponibilidad/stock.
+- [x] E2E para cuenta general, consumo propio y llamado presencial.
 
 **Dependencias:** T17.
 
@@ -570,9 +570,23 @@ navegador aislados y con una desactivación concurrente, en móvil y escritorio.
 
 **Tamaño:** M.
 
+**Resultado:** el contrato canónico exige nombre, `commandId` y líneas sin precios;
+cuenta general admite silla opcional y consumo propio la exige. `POST
+/v1/public/order-intents`, protegido por el contexto derivado de `Host`, llama a una
+función SQL acotada que reclama el comando de forma persistente y revalida en una sola
+transacción QR, mesa, publicación, productos, variantes, disponibilidad, cantidades,
+medio de pago, precios y stock operativo opcional. El camino presencial crea una
+intención `awaiting_waiter` y un único llamado `order_validation`; Mercado Pago crea
+solamente `payment_pending`. Ninguno confirma, abre cuenta, reserva stock ni envía a
+producción. La UI pide nombre, atribución, silla y medio habilitado; su proxy limita el
+payload y el borrador sólo se limpia tras una aceptación. Verificado con 18 aserciones
+pgTap, pruebas unitarias/de repositorio/API/web y Playwright móvil/escritorio para
+cuenta general, consumo propio, online pendiente, concurrencia idempotente y fallo con
+borrador conservado. Runbook: `docs/runbooks/intenciones-de-pedido.md`.
+
 ### Checkpoint 5
 
-- [ ] Cliente invitado completa el recorrido hasta pedido pendiente de validación.
+- [x] Cliente invitado completa el recorrido hasta pedido pendiente de validación.
 - [ ] Se revisa el prototipo ejecutable en teléfono real.
 
 ## Fase 6 — Operación y producción

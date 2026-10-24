@@ -136,7 +136,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 - [x] T16. Entrar por QR respetando el estado de la mesa.
 - [x] T17. Navegar la carta y mantener un borrador privado.
-- [ ] T18. Confirmar un pedido o solicitar validación/cobro presencial.
+- [x] T18. Confirmar un pedido o solicitar validación/cobro presencial.
 
 ### Fase 6 — Operación y producción
 

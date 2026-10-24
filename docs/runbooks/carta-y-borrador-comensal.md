@@ -18,8 +18,9 @@ en ese dispositivo. T17 no crea una sesión de mesa, una cuenta ni una reserva d
   salió de la publicación queda como `product_missing` o `variant_missing`. Cualquiera
   de esos estados, o una mesa `view_only`, devuelve `canConfirm: false`.
 
-El endpoint no persiste el borrador y no reserva stock. T18 debe volver a validar todo
-dentro de la operación atómica que convierta el borrador en una intención.
+El endpoint no persiste el borrador y no reserva stock. T18 vuelve a validar todo
+dentro de la operación atómica que lo convierte en una intención; ver
+`docs/runbooks/intenciones-de-pedido.md`.
 
 ## Privacidad por dispositivo
 
@@ -49,9 +50,8 @@ se borra: la bandeja muestra un error y no permite continuar.
   dispositivos aislados y una desactivación concurrente que marca la línea y bloquea
   «Continuar».
 
-## Pendiente para T18
+## Continuación en T18
 
-- «Continuar» todavía no convierte el borrador en una intención.
-- No se pide nombre ni silla y no se elige pago general/individual.
-- No se crea llamado presencial ni pago online pendiente.
-- No se envía nada a producción.
+«Continuar» ya pide nombre, atribución, silla cuando corresponde y un medio habilitado.
+T18 persiste una intención con llamado presencial o pago online pendiente, pero todavía
+no confirma ni envía nada a producción.
