@@ -43,6 +43,8 @@ import {
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { StaffSessionGuard } from "./staff-auth/staff-session.guard.js";
+import { OrderAdjustmentsController } from "./order-adjustments/order-adjustments.controller.js";
+import { OrderAdjustmentsService } from "./order-adjustments/order-adjustments.service.js";
 import { ProductionController } from "./production/production.controller.js";
 import { ProductionService } from "./production/production.service.js";
 import { WaiterController } from "./waiter/waiter.controller.js";
@@ -110,6 +112,7 @@ export class AppModule {
         TeamAdminController,
         TranslationAdminController,
         TenantSuspensionController,
+        OrderAdjustmentsController,
         ProductionController,
         WaiterController
       ],
@@ -273,6 +276,12 @@ export class AppModule {
               database.identityAccessRepository,
               database.tenantSuspensionRepository
             )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: OrderAdjustmentsService,
+          useFactory: (database: TenantDatabase) =>
+            new OrderAdjustmentsService(database.orderAdjustmentsRepository)
         },
         {
           inject: [TENANT_DATABASE],
