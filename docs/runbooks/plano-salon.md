@@ -95,3 +95,21 @@ Un local puede tener varias plantas («Planta baja», «Planta alta», «Terraza
   devuelve además `group_id`, `group_name` y `group_table_labels` (mesas activas del grupo), y
   `FloorTableQrResolution.group` los expone. T16 debe tratar a todo el grupo como una sola
   sesión usando `group.id`. La vista de códigos QR marca las mesas agrupadas.
+
+### Requisito para T16 y T19: cómo se ve un grupo para el personal
+
+Aprobado con mockup. Las mesas de un grupo siguen siendo mesas, pero el salón las muestra como
+una sola unidad.
+
+- **Plano del salón.** El grupo se dibuja con su contorno y la etiqueta «Mesas 1 + 2» (más el
+  nombre del grupo si lo tiene). Tiene un solo estado y un solo total.
+- **Ficha.** Tocar cualquier mesa del grupo abre la misma ficha: una cuenta, los pedidos juntos y
+  cada ítem con la mesa de origen («Mesa 2», «Llevar a mesa 2»).
+- **Cocina y barra.** El ticket dice «Mesas 1+2 · Cumpleaños» y la mesa de origen en una línea
+  aparte. Los llamados al mozo también salen con la mesa de origen.
+- **Cuenta.** Es una sola; cobrar o dividir se hace sobre el grupo (T25). El comensal ve
+  «Estás en Cumpleaños (mesas 1 y 2)».
+- **Agrupar y separar con la mesa en uso.** Se pregunta antes y nunca se mueve la deuda ni se
+  pierde historial (T27). Al separar, el encargado elige con qué mesa queda la cuenta.
+- **Cuentas distintas.** No se agrupan mesas que ya tienen cuentas abiertas distintas: se bloquea
+  hasta que una cierre, para no mezclar deuda de personas distintas.
