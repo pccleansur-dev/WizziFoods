@@ -6,6 +6,7 @@ import {
 } from "@platform/contracts";
 
 import { createAuthServerClient } from "../../../auth/supabase-server";
+import { tenantFetch } from "../tenant-fetch";
 
 export type FloorPlanQr = {
   label: string;
@@ -127,8 +128,8 @@ export async function loadFloorPlan(
       headers: { authorization: `Bearer ${accessToken}`, host }
     };
     const [planResponse, qrResponse] = await Promise.all([
-      fetch(`${config.apiUrl}/v1/tenant/floor-plan`, init),
-      fetch(`${config.apiUrl}/v1/tenant/floor-plan/qr`, init)
+      tenantFetch(`${config.apiUrl}/v1/tenant/floor-plan`, init),
+      tenantFetch(`${config.apiUrl}/v1/tenant/floor-plan/qr`, init)
     ]);
     if (!planResponse.ok || !qrResponse.ok) return { status: "unavailable" };
     return {

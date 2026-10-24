@@ -145,14 +145,16 @@ secretos no salen del servidor.
 
 ## Riesgos y pendientes conscientes
 
-- **Cabecera `Host` desde el servidor web.** Las páginas administrativas (T10–T13)
-  llaman a la API con `fetch` y `headers.host = <host del tenant>`. Node/undici
-  descarta esa cabecera, así que la API resuelve el host de su propia URL y
-  responde `TENANT_NOT_FOUND`. Las pruebas de integración usan `server.inject` y no
-  lo detectan. Hay que resolverlo antes de operar de punta a punta (un cliente
-  HTTP que envíe `Host`, o una cabecera de reenvío firmada que la API acepte sólo
-  del servidor web). T13 se verificó en navegador con un arnés temporal que usa
-  `node:http`.
+- **Cabecera `Host` desde el servidor web (resuelto sólo para T13).** `fetch` de
+  Node/undici descarta `Host`, así que la API resolvía el host de su propia URL y
+  respondía `TENANT_NOT_FOUND`; las pruebas con `server.inject` no lo detectan. El
+  plano (`/panel/plano`) ya usa `tenantFetch`
+  (`apps/web/src/app/panel/tenant-fetch.ts`, basado en `node:http`), que sí envía
+  `Host`; la API sigue validando el Bearer y no recibe `tenantId`, `locationId` ni
+  `X-Forwarded-Host`. **Pendiente:** las llamadas de T10–T12 (perfil, carta,
+  importaciones) siguen usando `fetch` y deben migrarse a `tenantFetch`, igual que
+  toda llamada administrativa nueva de T14 y T15. La corrección completa está en la
+  rama `claude/interesting-proskuriakova-25c6df` (commit `173c15d`).
 - Local: `catalog_media_validation.test.sql` falla en la base de desarrollo incluso
   sin la migración de T13, y `local-catalog.integration.test.ts` no puede limpiar
   `published_catalogs` porque las tablas de T11 pertenecen a `supabase_admin` y las

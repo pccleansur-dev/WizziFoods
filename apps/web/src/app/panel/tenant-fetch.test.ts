@@ -1,0 +1,60 @@
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { tenantFetch } from "./tenant-fetch";
+
+let server: Server;
+let apiUrl: string;
+
+beforeAll(async () => {
+  server = createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      res.setHeader("content-type", "application/json");
+      res.end(
+        JSON.stringify({
+          authorization: req.headers.authorization,
+          body: Buffer.concat(chunks).toString(),
+          host: req.headers.host,
+          method: req.method
+        })
+      );
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  apiUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+});
+
+afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
+
+describe("tenantFetch (HTTP real)", () => {
+  it("fetch nativo pierde la cabecera Host del tenant (reproducción)", async () => {
+    const response = await fetch(`${apiUrl}/v1/tenant/floor-plan`, {
+      headers: { host: "cafe-norte.plataforma.test" }
+    });
+    const seen = (await response.json()) as { host: string };
+    expect(seen.host).not.toBe("cafe-norte.plataforma.test");
+  });
+
+  it("entrega Host del tenant, Bearer y cuerpo a la API", async () => {
+    const response = await tenantFetch(`${apiUrl}/v1/tenant/floor-plan`, {
+      body: JSON.stringify({ name: "Salón" }),
+      headers: {
+        authorization: "Bearer token",
+        "content-type": "application/json",
+        host: "cafe-norte.plataforma.test"
+      },
+      method: "PUT"
+    });
+    expect(response.ok).toBe(true);
+    expect(await response.json()).toEqual({
+      authorization: "Bearer token",
+      body: '{"name":"Salón"}',
+      host: "cafe-norte.plataforma.test",
+      method: "PUT"
+    });
+  });
+});

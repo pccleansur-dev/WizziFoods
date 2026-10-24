@@ -8,6 +8,7 @@ import {
 import { headers } from "next/headers";
 
 import { createAuthServerClient } from "../../../auth/supabase-server";
+import { tenantFetch } from "../tenant-fetch";
 import {
   parseFloorPlanQrResponse,
   parseFloorPlanResponse,
@@ -76,7 +77,7 @@ async function readQr(
   apiUrl: string,
   auth: { accessToken: string; host: string }
 ) {
-  const response = await fetch(`${apiUrl}/v1/tenant/floor-plan/qr`, {
+  const response = await tenantFetch(`${apiUrl}/v1/tenant/floor-plan/qr`, {
     cache: "no-store",
     headers: { authorization: `Bearer ${auth.accessToken}`, host: auth.host }
   });
@@ -114,16 +115,19 @@ export async function saveFloorPlanAction(
   if (!auth) return failure("error", "La sesión venció. Volvé a ingresar.");
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/floor-plan`, {
-      body: JSON.stringify(parsed.command),
-      cache: "no-store",
-      headers: {
-        authorization: `Bearer ${auth.accessToken}`,
-        "content-type": "application/json",
-        host: auth.host
-      },
-      method: "PUT"
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/floor-plan`,
+      {
+        body: JSON.stringify(parsed.command),
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          "content-type": "application/json",
+          host: auth.host
+        },
+        method: "PUT"
+      }
+    );
     if (!response.ok) {
       const body: unknown = await response.json().catch(() => null);
       if (response.status === 409) {
@@ -170,10 +174,16 @@ export async function reloadFloorPlanAction(): Promise<FloorPlanActionState> {
   if (!auth) return failure("error", "La sesión venció. Volvé a ingresar.");
   try {
     const config = readWebConfig(process.env);
-    const response = await fetch(`${config.apiUrl}/v1/tenant/floor-plan`, {
-      cache: "no-store",
-      headers: { authorization: `Bearer ${auth.accessToken}`, host: auth.host }
-    });
+    const response = await tenantFetch(
+      `${config.apiUrl}/v1/tenant/floor-plan`,
+      {
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          host: auth.host
+        }
+      }
+    );
     if (!response.ok) return failure("error", "No pudimos recargar el plano.");
     const saved = parseFloorPlanResponse(await response.json());
     return {
