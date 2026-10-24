@@ -22,6 +22,7 @@ import {
   nudgeTable,
   planForFloor,
   planIsDirty,
+  qrEntriesByFloor,
   removeFloor,
   removeSector,
   renameFloor,
@@ -904,7 +905,7 @@ export function FloorPlanEditor({
               editarla ni agruparla. Los QR de mesas nuevas se generan al
               guardar.
             </p>
-            {qr.length > 1 ? (
+            {qr.length > 1 && qrEntriesByFloor(plan, savedPlan).length > 1 ? (
               <button
                 className="button button--secondary"
                 onClick={() => qr.forEach(downloadSvg)}
@@ -913,47 +914,63 @@ export function FloorPlanEditor({
                 Descargar todos
               </button>
             ) : null}
-            <ul className="floor-plan-list">
-              {savedPlan.tables.map((table) => {
-                const code = qrByTable.get(table.id);
-                return (
-                  <li key={table.id}>
-                    {code ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        alt={`Código QR de la mesa ${table.label}`}
-                        className="floor-plan-qr"
-                        height="56"
-                        src={`data:image/svg+xml;utf8,${encodeURIComponent(code.svg)}`}
-                        width="56"
-                      />
-                    ) : null}
-                    <span>Mesa {table.label}</span>
-                    {code ? (
-                      <button
-                        className="button button--secondary"
-                        onClick={() => downloadSvg(code)}
-                        type="button"
-                      >
-                        Descargar QR
-                      </button>
-                    ) : (
-                      <span className="floor-plan-help">Sin QR</span>
-                    )}
-                  </li>
-                );
-              })}
-              {plan.tables
-                .filter((table) => !savedIds.has(table.id))
-                .map((table) => (
-                  <li key={table.id}>
-                    <span>Mesa {table.label}</span>
-                    <span className="floor-plan-help">
-                      Guardá para generar el QR
-                    </span>
-                  </li>
-                ))}
-            </ul>
+            {qrEntriesByFloor(plan, savedPlan).map(({ entries, floor }) => (
+              <div className="floor-plan-qr-group" key={floor.id}>
+                <h3>
+                  {floor.name}
+                  {floor.shortName ? ` (${floor.shortName})` : ""}
+                </h3>
+                {entries.filter(({ saved }) => saved).length > 1 ? (
+                  <button
+                    className="button button--secondary"
+                    onClick={() =>
+                      entries.forEach(({ table }) => {
+                        const code = qrByTable.get(table.id);
+                        if (code) downloadSvg(code);
+                      })
+                    }
+                    type="button"
+                  >
+                    Descargar los QR de esta planta
+                  </button>
+                ) : null}
+                <ul className="floor-plan-list">
+                  {entries.map(({ saved, table }) => {
+                    const code = saved ? qrByTable.get(table.id) : undefined;
+                    return (
+                      <li key={table.id}>
+                        {code ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            alt={`Código QR de la mesa ${table.label}`}
+                            className="floor-plan-qr"
+                            height="56"
+                            src={`data:image/svg+xml;utf8,${encodeURIComponent(code.svg)}`}
+                            width="56"
+                          />
+                        ) : null}
+                        <span>Mesa {table.label}</span>
+                        {!saved ? (
+                          <span className="floor-plan-help">
+                            Guardá para generar el QR
+                          </span>
+                        ) : code ? (
+                          <button
+                            className="button button--secondary"
+                            onClick={() => downloadSvg(code)}
+                            type="button"
+                          >
+                            Descargar QR
+                          </button>
+                        ) : (
+                          <span className="floor-plan-help">Sin QR</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </section>
         </aside>
       </div>

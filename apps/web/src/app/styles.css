@@ -3013,3 +3013,14 @@ dd {
 .floor-plan-list--floors li > .floor-plan-short {
   flex: 0 0 5.5rem;
 }
+
+.floor-plan-qr-group {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.floor-plan-qr-group h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}

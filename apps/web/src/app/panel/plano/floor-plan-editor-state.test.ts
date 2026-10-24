@@ -25,6 +25,7 @@ import {
   ensureDefaultFloor,
   moveTableToFloor,
   planForFloor,
+  qrEntriesByFloor,
   removeFloor,
   renameFloor,
   ungroupTables,
@@ -518,5 +519,54 @@ describe("floors in the editor", () => {
     const upper = planForFloor(plan, plan.floors[1]!.id);
     expect(upper.tables.map(({ id }) => id)).toEqual([c!.id]);
     expect(upper.groups).toEqual([]);
+  });
+});
+
+describe("QR codes grouped by floor", () => {
+  function twoFloors() {
+    let plan = planWithTables(3);
+    plan = addFloor(plan, "Planta alta", ids(), "PA");
+    return plan;
+  }
+
+  it("lists the tables of each floor under that floor, in floor order", () => {
+    let plan = twoFloors();
+    const [a, b, c] = plan.tables;
+    plan = moveTableToFloor(plan, c!.id, plan.floors[1]!.id);
+    const groups = qrEntriesByFloor(plan, plan);
+    expect(groups.map(({ floor }) => floor.name)).toEqual([
+      "Planta baja",
+      "Planta alta"
+    ]);
+    expect(groups[0]!.entries.map(({ table }) => table.id)).toEqual([
+      a!.id,
+      b!.id
+    ]);
+    expect(groups[1]!.entries.map(({ table }) => table.id)).toEqual([c!.id]);
+  });
+
+  it("flags tables that are not saved yet and keeps removed saved ones until the next save", () => {
+    const saved = planWithTables(2);
+    const [a, b] = saved.tables;
+    let plan = removeTable(saved, b!.id);
+    plan = addTable(plan, {
+      floorId: plan.floors[0]!.id,
+      id: ids(),
+      sectorId: plan.sectors[0]!.id,
+      shape: "square"
+    });
+    const entries = qrEntriesByFloor(plan, saved)[0]!.entries;
+    const byId = new Map(entries.map((entry) => [entry.table.id, entry]));
+    expect(byId.get(a!.id)?.saved).toBe(true);
+    expect(byId.get(b!.id)?.saved).toBe(true);
+    const fresh = entries.find(({ saved: isSaved }) => !isSaved);
+    expect(fresh?.table.label).toBeTruthy();
+  });
+
+  it("omits floors without tables", () => {
+    const plan = twoFloors();
+    expect(qrEntriesByFloor(plan, plan).map(({ floor }) => floor.name)).toEqual(
+      ["Planta baja"]
+    );
   });
 });

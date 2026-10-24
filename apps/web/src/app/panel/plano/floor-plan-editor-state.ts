@@ -661,3 +661,53 @@ export const SHAPE_LABELS: Record<FloorTableShape, string> = {
   round: "Redonda",
   square: "Cuadrada"
 };
+
+export type QrEntry = { saved: boolean; table: FloorTable };
+
+/**
+ * Las mesas del listado de QR agrupadas por planta, en el orden de las plantas.
+ * Una mesa quitada que ya estaba guardada sigue apareciendo (su QR vive hasta el
+ * próximo guardado) en la planta en la que estaba. Las plantas sin mesas no salen.
+ */
+export function qrEntriesByFloor(
+  plan: FloorPlanDraft,
+  savedPlan: FloorPlanDraft
+): { entries: QrEntry[]; floor: FloorLevel }[] {
+  const savedIds = new Set(savedPlan.tables.map(({ id }) => id));
+  const current = new Map(plan.tables.map((table) => [table.id, table]));
+  const floors = new Map(
+    [...savedPlan.floors, ...plan.floors].map((floor) => [floor.id, floor])
+  );
+  const entries: QrEntry[] = [
+    ...savedPlan.tables.map((table) => ({
+      saved: true,
+      table: current.get(table.id) ?? table
+    })),
+    ...plan.tables
+      .filter((table) => !savedIds.has(table.id))
+      .map((table) => ({ saved: false, table }))
+  ];
+  const planOrder = new Map(
+    [...plan.floors, ...savedPlan.floors].map((floor, index) => [
+      floor.id,
+      index
+    ])
+  );
+  const grouped = new Map<string, QrEntry[]>();
+  for (const entry of entries) {
+    const list = grouped.get(entry.table.floorId) ?? [];
+    list.push(entry);
+    grouped.set(entry.table.floorId, list);
+  }
+  return [...grouped.entries()]
+    .flatMap(([floorId, list]) => {
+      const floor = floors.get(floorId);
+      return floor ? [{ entries: list, floor }] : [];
+    })
+    .sort(
+      (left, right) =>
+        left.floor.position - right.floor.position ||
+        (planOrder.get(left.floor.id) ?? 0) -
+          (planOrder.get(right.floor.id) ?? 0)
+    );
+}
