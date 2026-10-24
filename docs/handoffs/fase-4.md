@@ -160,7 +160,15 @@ son distintos, las agrupaciones no cruzan plantas, mover una mesa de planta cons
 QR, y los planos existentes quedaron en una «Planta baja». T16 debería mostrar el nombre de la
 planta al resolver el QR (`FloorPlanRepository.resolveQr` aún no la devuelve).
 
-### Punto de partida para T16
+### Estado de T16 — entrada por QR
+
+Hecho: ver `docs/runbooks/entrada-por-qr.md`. `FloorPlanRepository.resolveTableEntry` y
+`POST /v1/public/table-entry` son el punto de entrada del comensal; la página es
+`/m/[token]`. La tabla `floor_table_service_states` es la única fuente del estado de
+mesa y la deben escribir T19/T22/T26. T22 debe colgar la sesión de `group.id` (o de la
+mesa) y T22/T27 debe aplicar «no agrupar mesas con cuentas abiertas distintas».
+
+### Punto de partida para T16 (histórico)
 
 - Las tablas de pedidos reales no deben leer ni escribir `sandbox_*`; toda métrica,
   saldo o cierre debe excluir el namespace `sandbox` y la acción `sandbox.*`.

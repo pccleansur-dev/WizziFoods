@@ -492,18 +492,29 @@ contraseña y TOTP creados por la API admin de Supabase local. Runbook:
 
 **Criterios de aceptación:**
 
-- [ ] Disponible permite iniciar flujo; ocupada se une a la sesión correcta.
-- [ ] Pendiente de limpieza o fuera de servicio permite ver carta y llamar al mozo, no confirmar automáticamente.
-- [ ] QR inválido, tenant suspendido o agrupación cambiada tienen salida segura y comprensible.
+- [x] Disponible permite iniciar flujo; ocupada se une a la sesión correcta.
+- [x] Pendiente de limpieza o fuera de servicio permite ver carta y llamar al mozo, no confirmar automáticamente.
+- [x] QR inválido, tenant suspendido o agrupación cambiada tienen salida segura y comprensible.
 
 **Verificación:**
 
-- [ ] Pruebas de todos los estados y QR de mesas agrupadas.
-- [ ] E2E móvil desde escaneo simulado.
+- [x] Pruebas de todos los estados y QR de mesas agrupadas.
+- [x] E2E móvil desde escaneo simulado.
 
 **Dependencias:** T13, T15.
 
 **Archivos probables:** resolver QR API, entrada pública UI, estado de mesa, pruebas.
+
+**Resultado:** `private.resolve_table_entry` (SQL, rollback y 11 aserciones pgTap con dos
+tenants) combina el QR con la planta, el estado de servicio de la mesa
+(`floor_table_service_states`; sin fila = disponible), el grupo, la publicación y la
+suspensión comercial. `POST /v1/public/table-entry` lo expone sólo por host, con el
+token en el cuerpo y respuesta idéntica para tokens inválidos; la página `/m/[token]`
+muestra empezar, unirse («Estás en <grupo> (mesas X y Y)»), sólo carta y mozo, o una
+salida segura para QR inválido, negocio sin publicar o no disponible. Verificado en
+navegador (escritorio y 375 px). Pendientes asignados a otras tareas: unir a una sesión
+real (T22), llamado al mozo y carta (T17, T19), regla de no agrupar con cuentas
+distintas (T22/T27). Runbook: `docs/runbooks/entrada-por-qr.md`.
 
 **Tamaño:** M.
 
