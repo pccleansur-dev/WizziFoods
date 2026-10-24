@@ -163,3 +163,10 @@ export {
   type SandboxRun,
   type SandboxStep
 } from "./readiness.js";
+export {
+  TRANSLATION_LIMITS,
+  parseTranslationRequest,
+  parseTranslationResult,
+  type TranslationRequest,
+  type TranslationText
+} from "./translation.js";
