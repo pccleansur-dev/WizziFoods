@@ -109,6 +109,10 @@ export {
   type OrderIntentRepository
 } from "./order-intent-repository.js";
 export {
+  createProductionRepository,
+  type ProductionRepository
+} from "./production-repository.js";
+export {
   createWaiterOperationsRepository,
   type WaiterOperationsRepository
 } from "./waiter-operations-repository.js";
