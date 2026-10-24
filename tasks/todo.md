@@ -668,20 +668,34 @@ Pendientes: entregar, faltantes y cancelaciones (T21); pantalla para sectores
 
 **Tamaño:** M.
 
-### T21. Resolver entrega, faltantes y cancelaciones
+### T21. Resolver entrega, faltantes y cancelaciones — completada
 
 **Descripción:** Completar excepciones auditadas sin reescribir pedidos confirmados.
 
 **Criterios de aceptación:**
 
-- [ ] Mozo marca Entregado; producción registra Excepción sin borrar consumos.
-- [ ] Cancelar en preparación exige Encargado/Administrador y motivo.
-- [ ] Reemplazo genera aceptación y diferencia económica vinculada.
+- [x] Mozo marca Entregado; producción registra Excepción sin borrar consumos.
+- [x] Cancelar en preparación exige Encargado/Administrador y motivo.
+- [x] Reemplazo genera aceptación y diferencia económica vinculada.
 
 **Verificación:**
 
-- [ ] Matriz de permisos/estados y pruebas del historial inmutable.
-- [ ] E2E de faltante → reemplazo y faltante → cancelación.
+- [x] Matriz de permisos/estados y pruebas del historial inmutable.
+- [x] E2E de faltante → reemplazo y faltante → cancelación.
+
+**Resultado:** el Mozo marca «Entregado» sólo lo que está Listo; Cocina y Barra informan un
+faltante con motivo sin borrar el ítem ni su consumo; el reemplazo se propone con el precio
+de la carta y la diferencia económica, y se registra la aceptación del comensal (o su
+rechazo, con motivo); sólo el Encargado cancela, con motivo, antes de que el ítem esté
+listo. Los estados viven en `production_items` (con `Entregado`, `Faltante`,
+`Cancelado` y `Reemplazado`) e historial append-only, y los ajustes en
+`order_adjustments` (se deciden una sola vez y no se reescriben). El Mozo y el Encargado
+ven «Pedidos en curso» con el estado por ítem. Verificado con 76 aserciones pgTap (dos
+negocios), 31 pruebas de contrato y 11 de repositorio nuevas (junto con T22), 21 de
+controlador, 6 de integración HTTP (incluye concurrencia) y 6 recorridos Playwright (móvil
+375 px y escritorio, 3100/3101). Runbook: `docs/runbooks/entrega-faltantes-y-cancelaciones.md`.
+Pendientes: aceptación directa del comensal desde su teléfono; pantalla para sectores
+`other`.
 
 **Dependencias:** T20.
 
@@ -691,25 +705,41 @@ Pendientes: entregar, faltantes y cancelaciones (T21); pantalla para sectores
 
 ### Checkpoint 6
 
-- [ ] Pedido atraviesa cliente, mozo, cocina/barra y entrega por ítem.
+- [x] Pedido atraviesa cliente, mozo, cocina/barra y entrega por ítem.
 - [ ] Excepciones conservan historia y pasan revisión operativa.
 
 ## Fase 7 — Cuenta y pagos
 
-### T22. Mantener una cuenta append-only
+### T22. Mantener una cuenta append-only — completada
 
 **Descripción:** Implementar cargos, descuentos, pagos, propinas, ajustes y devoluciones como movimientos inmutables.
 
 **Criterios de aceptación:**
 
-- [ ] Consumido, pagado y pendiente se derivan del libro mayor, no de campos reescribibles.
-- [ ] Cada movimiento referencia actor, origen, moneda, tenant y causa.
-- [ ] Recalcular desde cero produce el mismo saldo.
+- [x] Consumido, pagado y pendiente se derivan del libro mayor, no de campos reescribibles.
+- [x] Cada movimiento referencia actor, origen, moneda, tenant y causa.
+- [x] Recalcular desde cero produce el mismo saldo.
 
 **Verificación:**
 
-- [ ] Pruebas property-based de invariantes y redondeo monetario.
-- [ ] Integración concurrente contra PostgreSQL.
+- [x] Pruebas property-based de invariantes y redondeo monetario.
+- [x] Integración concurrente contra PostgreSQL.
+
+**Resultado:** confirmar el primer pedido de una mesa (o grupo) abre una sesión de mesa y la deja
+Ocupada; cada ítem, cancelación, reemplazo, descuento, propina y cobro presencial es un
+movimiento inmutable de `account_entries` con tenant, ubicación, actor, origen, moneda,
+causa y fuente. Consumido, descuentos, propinas, cobrado y pendiente se derivan del libro, y
+`verify_account` recalcula el consumo desde los ítems y ajustes con el mismo resultado.
+«Cobrar ahora» (medio presencial, monto o todo el saldo, propina) y «Dejar cuenta abierta»
+son decisiones separadas de confirmar; sólo el Encargado da descuentos (monto o porcentaje con
+redondeo al centavo, siempre con motivo). El salón muestra la mesa Ocupada con su saldo y la
+pestaña «Cuentas» lista movimientos y acciones. Verificado con 88 aserciones pgTap (dos
+negocios, con propiedades de redondeo), 20 pruebas de controlador, 7 de integración HTTP
+contra PostgreSQL (cobros y confirmaciones concurrentes, 12 secuencias aleatorias con
+semilla contra un modelo independiente) y 6 recorridos Playwright (móvil 375 px y escritorio;
+56 + 6 en toda la suite). Runbook: `docs/runbooks/cuenta-de-mesa.md`. Pendientes: caja,
+arqueo y devoluciones (T23), Mercado Pago (T24), dividir por persona (T25), cerrar la
+sesión y liberar la mesa (T26).
 
 **Dependencias:** T19, T21.
 

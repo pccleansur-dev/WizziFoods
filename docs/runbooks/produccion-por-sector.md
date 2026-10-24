@@ -3,8 +3,8 @@
 Cada ítem de un pedido confirmado llega a la pantalla de Cocina o de Barra según el
 sector de producción de su producto, y avanza **En cola → En preparación → Listo**. El
 estado del pedido completo se deriva de sus ítems. **Entregar, faltantes y cancelaciones
-son de T21; la cuenta y el ledger son de T22**: esta etapa no mueve dinero ni toca un
-pedido confirmado.
+son de T21 (`docs/runbooks/entrega-faltantes-y-cancelaciones.md`); la cuenta y el ledger
+son de T22**: esta etapa no mueve dinero ni toca un pedido confirmado.
 
 ## Qué ve cada pantalla
 
@@ -80,7 +80,7 @@ para los estados y su historial; sólo antes de operar de verdad).
 
 ## Límites conocidos
 
-- Sin «Entregado», faltantes, reemplazos ni cancelaciones (T21).
+- «Entregado», faltantes, reemplazos y cancelaciones llegaron con T21.
 - Los sectores `other` no tienen pantalla; el Encargado no ve ni mueve producción.
 - Polling cada 5 s; Realtime y reconexión avanzada son de T31.
 - Los tests de integración que apagan los triggers append-only de otras tablas deben

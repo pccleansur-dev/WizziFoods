@@ -379,3 +379,45 @@ Punto de partida para T21–T22:
 - Los tests de integración que limpian tablas con triggers append-only deben usar una
   transacción con `set local session_replication_role = replica` (no `ALTER TABLE …
   DISABLE TRIGGER`): el segundo es global y rompe a otros archivos en paralelo.
+
+## Estado de T21 — entrega, faltantes y cancelaciones
+
+Hecho: ver `docs/runbooks/entrega-faltantes-y-cancelaciones.md`. Migración
+`20261024110000_create_order_adjustments.sql` (pgTap `order_adjustments.test.sql`, 76
+aserciones). API en `apps/api/src/order-adjustments`, repositorio
+`packages/database/src/order-adjustments-repository.ts`, contratos
+`packages/contracts/src/order-adjustments.ts` y web en
+`apps/web/src/app/interno/[tenantSlug]/operacion/salon/orders-in-progress.tsx` (pestaña
+«Pedidos en curso») y `produccion/production-board.tsx` («Faltante…»).
+
+- Los ajustes (`order_adjustments`) son la fuente de la diferencia económica de un
+  reemplazo o una cancelación; T22 los lee (triggers sobre la tabla) y T23 usa la
+  cancelación posterior al cobro como saldo a favor para una devolución presencial.
+- El estado de un ítem sólo da los pasos documentados (`guard_production_item_change`); un
+  estado nuevo debe entrar ahí, en `production_status_of`, en el check de
+  `production_item_events` y en `ProductionItemStatus`.
+
+## Estado de T22 — cuenta y libro mayor
+
+Hecho: ver `docs/runbooks/cuenta-de-mesa.md`. Migración
+`20261024120000_create_table_accounts.sql` (pgTap `table_accounts.test.sql`, 88
+aserciones). API en `apps/api/src/table-accounts`, repositorio
+`packages/database/src/table-accounts-repository.ts`, contratos
+`packages/contracts/src/table-accounts.ts` y web en `salon/accounts-panel.tsx`.
+
+Punto de partida para T23–T26:
+
+- El libro es `private.account_entries` (append-only, un movimiento por fuente y tipo).
+  **Nunca** guardes un saldo: usá `private.account_summary`. El cobro presencial ya
+  existe (`record_account_payment`, medios presenciales, propina aparte); T23 agrega
+  turnos, caja, arqueo ciego y devoluciones (`refund` ya está permitido por el esquema)
+  sobre estas mismas entradas.
+- T24 debe confirmar pagos online escribiendo `payment` con su propio `source_id` en el
+  libro; la sesión y el cobro presencial no se tocan.
+- T25 divide por persona: `confirmed_orders` ya conserva atribución por persona o mesa.
+- T26 cierra la sesión (`status = 'closed'`, único cambio permitido por
+  `guard_table_session_change`) y libera la mesa (`floor_table_service_states`).
+- Los pedidos confirmados antes de T22 no tienen cuenta (sólo datos locales).
+- Los tests de integración nuevos deben limpiar `account_entries`, `account_decisions` y
+  `table_sessions` antes de borrar el negocio (usar `session_replication_role = replica` en
+  una transacción, nunca `ALTER TABLE … DISABLE TRIGGER`).

@@ -2,10 +2,10 @@
 
 El Mozo (y el Encargado) ven el salón en vivo, toman los llamados que dejó T18, validan
 o rechazan la intención del comensal y cargan comandas manuales. **Confirmar un pedido
-no cobra, no abre la cuenta de la mesa y no lo envía a producción**: esas
-responsabilidades siguen en T22–T24 (cuenta, ledger y cobros). Desde T20 un pedido
-confirmado sí llega a Cocina y Barra (`docs/runbooks/produccion-por-sector.md`), sin que el
-salón haga nada más.
+no cobra**. Desde T20 el pedido confirmado llega a Cocina y Barra
+(`docs/runbooks/produccion-por-sector.md`), desde T21 se entrega ítem por ítem
+(`docs/runbooks/entrega-faltantes-y-cancelaciones.md`) y desde T22 abre la cuenta de la mesa
+(`docs/runbooks/cuenta-de-mesa.md`); cobrar sigue siendo una decisión aparte.
 
 ## Identidad y alcance
 
@@ -37,8 +37,8 @@ Realtime queda para T31. Un fallo de red conserva la última lectura y lo dice.
   alguna de sus mesas está en el alcance del Mozo, pero **los llamados, las intenciones y
   las operaciones sólo cubren las mesas dentro de su alcance**; las demás se marcan
   «otro sector».
-- Sin sesión de mesa ni saldo: la vista muestra «Sin sesión» y «Saldo disponible desde
-  T22». No se escribe `floor_table_service_states`.
+- Cada unidad muestra su sesión y su saldo derivado del libro («Cuenta abierta · Saldo
+  $ …») o «Sin cuenta abierta»; confirmar un pedido deja la mesa Ocupada (T22).
 - Un pago online pendiente (Mercado Pago, `payment_pending`) **nunca** aparece: la vista
   sólo lista `awaiting_waiter`.
 
@@ -91,8 +91,8 @@ web genera un `commandId` por payload y lo reutiliza al reintentar.
 
 El resultado de un pedido confirmado lleva `payment: { state: "not_recorded" }` y
 `accountDecision: "pending"`. La pantalla muestra «Cobrar ahora» y «Dejar cuenta abierta»
-como decisiones **separadas y posteriores** (deshabilitadas con `aria-disabled`) hasta
-que existan la cuenta de mesa y los cobros.
+como decisiones **separadas y posteriores** a la confirmación (habilitadas desde T22 sobre
+la cuenta de la mesa); cerrar el aviso no cancela el pedido.
 
 ## Verificación
 
