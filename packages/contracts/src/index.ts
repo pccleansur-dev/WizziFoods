@@ -45,6 +45,21 @@ export {
   type CatalogImportUploadRejection
 } from "./catalog-import.js";
 export {
+  FLOOR_PLAN_LIMITS,
+  parseFloorPlanCommand,
+  parseFloorPlanDraft,
+  type FloorPlanCommand,
+  type FloorPlanDraft,
+  type FloorPlanIssue,
+  type FloorPlanIssueCode,
+  type FloorPlanParseResult,
+  type FloorSeatLayout,
+  type FloorSector,
+  type FloorTable,
+  type FloorTableGroup,
+  type FloorTableShape
+} from "./floor-plan.js";
+export {
   createServiceStatus,
   type ServiceName,
   type ServiceStatus
