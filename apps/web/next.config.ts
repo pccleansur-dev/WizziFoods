@@ -16,7 +16,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL: runtimeConfig.apiUrl
   },
   experimental: {
-    cpus: 1
+    cpus: 1,
+    serverActions: {
+      bodySizeLimit: "9mb"
+    }
   },
   transpilePackages: [
     "@platform/config",

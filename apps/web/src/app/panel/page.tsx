@@ -7,6 +7,7 @@ import { PanelContent } from "./panel-content";
 import { loadPlatformOperations } from "./platform-operations";
 import { loadBusinessProfileDraft } from "./business-profile";
 import { loadCatalogDraft, loadPublishedCatalog } from "./catalog";
+import { loadCatalogImports } from "./catalog-import";
 
 export default async function PanelPage() {
   const result = await loadAdministrativeAccess();
@@ -33,6 +34,10 @@ export default async function PanelPage() {
     result.status === "ready" && result.data.access.type === "tenant_admin"
       ? await loadPublishedCatalog(tenantHost)
       : null;
+  const catalogImports =
+    result.status === "ready" && result.data.access.type === "tenant_admin"
+      ? await loadCatalogImports(tenantHost)
+      : null;
 
   return (
     <main className="panel-shell">
@@ -56,6 +61,9 @@ export default async function PanelPage() {
             businessProfile?.status === "ready" ? businessProfile.data : null
           }
           catalog={catalog?.status === "ready" ? catalog.data : null}
+          catalogImports={
+            catalogImports?.status === "ready" ? catalogImports.data : []
+          }
           publishedCatalog={
             publishedCatalog?.status === "ready" ? publishedCatalog.data : null
           }

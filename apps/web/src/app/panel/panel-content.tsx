@@ -8,17 +8,21 @@ import { BusinessProfileForm } from "./business-profile-form";
 import type { SavedBusinessProfileDraft } from "./business-profile";
 import { CatalogEditor } from "./catalog-editor";
 import type { PublishedCatalog, SavedCatalogDraft } from "./catalog";
+import { CatalogImportPanel } from "./catalog-import-panel";
+import type { CatalogImportView } from "./catalog-import";
 
 export function PanelContent({
   administrativeAccess,
   businessProfile = null,
   catalog = null,
+  catalogImports = [],
   publishedCatalog = null,
   platformOperations = null
 }: {
   administrativeAccess: AdministrativeAccess;
   businessProfile?: SavedBusinessProfileDraft | null;
   catalog?: SavedCatalogDraft | null;
+  catalogImports?: CatalogImportView[];
   publishedCatalog?: PublishedCatalog | null;
   platformOperations?: PlatformOperations | null;
 }) {
@@ -106,6 +110,10 @@ export function PanelContent({
         <strong>{context.tenant.status}</strong>.
       </p>
       <BusinessProfileForm draft={editableProfile} />
+      <CatalogImportPanel
+        idempotencyKey={randomUUID()}
+        imports={catalogImports}
+      />
       <CatalogEditor
         catalog={catalog}
         hasBusinessProfile={businessProfile !== null}

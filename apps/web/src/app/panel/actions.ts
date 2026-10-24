@@ -4,8 +4,12 @@ import { randomUUID } from "node:crypto";
 
 import { readWebConfig } from "@platform/config";
 import {
+  evaluateCatalogImportUpload,
   parseBusinessProfileDraft,
-  parseCatalogDraft
+  parseCatalogDraft,
+  parseCatalogImportDraft,
+  parseCatalogImportRequest,
+  type CatalogImportFileKind
 } from "@platform/contracts";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -20,9 +24,235 @@ import type { TenantSuspensionActionState } from "./tenant-suspension-state";
 import type { BusinessProfileActionState } from "./business-profile-state";
 import type { CatalogActionState } from "./catalog-action-state";
 import type { CatalogAvailabilityActionState } from "./catalog-availability-state";
+import type { CatalogImportActionState } from "./catalog-import-state";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+function importError(
+  previousState: CatalogImportActionState,
+  message: string
+): CatalogImportActionState {
+  return { ...previousState, message, status: "error" };
+}
+
+function fileKind(file: File): CatalogImportFileKind | null {
+  const extension = file.name.toLowerCase().split(".").pop();
+  if (file.type === "text/csv" && extension === "csv") return "csv";
+  if (
+    file.type ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" &&
+    extension === "xlsx"
+  ) {
+    return "xlsx";
+  }
+  if (file.type === "application/pdf" && extension === "pdf") return "pdf";
+  if (
+    ["image/jpeg", "image/png", "image/webp"].includes(file.type) &&
+    ["jpg", "jpeg", "png", "webp"].includes(extension ?? "")
+  ) {
+    return "image";
+  }
+  return null;
+}
+
+export async function enqueueCatalogImportAction(
+  previousState: CatalogImportActionState,
+  formData: FormData
+): Promise<CatalogImportActionState> {
+  const idempotencyKey = formData.get("idempotencyKey");
+  const mode = formData.get("mode");
+  if (typeof idempotencyKey !== "string" || !uuidPattern.test(idempotencyKey)) {
+    return importError(
+      previousState,
+      "La solicitud de importación no es válida."
+    );
+  }
+  let source: unknown;
+  if (mode === "manual") {
+    source = {
+      kind: "manual",
+      rows: [
+        {
+          category: String(formData.get("category") ?? "").trim(),
+          description: String(formData.get("description") ?? "").trim(),
+          name: String(formData.get("name") ?? "").trim(),
+          price: String(formData.get("price") ?? "").trim(),
+          sector: String(formData.get("sector") ?? "").trim()
+        }
+      ]
+    };
+  } else if (mode === "file") {
+    const file = formData.get("file");
+    if (!(file instanceof File)) {
+      return importError(previousState, "Seleccioná un archivo para importar.");
+    }
+    const kind = fileKind(file);
+    if (!kind) {
+      return importError(
+        previousState,
+        "El tipo o la extensión del archivo no está permitido."
+      );
+    }
+    const decision = evaluateCatalogImportUpload({
+      byteLength: file.size,
+      contentType: file.type,
+      fileName: file.name,
+      kind
+    });
+    if (!decision.accepted) {
+      return importError(
+        previousState,
+        decision.reason === "too_large"
+          ? "El archivo supera el máximo de 8 MB."
+          : "El archivo está vacío o no es compatible."
+      );
+    }
+    source = {
+      byteLength: file.size,
+      contentBase64: Buffer.from(await file.arrayBuffer()).toString("base64"),
+      contentType: file.type,
+      fileName: file.name,
+      kind
+    };
+  } else {
+    return importError(previousState, "Elegí carga manual o un archivo.");
+  }
+  const request = parseCatalogImportRequest({ idempotencyKey, source });
+  if (!request) {
+    return importError(previousState, "Revisá los datos de la importación.");
+  }
+  const auth = await tenantMutationContext();
+  if (!auth)
+    return importError(previousState, "La sesión venció. Volvé a ingresar.");
+  try {
+    const config = readWebConfig(process.env);
+    const response = await fetch(`${config.apiUrl}/v1/tenant/catalog-imports`, {
+      body: JSON.stringify(request),
+      cache: "no-store",
+      headers: {
+        authorization: `Bearer ${auth.accessToken}`,
+        "content-type": "application/json",
+        host: auth.host
+      },
+      method: "POST"
+    });
+    if (!response.ok) {
+      return importError(previousState, "No pudimos encolar la importación.");
+    }
+    revalidatePath("/panel");
+    return {
+      idempotencyKey: randomUUID(),
+      message:
+        "Importación en cola. Actualizá en unos segundos para revisar el resultado.",
+      status: "success"
+    };
+  } catch {
+    return importError(
+      previousState,
+      "No pudimos comunicarnos con la plataforma."
+    );
+  }
+}
+
+export async function approveCatalogImportAction(
+  previousState: CatalogImportActionState,
+  formData: FormData
+): Promise<CatalogImportActionState> {
+  const importId = formData.get("importId");
+  const serialized = formData.get("draft");
+  let draft;
+  try {
+    if (typeof serialized !== "string" || serialized.length > 1_000_000) {
+      throw new Error("invalid serialized import");
+    }
+    draft = parseCatalogImportDraft(JSON.parse(serialized));
+  } catch {
+    return importError(previousState, "La revisión enviada no es válida.");
+  }
+  if (typeof importId !== "string" || !uuidPattern.test(importId) || !draft) {
+    return importError(previousState, "La revisión enviada no es válida.");
+  }
+  const auth = await tenantMutationContext();
+  if (!auth)
+    return importError(previousState, "La sesión venció. Volvé a ingresar.");
+  try {
+    const config = readWebConfig(process.env);
+    const response = await fetch(
+      `${config.apiUrl}/v1/tenant/catalog-imports/${importId}/approve`,
+      {
+        body: JSON.stringify(draft),
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          "content-type": "application/json",
+          host: auth.host
+        },
+        method: "POST"
+      }
+    );
+    if (!response.ok) {
+      return importError(
+        previousState,
+        response.status === 400
+          ? "Corregí los campos dudosos obligatorios antes de aprobar."
+          : "No pudimos incorporar la importación."
+      );
+    }
+    revalidatePath("/panel");
+    return {
+      idempotencyKey: randomUUID(),
+      message:
+        "Importación incorporada al borrador. La carta publicada no cambió.",
+      status: "success"
+    };
+  } catch {
+    return importError(
+      previousState,
+      "No pudimos comunicarnos con la plataforma."
+    );
+  }
+}
+
+export async function discardCatalogImportAction(
+  previousState: CatalogImportActionState,
+  formData: FormData
+): Promise<CatalogImportActionState> {
+  const importId = formData.get("importId");
+  if (typeof importId !== "string" || !uuidPattern.test(importId)) {
+    return importError(previousState, "La importación no es válida.");
+  }
+  const auth = await tenantMutationContext();
+  if (!auth)
+    return importError(previousState, "La sesión venció. Volvé a ingresar.");
+  try {
+    const config = readWebConfig(process.env);
+    const response = await fetch(
+      `${config.apiUrl}/v1/tenant/catalog-imports/${importId}/discard`,
+      {
+        cache: "no-store",
+        headers: {
+          authorization: `Bearer ${auth.accessToken}`,
+          host: auth.host
+        },
+        method: "POST"
+      }
+    );
+    if (!response.ok)
+      return importError(previousState, "No pudimos descartar la importación.");
+    revalidatePath("/panel");
+    return {
+      idempotencyKey: randomUUID(),
+      message: "Importación descartada.",
+      status: "success"
+    };
+  } catch {
+    return importError(
+      previousState,
+      "No pudimos comunicarnos con la plataforma."
+    );
+  }
+}
 
 async function tenantMutationContext() {
   const supabase = await createAuthServerClient();
