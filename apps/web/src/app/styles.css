@@ -1962,3 +1962,81 @@ dd {
     align-items: start;
   }
 }
+
+.team-workspace,
+.payments-workspace {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 60rem);
+}
+
+.team-form,
+.team-card .profile-form,
+.payment-card .profile-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.team-form small {
+  color: #9b1c1c;
+  min-height: 1em;
+}
+
+.team-sectors {
+  border: 1px solid #d6d3d1;
+  border-radius: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.team-list,
+.payment-list {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-card,
+.payment-card {
+  background: #fff;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.team-card__summary,
+.payment-card__summary {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.team-card__summary p {
+  margin: 0.25rem 0 0;
+}
+
+.team-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.payment-card__provider {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (max-width: 40rem) {
+  .team-card__actions .button,
+  .payment-card__summary .button {
+    flex: 1 1 100%;
+  }
+}

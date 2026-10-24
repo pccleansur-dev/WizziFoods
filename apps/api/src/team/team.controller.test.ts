@@ -64,12 +64,14 @@ describe("TeamAdminController", () => {
     ["short pin", { ...valid, pin: "1" }]
   ])("rejects %s before reaching the service", async (_name, body) => {
     const create = vi.fn();
-    const error = await failure(controllerWith({ create }).create(request, body));
+    const error = await failure(
+      controllerWith({ create }).create(request, body)
+    );
     expect(error).toBeInstanceOf(BadRequestException);
     expect(create).not.toHaveBeenCalled();
-    expect(JSON.stringify((error as BadRequestException).getResponse())).not.toContain(
-      "123456"
-    );
+    expect(
+      JSON.stringify((error as BadRequestException).getResponse())
+    ).not.toContain("123456");
   });
 
   it("rejects malformed member ids", async () => {

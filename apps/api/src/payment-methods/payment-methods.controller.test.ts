@@ -66,7 +66,8 @@ describe("PaymentMethodsAdminController", () => {
   ])("maps database error %s to %s", async (code, type, apiCode) => {
     const error = (await failure(
       controllerWith({
-        update: () => Promise.reject(Object.assign(new Error("detail"), { code }))
+        update: () =>
+          Promise.reject(Object.assign(new Error("detail"), { code }))
       }).update(request, "cash", { enabled: false })
     )) as ConflictException;
     expect(error).toBeInstanceOf(type);

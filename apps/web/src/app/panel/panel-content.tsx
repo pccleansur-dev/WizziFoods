@@ -135,7 +135,15 @@ export function PanelContent({
         </div>
         <div>
           <span>Personas</span>
-          <strong>Gestionar equipo</strong>
+          <Link className="panel-module-link" href="/panel/equipo">
+            <strong>Gestionar equipo</strong>
+          </Link>
+        </div>
+        <div>
+          <span>Cobros</span>
+          <Link className="panel-module-link" href="/panel/pagos">
+            <strong>Medios de pago</strong>
+          </Link>
         </div>
       </div>
     </div>
