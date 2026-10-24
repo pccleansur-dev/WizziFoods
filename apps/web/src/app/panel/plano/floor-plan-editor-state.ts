@@ -630,16 +630,20 @@ function toPlan(table: SeatedTable, point: { x: number; y: number }) {
   };
 }
 
-/** Whether a plan point is inside the table, grown by two seat gaps on every side. */
-function insideZone(table: SeatedTable, point: { x: number; y: number }) {
+/** Whether a plan point is inside the table grown by `margin` (two seat gaps by default). */
+function insideZone(
+  table: SeatedTable,
+  point: { x: number; y: number },
+  margin = SEAT_GAP * 2
+) {
   const radians = (table.rotation * Math.PI) / 180;
   const dx = point.x - (table.x + table.width / 2);
   const dy = point.y - (table.y + table.height / 2);
   const localX = dx * Math.cos(radians) + dy * Math.sin(radians);
   const localY = -dx * Math.sin(radians) + dy * Math.cos(radians);
   return (
-    Math.abs(localX) < table.width / 2 + SEAT_GAP * 2 &&
-    Math.abs(localY) < table.height / 2 + SEAT_GAP * 2
+    Math.abs(localX) < table.width / 2 + margin &&
+    Math.abs(localY) < table.height / 2 + margin
   );
 }
 
@@ -667,8 +671,10 @@ export function seatPositionsWithin(
 ): { x: number; y: number }[] {
   const base = seatPositions(table);
   if (neighbours.length === 0 || base.length === 0) return base;
-  const faces = (point: { x: number; y: number }) =>
-    neighbours.some((other) => insideZone(other, toPlan(table, point)));
+  const faces = (point: { x: number; y: number }, margin?: number) =>
+    neighbours.some((other) => insideZone(other, toPlan(table, point), margin));
+  // A seat beside a neighbour is fine; only one in front of it or on it is not.
+  const blocked = (seat: { x: number; y: number }) => faces(seat, SEAT_GAP);
 
   if (table.shape === "round") {
     return base.filter((seat) => !faces(seat));
@@ -676,23 +682,12 @@ export function seatPositionsWithin(
 
   const halfWidth = table.width / 2;
   const halfHeight = table.height / 2;
-  const probes: Record<Side, { x: number; y: number }[]> = {
-    bottom: [-halfWidth, 0, halfWidth].map((x) => ({
-      x,
-      y: halfHeight + SEAT_GAP
-    })),
-    left: [-halfHeight, 0, halfHeight].map((y) => ({
-      x: -(halfWidth + SEAT_GAP),
-      y
-    })),
-    right: [-halfHeight, 0, halfHeight].map((y) => ({
-      x: halfWidth + SEAT_GAP,
-      y
-    })),
-    top: [-halfWidth, 0, halfWidth].map((x) => ({
-      x,
-      y: -(halfHeight + SEAT_GAP)
-    }))
+  // A side is taken when its middle faces another table of the group.
+  const probes: Record<Side, { x: number; y: number }> = {
+    bottom: { x: 0, y: halfHeight + SEAT_GAP },
+    left: { x: -(halfWidth + SEAT_GAP), y: 0 },
+    right: { x: halfWidth + SEAT_GAP, y: 0 },
+    top: { x: 0, y: -(halfHeight + SEAT_GAP) }
   };
   const allowed: Side[] =
     table.seatLayout === "one-side"
@@ -700,7 +695,7 @@ export function seatPositionsWithin(
       : table.seatLayout === "long-sides"
         ? ["top", "bottom"]
         : ["top", "right", "bottom", "left"];
-  const free = allowed.filter((side) => !probes[side].some(faces));
+  const free = allowed.filter((side) => !faces(probes[side]));
   if (free.length === allowed.length)
     return base.filter((seat) => !faces(seat));
   if (free.length === 0) return base.filter((seat) => !faces(seat));
@@ -729,7 +724,7 @@ export function seatPositionsWithin(
   }
   return free
     .flatMap((side) => sideSeats(table, side, counts.get(side) ?? 0))
-    .filter((seat) => !faces(seat));
+    .filter((seat) => !blocked(seat));
 }
 
 /**

@@ -660,13 +660,25 @@ describe("seats of grouped tables", () => {
       for (const seat of seatPositionsWithin(one, [other])) {
         const point = toPlan(one, seat);
         const inside =
-          point.x > other.x - 36 &&
-          point.x < other.x + other.width + 36 &&
-          point.y > other.y - 36 &&
-          point.y < other.y + other.height + 36;
+          point.x > other.x - 18 &&
+          point.x < other.x + other.width + 18 &&
+          point.y > other.y - 18 &&
+          point.y < other.y + other.height + 18;
         expect(inside).toBe(false);
       }
     }
+  });
+
+  it("keeps seats on the free flanks of tables that almost touch", () => {
+    const upper = { ...square(60, 100), seatCount: 3 };
+    const lower = { ...square(60, 210), seatCount: 3 };
+    const seats = seatPositionsWithin(upper, [lower]);
+    expect(seats).toHaveLength(3);
+    expect(seats.filter(({ y }) => y < -50)).toHaveLength(1);
+    expect(seats.filter(({ x }) => x < -50)).toHaveLength(1);
+    expect(seats.filter(({ x }) => x > 50)).toHaveLength(1);
+    const fourSeats = seatPositionsWithin({ ...upper, seatCount: 6 }, [lower]);
+    expect(fourSeats).toHaveLength(6);
   });
 
   it("only drops the facing seats of a round table", () => {
