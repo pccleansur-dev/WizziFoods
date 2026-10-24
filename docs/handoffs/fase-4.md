@@ -168,6 +168,19 @@ Hecho: ver `docs/runbooks/entrada-por-qr.md`. `FloorPlanRepository.resolveTableE
 mesa y la deben escribir T19/T22/T26. T22 debe colgar la sesión de `group.id` (o de la
 mesa) y T22/T27 debe aplicar «no agrupar mesas con cuentas abiertas distintas».
 
+### Estado de T17 — carta y borrador privado
+
+Hecho: ver `docs/runbooks/carta-y-borrador-comensal.md`. La selección vive sólo en el
+dispositivo y no contiene importes; `POST /v1/public/drafts/recalculate` vuelve a
+resolver QR, mesa, carta, variantes y disponibilidad en cada cambio. La UI pública
+ofrece Carta, detalle y «Mi pedido», y marca líneas inválidas sin reservar stock.
+
+T18 debe convertir este borrador en una intención validada y volver a comprobarlo de
+forma atómica. Todavía no existe sesión de mesa ni cuenta (T22), y T17 no envía ítems a
+producción. El E2E usa una conexión `supabase_admin` sólo para sembrar y limpiar las
+tablas locales de catálogo que tienen ese propietario; el runtime sigue usando
+`authenticator` y las APIs tenant-scoped.
+
 ### Punto de partida para T16 (histórico)
 
 - Las tablas de pedidos reales no deben leer ni escribir `sandbox_*`; toda métrica,

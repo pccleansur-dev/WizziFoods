@@ -518,26 +518,36 @@ distintas (T22/T27). Runbook: `docs/runbooks/entrada-por-qr.md`.
 
 **Tamaño:** M.
 
-### T17. Navegar carta y mantener un borrador privado
+### T17. Navegar carta y mantener un borrador privado — completada
 
 **Descripción:** Implementar Carta, detalle y “Mi pedido” privado por dispositivo sin reservar stock.
 
 **Criterios de aceptación:**
 
-- [ ] El borrador no es visible para otros dispositivos de la mesa.
-- [ ] Variantes, cantidades e importe se recalculan con reglas del servidor.
-- [ ] Un producto desactivado queda marcado y bloquea confirmación hasta corregirlo.
+- [x] El borrador no es visible para otros dispositivos de la mesa.
+- [x] Variantes, cantidades e importe se recalculan con reglas del servidor.
+- [x] Un producto desactivado queda marcado y bloquea confirmación hasta corregirlo.
 
 **Verificación:**
 
-- [ ] Pruebas con dos dispositivos en una sesión.
-- [ ] E2E de edición y desactivación concurrente.
+- [x] Pruebas con dos dispositivos en una sesión.
+- [x] E2E de edición y desactivación concurrente.
 
 **Dependencias:** T11, T16.
 
 **Archivos probables:** módulo drafts, carta UI, bandeja UI, pruebas.
 
 **Tamaño:** M.
+
+**Resultado:** `/m/[token]` carga la carta publicada, ofrece navegación por categoría,
+detalle y variantes, y mantiene «Mi pedido» en `localStorage` con una clave opaca por
+host y QR. El dispositivo guarda sólo ids y cantidades; `POST
+/v1/public/drafts/recalculate` vuelve a resolver la mesa y recalcula nombres, precios,
+variantes, disponibilidad y totales desde el servidor sin reservar stock. Una mesa en
+modo sólo lectura o una línea desactivada/eliminada devuelve `canConfirm: false` y la UI
+marca el problema sin borrar la selección. Playwright lo verificó con dos contextos de
+navegador aislados y con una desactivación concurrente, en móvil y escritorio. Runbook:
+`docs/runbooks/carta-y-borrador-comensal.md`.
 
 ### T18. Confirmar pedido o solicitar atención presencial
 

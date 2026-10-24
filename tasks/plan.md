@@ -135,7 +135,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 5 — Experiencia del comensal
 
 - [x] T16. Entrar por QR respetando el estado de la mesa.
-- [ ] T17. Navegar la carta y mantener un borrador privado.
+- [x] T17. Navegar la carta y mantener un borrador privado.
 - [ ] T18. Confirmar un pedido o solicitar validación/cobro presencial.
 
 ### Fase 6 — Operación y producción
