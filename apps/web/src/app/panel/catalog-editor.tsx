@@ -130,36 +130,6 @@ export function CatalogEditor({
       <div className="catalog-workspace">
         <div className="catalog-editor">
           <div className="catalog-toolbar" aria-label="Acciones de la carta">
-            <button
-              className="button button--secondary"
-              onClick={() =>
-                change((current) =>
-                  addCatalogCategory(current, undefined, languages)
-                )
-              }
-              type="button"
-            >
-              + Agregar categoría
-            </button>
-            <button
-              className="button button--secondary"
-              onClick={() => change(addCatalogSector)}
-              type="button"
-            >
-              + Agregar sector
-            </button>
-            <button
-              className="button button--secondary"
-              disabled={!draft.categories.length || !draft.sectors.length}
-              onClick={() =>
-                change((current) =>
-                  addCatalogProduct(current, undefined, languages)
-                )
-              }
-              type="button"
-            >
-              + Agregar producto
-            </button>
             <label className="catalog-language-picker">
               <span>Idioma de vista previa</span>
               <select
@@ -184,7 +154,22 @@ export function CatalogEditor({
             <div className="catalog-card catalog-card--table">
               <div className="catalog-card__heading">
                 <h3>Categorías</h3>
-                <span>{draft.categories.length} de 50</span>
+                <div className="catalog-card__actions">
+                  <span>{draft.categories.length} de 50</span>
+                  <button
+                    aria-label="Agregar categoría"
+                    className="button button--secondary catalog-card__add"
+                    disabled={draft.categories.length >= 50}
+                    onClick={() =>
+                      change((current) =>
+                        addCatalogCategory(current, undefined, languages)
+                      )
+                    }
+                    type="button"
+                  >
+                    + Agregar
+                  </button>
+                </div>
               </div>
               {draft.categories.length === 0 ? (
                 <p className="catalog-helper">
@@ -242,7 +227,18 @@ export function CatalogEditor({
             <div className="catalog-card catalog-card--table">
               <div className="catalog-card__heading">
                 <h3>Sectores de preparación</h3>
-                <span>{draft.sectors.length} de 20</span>
+                <div className="catalog-card__actions">
+                  <span>{draft.sectors.length} de 20</span>
+                  <button
+                    aria-label="Agregar sector"
+                    className="button button--secondary catalog-card__add"
+                    disabled={draft.sectors.length >= 20}
+                    onClick={() => change(addCatalogSector)}
+                    type="button"
+                  >
+                    + Agregar
+                  </button>
+                </div>
               </div>
               {draft.sectors.length === 0 ? (
                 <p className="catalog-helper">
@@ -312,7 +308,31 @@ export function CatalogEditor({
             <div className="catalog-card catalog-card--products">
               <div className="catalog-card__heading">
                 <h3>Productos</h3>
-                <span>{draft.products.length} de 500</span>
+                <div className="catalog-card__actions">
+                  <span>{draft.products.length} de 500</span>
+                  <button
+                    aria-label="Agregar producto"
+                    className="button button--secondary catalog-card__add"
+                    disabled={
+                      !draft.categories.length ||
+                      !draft.sectors.length ||
+                      draft.products.length >= 500
+                    }
+                    onClick={() =>
+                      change((current) =>
+                        addCatalogProduct(current, undefined, languages)
+                      )
+                    }
+                    title={
+                      draft.categories.length && draft.sectors.length
+                        ? undefined
+                        : "Agregá una categoría y un sector primero"
+                    }
+                    type="button"
+                  >
+                    + Agregar
+                  </button>
+                </div>
               </div>
               {draft.products.length === 0 ? (
                 <p className="catalog-helper">
