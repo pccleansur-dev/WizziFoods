@@ -1,5 +1,6 @@
 import postgres from "postgres";
 
+import { PaymentSecretSealer } from "../apps/api/src/payment-methods/payment-secret-sealer";
 import { adminDatabaseUrl, e2eHostname, ownerDatabaseUrl } from "./stack-env";
 
 const tenantId = "fe000000-0000-4000-8000-000000000013";
@@ -113,11 +114,18 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
     [tenantId, userId],
     [otherTenantId, otherUserId]
   ] as const) {
-    await owner`delete from private.waiter_calls where tenant_id = ${tenant}`;
-    await owner`delete from private.order_intent_items where tenant_id = ${tenant}`;
-    await owner`delete from private.order_intents where tenant_id = ${tenant}`;
-    await owner`delete from private.order_intent_commands where tenant_id = ${tenant}`;
-    await owner`delete from private.published_catalogs where tenant_id = ${tenant}`;
+    await owner.begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`delete from private.mp_webhook_events where tenant_id = ${tenant}`;
+      await tx`delete from private.online_payments where tenant_id = ${tenant}`;
+      await tx`delete from private.waiter_calls where tenant_id = ${tenant}`;
+      await tx`delete from private.order_intent_items where tenant_id = ${tenant}`;
+      await tx`delete from private.order_intents where tenant_id = ${tenant}`;
+      await tx`delete from private.order_intent_commands where tenant_id = ${tenant}`;
+      await tx`delete from private.published_catalogs where tenant_id = ${tenant}`;
+    });
+    await owner`delete from private.mp_oauth_states where tenant_id = ${tenant}`;
+    await owner`delete from private.mp_connections where tenant_id = ${tenant}`;
     await sql`delete from private.location_publications where tenant_id = ${tenant}`;
     await sql`delete from private.audit_events where tenant_id = ${tenant}`;
     await sql`delete from public.tenants where id = ${tenant}`;
@@ -169,16 +177,26 @@ export async function seedBusiness(): Promise<SeededBusiness> {
     values (${tenantId}, ${locationId}, ${userId})
   `;
   await sql`select private.ensure_payment_methods(${tenantId}::uuid, ${locationId}::uuid)`;
+  const sealed = new PaymentSecretSealer(Buffer.alloc(32)).seal(
+    JSON.stringify({
+      accessToken: "TEST-13579113-aabbccddeeff",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      refreshToken: "TESTREFRESH-13579113-aabbccddeeff"
+    }),
+    { locationId, tenantId },
+    "mercado_pago"
+  );
   await sql`
-    update private.payment_methods
-    set enabled = true, public_config = '{"publicKey":"E2E_PUBLIC_KEY"}'
-    where tenant_id = ${tenantId} and location_id = ${locationId}
-      and method_key = 'mercado_pago'
+    select private.finish_mp_connection(
+      ${tenantId}::uuid, ${locationId}::uuid, ${userId}::uuid,
+      '13579113', false, 'TEST-public-key-13579113',
+      ${sealed.ciphertext}, ${sealed.keyVersion}
+    )
   `;
   await sql`
-    insert into private.payment_method_secrets
-      (tenant_id, location_id, method_key, ciphertext, key_version)
-    values (${tenantId}, ${locationId}, 'mercado_pago', decode(repeat('ab', 29), 'hex'), 1)
+    update private.payment_methods set enabled = true
+    where tenant_id = ${tenantId} and location_id = ${locationId}
+      and method_key = 'mercado_pago'
   `;
   await owner`
     insert into private.published_catalogs (

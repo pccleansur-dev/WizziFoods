@@ -233,10 +233,12 @@ test("Mercado Pago remains pending and never opens a waiter call", async ({
   await page.getByLabel("Mercado Pago").check();
   await page.getByRole("button", { name: "Enviar pedido" }).click();
   await expect(
-    page.getByRole("heading", { name: "Pago pendiente" })
+    page.getByRole("heading", { name: "Pagá para confirmar el pedido" })
   ).toBeVisible();
+  await page.getByLabel("Resultado de prueba").selectOption("pending");
+  await page.getByRole("button", { name: "Simular pago" }).click();
   await expect(
-    page.getByText("no está confirmado ni fue enviado a cocina")
+    page.getByRole("heading", { name: "Todavía no se acreditó" })
   ).toBeVisible();
   await expect
     .poll(() => business.intentState(dinerName))

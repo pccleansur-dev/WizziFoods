@@ -224,6 +224,8 @@ const owner = postgres(ownerDatabaseUrl(), { prepare: false });
 await owner.begin(async (tx) => {
   await tx`set local session_replication_role = replica`;
   for (const table of [
+    "mp_webhook_events",
+    "online_payments",
     "cash_movements",
     "cash_shift_closures",
     "cash_shifts",
@@ -243,6 +245,8 @@ await owner.begin(async (tx) => {
   }
 });
 for (const table of [
+  "mp_oauth_states",
+  "mp_connections",
   "waiter_commands",
   "waiter_calls",
   "order_intent_commands",

@@ -81,6 +81,10 @@ export function stackEnv(): Record<string, string> {
     APP_ENV: "development",
     DATABASE_URL: poolerUrl("authenticator"),
     LOG_LEVEL: "error",
+    MERCADO_PAGO_MODE: "fake",
+    MERCADO_PAGO_REDIRECT_URI: `http://localhost:${apiPort}/v1/payments/mercado-pago/callback`,
+    MERCADO_PAGO_RETURN_URL: `http://${e2eHostname}:${webPort}/panel/pagos`,
+    MERCADO_PAGO_WEBHOOK_SECRET: "e2e-mercado-pago-webhook-secret",
     NEXT_PUBLIC_API_URL: `http://localhost:${apiPort}`,
     NEXT_PUBLIC_APP_URL: `http://${e2eHostname}:${webPort}`,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: need(
@@ -89,6 +93,7 @@ export function stackEnv(): Record<string, string> {
     ),
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
     PLATFORM_BASE_DOMAIN: "dev.localhost",
+    PAYMENT_SECRET_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     STAFF_PIN_PEPPER: "e2e-pepper-with-at-least-32-characters",
     SUPABASE_SECRET_KEY: need(supabase, "SUPABASE_SECRET_KEY"),
     SUPABASE_URL: supabaseUrl,
