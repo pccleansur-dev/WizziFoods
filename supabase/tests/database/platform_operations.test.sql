@@ -40,6 +40,7 @@ select is(
     from private.list_platform_tenants(
       'd1000000-0000-4000-8000-000000000001'
     )
+    where name in ('Alpha', 'Beta')
   ),
   2,
   'the platform superadministrator sees every tenant'
@@ -50,6 +51,7 @@ select results_eq(
     from private.list_platform_tenants(
       'd1000000-0000-4000-8000-000000000001'
     )
+    where name in ('Alpha', 'Beta')
     order by name
   $$,
   $$ values

@@ -43,6 +43,10 @@ select * from private.enqueue_catalog_import(
   '{"kind":"manual","rows":[{"category":"Café","description":"","name":"Cortado","price":"1500","sector":"Barra"}]}'::jsonb
 );
 
+-- The queue is shared with the whole database: compare against its size now.
+create temporary table queue_before on commit drop as
+select count(*) as total from pgmq.q_catalog_import_processing;
+
 select is((select status from queued_import), 'queued', 'new imports start queued');
 select ok(
   (select processing_message_id is not null from queued_import),
@@ -64,7 +68,7 @@ select is(
 );
 select is(
   (select count(*) from pgmq.q_catalog_import_processing),
-  1::bigint,
+  (select total from queue_before),
   'an idempotent retry does not duplicate the queue message'
 );
 select throws_ok(

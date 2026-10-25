@@ -476,7 +476,4 @@ Punto de partida para T27: al separar mesas, el cierre ya considera el grupo de 
 los estados `needs_cleaning`. Pendientes conscientes: envío del comprobante por correo/WhatsApp, PDF generado
 en servidor (hoy se imprime o guarda desde el navegador) y que el comensal vea su comprobante.
 
-Preexistente, no de T26: `local-table-entry.integration.test.ts` falla cuando se corre dos veces seguidas
-(su limpieza no borra `location_publications`; se destraba borrando esas filas del tenant `fd00…`), y cuatro
-pgTap (`business_sandbox`, `catalog_imports`, `platform_operations`, `tenancy_rls`) fallan en la base de
-desarrollo por filas de otros tenants (idéntico sin la migración).
+Corregido aparte de T26: `local-table-entry.integration.test.ts` ahora borra `location_publications` en su limpieza (se puede correr seguido) y los pgTap `tenancy_rls`, `platform_operations`, `business_sandbox` y `catalog_imports` acotan sus conteos a su propio fixture, así que ya no dependen de los datos de la base de desarrollo.
