@@ -42,6 +42,8 @@ type LoginState = {
 };
 
 const stateLifetimeMs = 10 * 60_000;
+/** A plain host name with an optional port: the only thing the diner is sent back to. */
+const hostPattern = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$/u;
 const secretPattern = /^[A-Za-z0-9_-]{43}$/u;
 
 function sha256(value: string): Buffer {
@@ -68,10 +70,13 @@ export class DinerIdentityService {
     tenantId: string;
   }): Promise<string> {
     if (!this.google) return Promise.reject(new DinerAuthUnavailableError());
+    const host = input.host.toLowerCase();
+    if (!hostPattern.test(host))
+      return Promise.reject(new DinerLoginInvalidError());
     const state: LoginState = {
       b: input.bindingHash,
       e: Date.now() + stateLifetimeMs,
-      h: input.host,
+      h: host,
       r: input.returnPath,
       t: input.tenantId
     };
@@ -225,6 +230,7 @@ export class DinerIdentityService {
       state.e <= Date.now() ||
       typeof state.t !== "string" ||
       typeof state.h !== "string" ||
+      !hostPattern.test(state.h) ||
       typeof state.r !== "string" ||
       typeof state.b !== "string"
     ) {

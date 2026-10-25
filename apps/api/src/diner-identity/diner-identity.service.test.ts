@@ -183,6 +183,21 @@ describe("DinerIdentityService login", () => {
     );
   });
 
+  it("never redirects to a host that is not a plain host name", async () => {
+    const { service: diner } = service();
+    for (const bad of [
+      "evil.test/@x",
+      "a.test\r\nx: y",
+      "user@evil.test",
+      "",
+      "a b.test"
+    ]) {
+      await expect(
+        diner.start({ bindingHash, host: bad, returnPath: "/", tenantId })
+      ).rejects.toBeInstanceOf(DinerLoginInvalidError);
+    }
+  });
+
   it("uses http for local hosts", async () => {
     const { service: diner } = service(repositoryStub(), gateway(), "http");
     const authorize = await diner.start({
