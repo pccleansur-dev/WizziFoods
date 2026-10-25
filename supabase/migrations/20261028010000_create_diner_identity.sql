@@ -468,7 +468,7 @@ begin
     then
       raise exception 'command id reused with other data' using errcode = 'PT286';
     end if;
-    return private.diner_profile_json(target_tenant_id, own_profile);
+    return private.get_diner_profile(target_tenant_id, target_account_id);
   end if;
 
   current_state := private.diner_consent_state(target_tenant_id, own_profile, target_kind);
@@ -488,7 +488,7 @@ begin
     if (current_state ->> 'granted')::boolean
       and (current_state ->> 'textVersion')::integer = target_text_version
     then
-      return private.diner_profile_json(target_tenant_id, own_profile);
+      return private.get_diner_profile(target_tenant_id, target_account_id);
     end if;
   else
     if not (current_state ->> 'granted')::boolean then
@@ -503,7 +503,7 @@ begin
   ) values (
     target_tenant_id, own_profile, target_kind, target_action, target_text_version,
     target_source, target_command_id);
-  return private.diner_profile_json(target_tenant_id, own_profile);
+  return private.get_diner_profile(target_tenant_id, target_account_id);
 end;
 $$;
 

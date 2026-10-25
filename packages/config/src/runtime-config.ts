@@ -30,8 +30,33 @@ export type MercadoPagoConfig =
       webhookSecret: string;
     };
 
+/**
+ * Optional diner login with Google (T28). `off` hides the button, `fake` is an
+ * in-process Google for development and tests (refused in production) and `live`
+ * uses Google's OpenID Connect. The state secret signs the round trip through
+ * Google; the sub pepper keys the hash of the Google subject we store.
+ */
+export type DinerAuthConfig =
+  | { mode: "off" }
+  | {
+      mode: "fake";
+      redirectUri: string;
+      stateSecret: string;
+      subPepper: string;
+    }
+  | {
+      clientId: string;
+      clientSecret: string;
+      mode: "live";
+      redirectUri: string;
+      stateSecret: string;
+      subPepper: string;
+    };
+
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
   adminInviteRedirectUrl: string;
+  /** Absent (or off) means diners can only continue without an account. */
+  dinerAuth?: DinerAuthConfig;
   /** Opcional: sin ella la traducción automática responde 503. */
   anthropicApiKey?: string | null;
   databaseUrl: string;
@@ -246,6 +271,56 @@ function readMercadoPagoConfig(
   };
 }
 
+function readDinerAuthConfig(
+  source: EnvironmentSource,
+  environment: AppEnvironment,
+  port: number
+): DinerAuthConfig {
+  const mode = source.DINER_AUTH_MODE?.trim() || "off";
+  if (!["off", "fake", "live"].includes(mode)) {
+    throw new Error("DINER_AUTH_MODE must be off, fake or live");
+  }
+  if (mode === "off") return { mode: "off" };
+  if (mode === "fake" && environment === "production") {
+    throw new Error("DINER_AUTH_MODE fake is not allowed in production");
+  }
+  const stateSecret = required(source, "DINER_AUTH_STATE_SECRET");
+  const subPepper = required(source, "DINER_SUB_PEPPER");
+  if (stateSecret.length < 32 || subPepper.length < 32) {
+    throw new Error(
+      "DINER_AUTH_STATE_SECRET and DINER_SUB_PEPPER must have at least 32 characters"
+    );
+  }
+  if (mode === "fake") {
+    return {
+      mode: "fake",
+      redirectUri: source.DINER_AUTH_REDIRECT_URI?.trim()
+        ? readUrl(
+            source,
+            "DINER_AUTH_REDIRECT_URI",
+            ["http:", "https:"],
+            "an absolute HTTP(S) URL"
+          )
+        : `http://localhost:${port}/v1/diner-auth/google/callback`,
+      stateSecret,
+      subPepper
+    };
+  }
+  return {
+    clientId: required(source, "GOOGLE_DINER_CLIENT_ID"),
+    clientSecret: required(source, "GOOGLE_DINER_CLIENT_SECRET"),
+    mode: "live",
+    redirectUri: readUrl(
+      source,
+      "DINER_AUTH_REDIRECT_URI",
+      ["https:"],
+      "an absolute HTTPS URL"
+    ),
+    stateSecret,
+    subPepper
+  };
+}
+
 export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
   return withServiceContext("api", () => {
     assertRequired(source, [
@@ -320,6 +395,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       adminInviteRedirectUrl,
       anthropicApiKey: rawAnthropicKey || null,
       databaseUrl,
+      dinerAuth: readDinerAuthConfig(source, base.environment, port),
       mercadoPago: readMercadoPagoConfig(
         source,
         base.environment,
