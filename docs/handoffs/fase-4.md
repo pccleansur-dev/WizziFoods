@@ -445,3 +445,7 @@ cleanups eliminan explícitamente eventos, pagos, estados OAuth y conexiones.
 Para activar el proveedor real todavía hacen falta `client_id`, `client_secret`, secreto
 de webhook, callback/return URL HTTPS públicos y una `PAYMENT_SECRET_KEY` de 32 bytes.
 Hasta entonces debe mantenerse `MERCADO_PAGO_MODE=fake` fuera de producción.
+
+## Estado de T25 — dividir el saldo
+
+Hecho: ver `docs/runbooks/dividir-cuenta.md`. Migración `20261026010000_create_account_splits.sql` (rollback y pgTap `account_splits.test.sql`). `waiter_accounts_view` ahora trae `split` por cuenta; el cobro de partes reutiliza `record_account_payment`, así que caja, límites y libro no cambian. Siguiente: T26 (cerrar sesión, limpiar y habilitar mesa, comprobante). La API se prueba en serie (`--no-file-parallelism`) por el pool de Supavisor.

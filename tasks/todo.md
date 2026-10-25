@@ -802,18 +802,20 @@ sesión y liberar la mesa (T26).
 
 **Criterios de aceptación:**
 
-- [ ] Participaciones se calculan sobre saldo vigente y se reclaman atómicamente.
-- [ ] Un dispositivo puede pagar varias; consumos posteriores crean saldo nuevo.
-- [ ] Dos pagos simultáneos nunca exceden el pendiente.
+- [x] Participaciones se calculan sobre saldo vigente y se reclaman atómicamente.
+- [x] Un dispositivo puede pagar varias; consumos posteriores crean saldo nuevo.
+- [x] Dos pagos simultáneos nunca exceden el pendiente.
 
 **Verificación:**
 
-- [ ] Pruebas concurrentes con barreras reales de base de datos.
-- [ ] E2E de tres personas, una pagando dos partes y consumo posterior.
+- [x] Pruebas concurrentes con barreras reales de base de datos.
+- [x] E2E de tres personas, una pagando dos partes y consumo posterior.
 
 **Dependencias:** T22–T24.
 
 **Archivos probables:** módulo allocations, flujo split UI, conciliación, pruebas.
+
+**Estado:** hecho. Ver `docs/runbooks/dividir-cuenta.md`: partes iguales sobre el saldo vigente, cobro atómico de una o varias partes, pruebas con carreras reales y E2E de tres personas.
 
 **Tamaño:** M.
 

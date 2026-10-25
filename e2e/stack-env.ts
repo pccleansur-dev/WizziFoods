@@ -1,3 +1,5 @@
+import type { BrowserContextOptions } from "@playwright/test";
+
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -99,4 +101,14 @@ export function stackEnv(): Record<string, string> {
     SUPABASE_URL: supabaseUrl,
     WEB_METRICS_PORT: "9576"
   };
+}
+
+/**
+ * The project's options without the keys Playwright leaves undefined, which the
+ * strict optional-property typing of `newContext` refuses to receive.
+ */
+export function contextOptions(use: object): BrowserContextOptions {
+  return Object.fromEntries(
+    Object.entries(use).filter(([, value]) => value !== undefined)
+  ) as BrowserContextOptions;
 }

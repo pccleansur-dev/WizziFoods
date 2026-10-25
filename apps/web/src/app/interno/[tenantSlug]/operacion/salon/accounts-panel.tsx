@@ -33,6 +33,14 @@ export type RefundDraft = {
   reason: string;
 };
 
+export type SharesDraft = {
+  method: AccountPaymentMethod;
+  payerLabel: string | null;
+  positions: number[];
+  splitId: string;
+  tipCents: number;
+};
+
 export type AccountsPanelProps = {
   accounts: WaiterAccount[];
   busy: string | null;
@@ -45,10 +53,13 @@ export type AccountsPanelProps = {
   onKeepOpen(sessionId: string): void;
   onOnlineRefund(sessionId: string, draft: RefundDraft): void;
   onPay(sessionId: string, draft: PaymentDraft): void;
+  onPayShares(sessionId: string, draft: SharesDraft): void;
   onRefund(sessionId: string, draft: RefundDraft): void;
+  onSplit(sessionId: string, parts: number): void;
 };
 
-type Panel = "collect" | "discount" | "online-refund" | "refund" | null;
+type Panel =
+  "collect" | "discount" | "online-refund" | "refund" | "split" | null;
 
 function signed(cents: number): string {
   return `${cents < 0 ? "−" : "+"}${formatMoney(Math.abs(cents))}`;
@@ -64,10 +75,16 @@ function AccountCard({
   onKeepOpen,
   onOnlineRefund,
   onPay,
-  onRefund
+  onPayShares,
+  onRefund,
+  onSplit
 }: Omit<AccountsPanelProps, "accounts"> & { account: WaiterAccount }) {
   const [panel, setPanel] = useState<Panel>(
-    collectSessionId === account.sessionId ? "collect" : null
+    collectSessionId === account.sessionId
+      ? "collect"
+      : account.split
+        ? "split"
+        : null
   );
   const [method, setMethod] = useState<AccountPaymentMethod>("cash");
   const [amount, setAmount] = useState("");
@@ -75,6 +92,10 @@ function AccountCard({
   const [kind, setKind] = useState<"amount" | "percent">("percent");
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
+  const [parts, setParts] = useState("3");
+  const [picked, setPicked] = useState<number[]>([]);
+  const [shareMethod, setShareMethod] = useState<AccountPaymentMethod>("cash");
+  const [payer, setPayer] = useState("");
   const [refundPayment, setRefundPayment] = useState("");
   const [refundAmount, setRefundAmount] = useState("");
   const [refundReason, setRefundReason] = useState("");
@@ -83,6 +104,22 @@ function AccountCard({
   const [onlineReason, setOnlineReason] = useState("");
   const { summary } = account;
   const payments = refundablePayments(account);
+  const split = account.split;
+  const openShares =
+    split?.shares.filter((share) => share.status === "open") ?? [];
+  const pickedShares = openShares.filter((share) =>
+    picked.includes(share.position)
+  );
+  const pickedTotal = pickedShares.reduce(
+    (sum, share) => sum + share.amountCents,
+    0
+  );
+  const partsNumber = Number(parts);
+  const partsValid =
+    Number.isInteger(partsNumber) &&
+    partsNumber >= 2 &&
+    partsNumber <= 20 &&
+    summary.pendingCents >= partsNumber;
   const onlinePayments = onlineRefundablePayments(account);
   const refundCents = parseMoneyInput(refundAmount);
   const refundValid =
@@ -198,6 +235,18 @@ function AccountCard({
             type="button"
           >
             Descuento…
+          </button>
+        ) : null}
+        {owes ? (
+          <button
+            aria-expanded={panel === "split"}
+            aria-label={`Dividir la cuenta: mesa ${tables}`}
+            className="button button--secondary"
+            disabled={busy !== null || !cashOpen}
+            onClick={() => setPanel(panel === "split" ? null : "split")}
+            type="button"
+          >
+            {split ? "Partes…" : "Dividir…"}
           </button>
         ) : null}
         {isManager && payments.length > 0 ? (
@@ -338,6 +387,123 @@ function AccountCard({
           </button>
         </form>
       ) : null}
+      {panel === "split" && cashOpen ? (
+        <div className="waiter-reject account-form" data-testid="split-panel">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (partsValid) onSplit(account.sessionId, partsNumber);
+            }}
+          >
+            <label htmlFor={`parts-${account.sessionId}`}>
+              Partes iguales del saldo pendiente
+            </label>
+            <input
+              id={`parts-${account.sessionId}`}
+              inputMode="numeric"
+              onChange={(event) => setParts(event.target.value)}
+              value={parts}
+            />
+            <button
+              className="button button--secondary"
+              disabled={busy !== null || !partsValid}
+              type="submit"
+            >
+              {split ? "Volver a dividir" : "Dividir"}
+            </button>
+          </form>
+          {split ? (
+            <>
+              <ul className="waiter-lines" aria-label="Partes de la cuenta">
+                {split.shares.map((share) => (
+                  <li key={share.position}>
+                    {share.status === "open" ? (
+                      <label>
+                        <input
+                          checked={picked.includes(share.position)}
+                          onChange={(event) =>
+                            setPicked(
+                              event.target.checked
+                                ? [...picked, share.position]
+                                : picked.filter((p) => p !== share.position)
+                            )
+                          }
+                          type="checkbox"
+                        />{" "}
+                        Parte {share.position}
+                      </label>
+                    ) : (
+                      <span>
+                        Parte {share.position} ·{" "}
+                        {share.status === "paid"
+                          ? `pagada${share.payerLabel ? ` por ${share.payerLabel}` : ""}`
+                          : "anulada"}
+                      </span>
+                    )}
+                    <b>{formatMoney(share.amountCents)}</b>
+                  </li>
+                ))}
+              </ul>
+              {openShares.length > 0 ? (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (pickedShares.length === 0) return;
+                    onPayShares(account.sessionId, {
+                      method: shareMethod,
+                      payerLabel: payer.trim() === "" ? null : payer.trim(),
+                      positions: pickedShares.map((share) => share.position),
+                      splitId: split.splitId,
+                      tipCents: 0
+                    });
+                    setPicked([]);
+                    setPayer("");
+                  }}
+                >
+                  <label htmlFor={`share-payer-${account.sessionId}`}>
+                    Quién paga (opcional)
+                  </label>
+                  <input
+                    id={`share-payer-${account.sessionId}`}
+                    maxLength={40}
+                    onChange={(event) => setPayer(event.target.value)}
+                    value={payer}
+                  />
+                  <label htmlFor={`share-method-${account.sessionId}`}>
+                    Medio de pago de las partes
+                  </label>
+                  <select
+                    id={`share-method-${account.sessionId}`}
+                    onChange={(event) =>
+                      setShareMethod(event.target.value as AccountPaymentMethod)
+                    }
+                    value={shareMethod}
+                  >
+                    {paymentMethodChoices.map((choice) => (
+                      <option key={choice.value} value={choice.value}>
+                        {choice.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="waiter-note">
+                    Se registra el cobro, no se pide ningún dato de la tarjeta.
+                  </p>
+                  <button
+                    className="button button--primary"
+                    disabled={busy !== null || pickedShares.length === 0}
+                    type="submit"
+                  >
+                    {pickedShares.length === 0
+                      ? "Elegí las partes a cobrar"
+                      : `Cobrar ${pickedShares.length} parte${pickedShares.length === 1 ? "" : "s"} · ${formatMoney(pickedTotal)}`}
+                  </button>
+                </form>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
       {panel === "refund" && isManager && cashOpen ? (
         <form
           className="waiter-reject account-form"

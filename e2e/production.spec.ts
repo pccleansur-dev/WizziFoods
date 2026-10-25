@@ -15,6 +15,7 @@ import {
   type ProductionBusiness
 } from "./production-data";
 import { webPort } from "./stack-env";
+import { contextOptions } from "./stack-env";
 
 const origin = `http://${productionHostname}:${webPort}`;
 const productionUrl = `${origin}/interno/${productionSlug}/operacion/produccion`;
@@ -39,7 +40,9 @@ test.afterAll(async () => {
 
 /** A fresh browser profile signed in with a staff username and PIN. */
 async function signIn(browser: Browser, username: string): Promise<Page> {
-  const context = await browser.newContext({ ...test.info().project.use });
+  const context = await browser.newContext(
+    contextOptions(test.info().project.use)
+  );
   contexts.push(context);
   const page = await context.newPage();
   await page.goto(`${origin}/interno/${productionSlug}`);
@@ -79,9 +82,9 @@ test("an order with a kitchen and a bar item reaches each screen, step by step",
   await expect(coco.getByText("Sin pedidos pendientes.")).toBeVisible();
 
   // The diner orders a dish and a drink; nothing is produced until confirmed.
-  const dinerContext = await browser.newContext({
-    ...test.info().project.use
-  });
+  const dinerContext = await browser.newContext(
+    contextOptions(test.info().project.use)
+  );
   contexts.push(dinerContext);
   const diner = await dinerContext.newPage();
   await diner.goto(`${origin}/m/${business.token}`);

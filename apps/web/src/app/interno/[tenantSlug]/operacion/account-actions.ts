@@ -3,6 +3,10 @@
 import {
   isWaiterUuid,
   parseApplyDiscountRequest,
+  parseCreateSplitRequest,
+  parseCreateSplitResult,
+  parsePaySharesRequest,
+  parsePaySharesResult,
   parseDiscountResult,
   parseKeepOpenRequest,
   parseKeepOpenResult,
@@ -11,6 +15,10 @@ import {
   parsePaymentResult,
   parseRecordPaymentRequest,
   type ApplyDiscountRequest,
+  type CreateSplitRequest,
+  type CreateSplitResult,
+  type PaySharesRequest,
+  type PaySharesResult,
   type DiscountResult,
   type KeepOpenRequest,
   type KeepOpenResult,
@@ -113,5 +121,37 @@ export async function refundOnlinePaymentAction(
     `/v1/staff/accounts/${sessionId}/online-refunds`,
     parsed,
     parseOnlineRefundResult
+  );
+}
+
+/** Freezes the pending balance into equal shares. */
+export async function createSplitAction(
+  tenantSlug: string,
+  sessionId: string,
+  request: CreateSplitRequest
+): Promise<WaiterActionResult<CreateSplitResult>> {
+  const parsed = parseCreateSplitRequest(request);
+  if (!isWaiterUuid(sessionId) || !parsed) return invalid();
+  return run(
+    tenantSlug,
+    `/v1/staff/accounts/${sessionId}/splits`,
+    parsed,
+    parseCreateSplitResult
+  );
+}
+
+/** One payer takes one or more shares, which are claimed and collected together. */
+export async function paySharesAction(
+  tenantSlug: string,
+  sessionId: string,
+  request: PaySharesRequest
+): Promise<WaiterActionResult<PaySharesResult>> {
+  const parsed = parsePaySharesRequest(request);
+  if (!isWaiterUuid(sessionId) || !parsed) return invalid();
+  return run(
+    tenantSlug,
+    `/v1/staff/accounts/${sessionId}/split-payments`,
+    parsed,
+    parsePaySharesResult
   );
 }

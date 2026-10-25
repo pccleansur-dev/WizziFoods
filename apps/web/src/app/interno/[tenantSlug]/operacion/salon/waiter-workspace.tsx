@@ -24,6 +24,8 @@ import {
 } from "../waiter-actions";
 import {
   applyDiscountAction,
+  createSplitAction,
+  paySharesAction,
   keepAccountOpenAction,
   recordPaymentAction,
   refundOnlinePaymentAction
@@ -47,7 +49,8 @@ import {
   AccountsPanel,
   type DiscountDraft,
   type PaymentDraft,
-  type RefundDraft
+  type RefundDraft,
+  type SharesDraft
 } from "./accounts-panel";
 import { CashPanel } from "./cash-panel";
 import { OrdersInProgress } from "./orders-in-progress";
@@ -386,6 +389,31 @@ export function WaiterWorkspace({
     report(result, "La cuenta quedó abierta: cobrás después desde Cuentas.");
   }
 
+  async function splitAccount(sessionId: string, parts: number) {
+    const result = await perform(`split:${sessionId}:${parts}`, (commandId) =>
+      createSplitAction(tenantSlug, sessionId, { commandId, parts })
+    );
+    report(result, "Cuenta dividida: elegí las partes que se cobran.");
+  }
+
+  async function payShares(sessionId: string, draft: SharesDraft) {
+    const result = await perform(
+      `shares:${sessionId}:${draft.splitId}:${draft.positions.join(",")}:${draft.method}:${draft.payerLabel ?? ""}`,
+      (commandId) =>
+        paySharesAction(tenantSlug, sessionId, { ...draft, commandId })
+    );
+    report(
+      result,
+      result.status === "ok"
+        ? `Cobro registrado. ${
+            result.data.split === null
+              ? "Se cobraron todas las partes."
+              : "Quedan partes por cobrar."
+          }`
+        : ""
+    );
+  }
+
   async function refund(sessionId: string, draft: RefundDraft) {
     const result = await perform(
       `refund:${sessionId}:${draft.paymentId}:${draft.amountCents}:${draft.reason}`,
@@ -624,6 +652,8 @@ export function WaiterWorkspace({
             void onlineRefund(sessionId, draft)
           }
           onPay={(sessionId, draft) => void pay(sessionId, draft)}
+          onPayShares={(sessionId, draft) => void payShares(sessionId, draft)}
+          onSplit={(sessionId, parts) => void splitAccount(sessionId, parts)}
           onRefund={(sessionId, draft) => void refund(sessionId, draft)}
         />
       ) : tab === "caja" && cash ? (

@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 
 import { webPort } from "./stack-env";
+import { contextOptions } from "./stack-env";
 import {
   seedWaiterBusiness,
   staffPin,
@@ -37,7 +38,9 @@ test.afterAll(async () => {
 
 /** A fresh browser profile signed in with a staff username and PIN. */
 async function signIn(browser: Browser, username: string): Promise<Page> {
-  const context = await browser.newContext({ ...test.info().project.use });
+  const context = await browser.newContext(
+    contextOptions(test.info().project.use)
+  );
   contexts.push(context);
   const page = await context.newPage();
   await page.goto(`${origin}/interno/${waiterSlug}`);
@@ -55,7 +58,9 @@ async function dinerSends(
   dinerName: string,
   method: "Efectivo" | "Mercado Pago" = "Efectivo"
 ) {
-  const context = await browser.newContext({ ...test.info().project.use });
+  const context = await browser.newContext(
+    contextOptions(test.info().project.use)
+  );
   contexts.push(context);
   const page = await context.newPage();
   await page.goto(`${origin}/m/${business.tokens.get(label)!}`);

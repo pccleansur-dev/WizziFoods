@@ -182,3 +182,78 @@ describe("account server actions", () => {
     });
   });
 });
+
+describe("split server actions", () => {
+  beforeEach(() => {
+    cookieValue.mockReset().mockReturnValue(token);
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  const share = (position: number) => ({
+    amountCents: 500,
+    payerLabel: null,
+    position,
+    status: "open"
+  });
+  const split = {
+    baseCents: 1000,
+    parts: 2,
+    shares: [share(1), share(2)],
+    splitId: sessionId
+  };
+
+  it("splits and pays shares on their own routes", async () => {
+    const { createSplitAction, paySharesAction } =
+      await import("./account-actions");
+    fetchMock.mockResolvedValueOnce(
+      json(200, { data: { pendingCents: 1000, sessionId, split } })
+    );
+    await expect(
+      createSplitAction("bar", sessionId, { commandId, parts: 2 })
+    ).resolves.toMatchObject({ status: "ok" });
+    fetchMock.mockResolvedValueOnce(
+      json(200, {
+        data: {
+          ...payment,
+          positions: [1],
+          split: null,
+          splitId: sessionId
+        }
+      })
+    );
+    await expect(
+      paySharesAction("bar", sessionId, {
+        commandId,
+        method: "cash",
+        payerLabel: "Ana",
+        positions: [1],
+        splitId: sessionId,
+        tipCents: 0
+      })
+    ).resolves.toMatchObject({ status: "ok" });
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      `http://api.localhost:3001/v1/staff/accounts/${sessionId}/splits`,
+      `http://api.localhost:3001/v1/staff/accounts/${sessionId}/split-payments`
+    ]);
+  });
+
+  it("rejects forged bodies before the API", async () => {
+    const { createSplitAction, paySharesAction } =
+      await import("./account-actions");
+    await expect(
+      createSplitAction("bar", sessionId, { commandId, parts: 1 })
+    ).resolves.toMatchObject({ status: "error" });
+    await expect(
+      paySharesAction("bar", sessionId, {
+        commandId,
+        method: "mercado_pago",
+        payerLabel: null,
+        positions: [1],
+        splitId: sessionId,
+        tipCents: 0
+      } as never)
+    ).resolves.toMatchObject({ status: "error" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

@@ -88,6 +88,8 @@ const errorMessages: Record<string, string> = {
   PRODUCTION_ITEM_NOT_FOUND: "No encontramos ese ítem en tu sector.",
   PRODUCTION_TRANSITION_INVALID:
     "El ítem no puede pasar a ese estado. Actualizá la pantalla.",
+  SPLIT_SHARE_UNAVAILABLE:
+    "Esa parte ya se cobró o la división cambió. Actualizá la cuenta.",
   STAFF_FORBIDDEN: "Tu rol no puede realizar esta operación.",
   STAFF_SESSION_INVALID:
     "Tu sesión venció. Volvé a ingresar con tu usuario y PIN.",
