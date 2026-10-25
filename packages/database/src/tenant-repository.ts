@@ -51,6 +51,10 @@ import {
   type TableClosingRepository
 } from "./table-closing-repository.js";
 import {
+  createTableRegroupingRepository,
+  type TableRegroupingRepository
+} from "./table-regrouping-repository.js";
+import {
   createOrderAdjustmentsRepository,
   type OrderAdjustmentsRepository
 } from "./order-adjustments-repository.js";
@@ -147,6 +151,7 @@ export type TenantDatabase = {
   splitClaimsRepository: SplitClaimsRepository;
   tableAccountsRepository: TableAccountsRepository;
   tableClosingRepository: TableClosingRepository;
+  tableRegroupingRepository: TableRegroupingRepository;
   productionRepository: ProductionRepository;
   waiterOperationsRepository: WaiterOperationsRepository;
   paymentMethodsRepository: PaymentMethodsRepository;
@@ -233,6 +238,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     splitClaimsRepository: createSplitClaimsRepository(client),
     tableAccountsRepository: createTableAccountsRepository(client),
     tableClosingRepository: createTableClosingRepository(client),
+    tableRegroupingRepository: createTableRegroupingRepository(client),
     productionRepository: createProductionRepository(client),
     waiterOperationsRepository: createWaiterOperationsRepository(client),
     paymentMethodsRepository: createPaymentMethodsRepository(client),
