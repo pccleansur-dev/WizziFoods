@@ -67,6 +67,10 @@ insert into public.staff_members (id, tenant_id, location_id, username, display_
 values ('1e800000-0000-4000-8000-000000000001', (select t2 from scope), (select l2 from scope),
   'otro', 'Otro', 'waiter', '1e100000-0000-4000-8000-000000000001');
 
+-- T23: collecting needs an open register.
+select private.open_cash_shift((select t1 from scope), (select l1 from scope),
+  (select manager from staff), '1ee00000-0000-4000-8000-0000000000f0', 0);
+
 insert into private.location_publications (tenant_id, location_id, published_by)
 values ((select t1 from scope), (select l1 from scope), '1e100000-0000-4000-8000-000000000001');
 insert into private.published_catalogs (
