@@ -59,6 +59,9 @@ export function callAgeLabel(createdAt: string, now: number): string {
 const errorMessages: Record<string, string> = {
   CALL_ALREADY_CLAIMED: "Otro mozo ya tomó este llamado.",
   CALL_CLOSED: "Este llamado ya está cerrado.",
+  CASH_REGISTER_ALREADY_OPEN: "La caja ya está abierta.",
+  CASH_REGISTER_CLOSED:
+    "La caja está cerrada. El Encargado tiene que abrirla para cobrar.",
   INTENT_ALREADY_DECIDED: "Este pedido ya fue confirmado o rechazado.",
   INTENT_NOT_CONFIRMABLE:
     "Este pedido espera un pago online y no se confirma desde el salón.",
@@ -72,10 +75,13 @@ const errorMessages: Record<string, string> = {
     "Ese reemplazo ya fue decidido o ya hay uno pendiente.",
   DISCOUNT_TOO_LARGE: "El descuento supera el saldo pendiente.",
   INVALID_ACCOUNT_REQUEST: "Revisá los datos de la operación.",
+  INVALID_CASH_REGISTER_REQUEST: "Revisá los datos de la operación.",
   INVALID_ORDER_ADJUSTMENT_REQUEST: "Revisá los datos de la operación.",
   ITEM_NOT_READY: "Solo se entrega un ítem que ya está listo.",
   MANAGER_REQUIRED: "Esta decisión la toma el Encargado.",
   NOTHING_TO_COLLECT: "La cuenta no tiene saldo pendiente para cobrar.",
+  REFUND_EXCEEDS_LIMIT:
+    "La devolución supera el saldo a favor o lo cobrado en ese pago.",
   PAYMENT_EXCEEDS_PENDING:
     "El cobro supera el saldo pendiente. Actualizá la cuenta.",
   ORDER_TARGET_NOT_FOUND: "No encontramos ese pedido o ítem en tu zona.",

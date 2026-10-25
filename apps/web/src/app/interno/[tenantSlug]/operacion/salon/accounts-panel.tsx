@@ -10,6 +10,7 @@ import {
   paymentMethodChoices,
   paymentMethodName
 } from "../../../../../staff/account-view";
+import { refundablePayments } from "../../../../../staff/cash-view";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
 
 export type PaymentDraft = {
@@ -23,18 +24,27 @@ export type DiscountDraft = {
   value: number;
 };
 
+export type RefundDraft = {
+  amountCents: number;
+  paymentId: string;
+  reason: string;
+};
+
 export type AccountsPanelProps = {
   accounts: WaiterAccount[];
   busy: string | null;
+  /** Collecting needs an open register; the manager opens it from Caja. */
+  cashOpen: boolean;
   /** Opens the collection form of this account when the panel mounts. */
   collectSessionId: string | null;
   isManager: boolean;
   onDiscount(sessionId: string, draft: DiscountDraft): void;
   onKeepOpen(sessionId: string): void;
   onPay(sessionId: string, draft: PaymentDraft): void;
+  onRefund(sessionId: string, draft: RefundDraft): void;
 };
 
-type Panel = "collect" | "discount" | null;
+type Panel = "collect" | "discount" | "refund" | null;
 
 function signed(cents: number): string {
   return `${cents < 0 ? "−" : "+"}${formatMoney(Math.abs(cents))}`;
@@ -43,11 +53,13 @@ function signed(cents: number): string {
 function AccountCard({
   account,
   busy,
+  cashOpen,
   collectSessionId,
   isManager,
   onDiscount,
   onKeepOpen,
-  onPay
+  onPay,
+  onRefund
 }: Omit<AccountsPanelProps, "accounts"> & { account: WaiterAccount }) {
   const [panel, setPanel] = useState<Panel>(
     collectSessionId === account.sessionId ? "collect" : null
@@ -58,7 +70,17 @@ function AccountCard({
   const [kind, setKind] = useState<"amount" | "percent">("percent");
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
+  const [refundPayment, setRefundPayment] = useState("");
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundReason, setRefundReason] = useState("");
   const { summary } = account;
+  const payments = refundablePayments(account);
+  const refundCents = parseMoneyInput(refundAmount);
+  const refundValid =
+    refundCents !== null &&
+    refundCents > 0 &&
+    refundReason.trim().length > 0 &&
+    payments.some((payment) => payment.paymentId === refundPayment);
   const tables = account.tableLabels.join(" + ");
   const titleId = `account-${account.sessionId}`;
   const owes = summary.pendingCents > 0;
@@ -135,7 +157,7 @@ function AccountCard({
             aria-expanded={panel === "collect"}
             aria-label={`Cobrar ahora: mesa ${tables}`}
             className="button button--primary"
-            disabled={busy !== null}
+            disabled={busy !== null || !cashOpen}
             onClick={() => setPanel(panel === "collect" ? null : "collect")}
             type="button"
           >
@@ -163,9 +185,21 @@ function AccountCard({
             Descuento…
           </button>
         ) : null}
+        {isManager && payments.length > 0 ? (
+          <button
+            aria-expanded={panel === "refund"}
+            aria-label={`Devolver dinero: mesa ${tables}`}
+            className="button button--secondary"
+            disabled={busy !== null || !cashOpen}
+            onClick={() => setPanel(panel === "refund" ? null : "refund")}
+            type="button"
+          >
+            Devolver…
+          </button>
+        ) : null}
       </div>
 
-      {panel === "collect" && owes ? (
+      {panel === "collect" && owes && cashOpen ? (
         <form
           className="waiter-reject account-form"
           onSubmit={(event) => {
@@ -275,6 +309,66 @@ function AccountCard({
           </button>
         </form>
       ) : null}
+      {panel === "refund" && isManager && cashOpen ? (
+        <form
+          className="waiter-reject account-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!refundValid || refundCents === null) return;
+            onRefund(account.sessionId, {
+              amountCents: refundCents,
+              paymentId: refundPayment,
+              reason: refundReason.trim()
+            });
+          }}
+        >
+          <label htmlFor={`refund-payment-${account.sessionId}`}>
+            Pago a devolver
+          </label>
+          <select
+            id={`refund-payment-${account.sessionId}`}
+            onChange={(event) => setRefundPayment(event.target.value)}
+            value={refundPayment}
+          >
+            <option value="">Elegí el pago…</option>
+            {payments.map((payment) => (
+              <option key={payment.paymentId} value={payment.paymentId}>
+                {payment.label}
+              </option>
+            ))}
+          </select>
+          <label htmlFor={`refund-amount-${account.sessionId}`}>
+            Monto a devolver
+          </label>
+          <input
+            id={`refund-amount-${account.sessionId}`}
+            inputMode="decimal"
+            onChange={(event) => setRefundAmount(event.target.value)}
+            value={refundAmount}
+          />
+          <label htmlFor={`refund-reason-${account.sessionId}`}>
+            Motivo de la devolución (obligatorio)
+          </label>
+          <textarea
+            id={`refund-reason-${account.sessionId}`}
+            maxLength={200}
+            onChange={(event) => setRefundReason(event.target.value)}
+            rows={2}
+            value={refundReason}
+          />
+          <p className="waiter-note">
+            Solo se devuelve hasta el saldo a favor de la cuenta y hasta lo
+            cobrado en ese pago. No se pide ningún dato de la tarjeta.
+          </p>
+          <button
+            className="button button--secondary"
+            disabled={busy !== null || !refundValid}
+            type="submit"
+          >
+            Registrar devolución
+          </button>
+        </form>
+      ) : null}
     </article>
   );
 }
@@ -287,6 +381,12 @@ export function AccountsPanel(props: AccountsPanelProps) {
         Consumido, cobrado y pendiente salen del libro de la cuenta: nada se
         reescribe, cada cobro, descuento o ajuste queda como un movimiento.
       </p>
+      {!props.cashOpen ? (
+        <p className="waiter-notice waiter-notice--error" role="alert">
+          La caja está cerrada: no se pueden registrar cobros hasta que el
+          Encargado la abra desde Caja.
+        </p>
+      ) : null}
       {props.accounts.length === 0 ? (
         <p className="waiter-empty">No hay cuentas abiertas en tus mesas.</p>
       ) : (

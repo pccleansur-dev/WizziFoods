@@ -1,9 +1,13 @@
 "use client";
 
 import {
+  parseCashRegisterView,
   parseWaiterAccountsView,
   parseWaiterOrdersView,
   parseWaiterSalonView,
+  type CashMovementKind,
+  type CashRegisterView,
+  type CloseShiftResult,
   type WaiterAccountsView,
   type WaiterOrderResult,
   type WaiterOrdersView,
@@ -24,6 +28,12 @@ import {
   recordPaymentAction
 } from "../account-actions";
 import {
+  closeShiftAction,
+  openShiftAction,
+  recordCashMovementAction,
+  recordRefundAction
+} from "../cash-register-actions";
+import {
   cancelItemAction,
   decideReplacementAction,
   deliverItemAction,
@@ -35,8 +45,10 @@ import { ManualOrderForm, type ManualOrderDraft } from "./manual-order-form";
 import {
   AccountsPanel,
   type DiscountDraft,
-  type PaymentDraft
+  type PaymentDraft,
+  type RefundDraft
 } from "./accounts-panel";
+import { CashPanel } from "./cash-panel";
 import { OrdersInProgress } from "./orders-in-progress";
 import { WaiterPending } from "./waiter-pending";
 import { WaiterTables } from "./waiter-tables";
@@ -53,12 +65,13 @@ import {
 const POLL_MS = 5_000;
 
 type Notice = { kind: "error" | "ok"; text: string };
-type Tab = "comanda" | "cuentas" | "pedidos" | "salon";
+type Tab = "caja" | "comanda" | "cuentas" | "pedidos" | "salon";
 
 export function WaiterWorkspace({
   canCreateOrders,
   canValidate,
   initialAccounts,
+  initialCash,
   initialOrders,
   initialTab,
   initialView,
@@ -69,6 +82,8 @@ export function WaiterWorkspace({
   canCreateOrders: boolean;
   canValidate: boolean;
   initialAccounts: WaiterAccountsView;
+  /** Only a manager operates the register, so only a manager loads it. */
+  initialCash: CashRegisterView | null;
   initialOrders: WaiterOrdersView;
   initialTab: Tab;
   initialView: WaiterSalonView;
@@ -79,6 +94,7 @@ export function WaiterWorkspace({
   const [view, setView] = useState(initialView);
   const [orders, setOrders] = useState(initialOrders);
   const [accounts, setAccounts] = useState(initialAccounts);
+  const [cash, setCash] = useState(initialCash);
   // Account whose collection form opens when the accounts tab is shown.
   const [collectSession, setCollectSession] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -105,24 +121,36 @@ export function WaiterWorkspace({
 
   const refresh = useCallback(async () => {
     try {
-      const [response, ordersResponse, accountsResponse] = await Promise.all([
+      const [response, ordersResponse, accountsResponse, cashResponse] =
+        await Promise.all([
         fetch(`/interno/${tenantSlug}/operacion/vista`, { cache: "no-store" }),
         fetch(`/interno/${tenantSlug}/operacion/pedidos/vista`, {
           cache: "no-store"
         }),
         fetch(`/interno/${tenantSlug}/operacion/cuentas/vista`, {
           cache: "no-store"
-        })
+        }),
+        isManager
+          ? fetch(`/interno/${tenantSlug}/operacion/caja/vista`, {
+              cache: "no-store"
+            })
+          : Promise.resolve(null)
       ]);
       if (
         response.status === 401 ||
         ordersResponse.status === 401 ||
-        accountsResponse.status === 401
+        accountsResponse.status === 401 ||
+        cashResponse?.status === 401
       ) {
         setExpired(true);
         return;
       }
-      if (!response.ok || !ordersResponse.ok || !accountsResponse.ok) {
+      if (
+        !response.ok ||
+        !ordersResponse.ok ||
+        !accountsResponse.ok ||
+        (cashResponse !== null && !cashResponse.ok)
+      ) {
         throw new Error("salon unavailable");
       }
       const parsed = parseWaiterSalonView(await response.json());
@@ -130,9 +158,14 @@ export function WaiterWorkspace({
       const parsedAccounts = parseWaiterAccountsView(
         await accountsResponse.json()
       );
+      const parsedCash = cashResponse
+        ? parseCashRegisterView(await cashResponse.json())
+        : null;
       if (!parsed || !parsedOrders || !parsedAccounts) {
         throw new Error("salon invalid");
       }
+      if (cashResponse && !parsedCash) throw new Error("cash invalid");
+      if (parsedCash) setCash(parsedCash);
       setView(parsed);
       setOrders(parsedOrders);
       setAccounts(parsedAccounts);
@@ -141,7 +174,7 @@ export function WaiterWorkspace({
     } catch {
       setStale(true);
     }
-  }, [tenantSlug]);
+  }, [isManager, tenantSlug]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -350,6 +383,63 @@ export function WaiterWorkspace({
     report(result, "La cuenta quedó abierta: cobrás después desde Cuentas.");
   }
 
+  async function refund(sessionId: string, draft: RefundDraft) {
+    const result = await perform(
+      `refund:${sessionId}:${draft.paymentId}:${draft.amountCents}:${draft.reason}`,
+      (commandId) =>
+        recordRefundAction(tenantSlug, sessionId, {
+          ...draft,
+          commandId,
+          itemLineId: null
+        })
+    );
+    report(result, "Devolución registrada en la caja.");
+  }
+
+  async function openRegister(openingCashCents: number) {
+    const result = await perform(`open:${openingCashCents}`, (commandId) =>
+      openShiftAction(tenantSlug, { commandId, openingCashCents })
+    );
+    report(result, "Caja abierta: ya se puede cobrar.");
+  }
+
+  async function moveCash(
+    kind: CashMovementKind,
+    amountCents: number,
+    reason: string
+  ) {
+    const result = await perform(
+      `movement:${kind}:${amountCents}:${reason}`,
+      (commandId) =>
+        recordCashMovementAction(tenantSlug, {
+          amountCents,
+          commandId,
+          kind,
+          reason
+        })
+    );
+    report(result, "Movimiento de efectivo registrado.");
+  }
+
+  async function closeRegister(
+    countedCashCents: number,
+    reason: string | null
+  ): Promise<CloseShiftResult | null> {
+    const result = await perform(
+      `close:${countedCashCents}:${reason ?? ""}`,
+      (commandId) =>
+        closeShiftAction(tenantSlug, { commandId, countedCashCents, reason })
+    );
+    if (result.status === "error") {
+      setNotice({ kind: "error", text: result.message });
+      return null;
+    }
+    if (result.data.closed) {
+      setNotice({ kind: "ok", text: "Caja cerrada." });
+    }
+    return result.data;
+  }
+
   async function createOrder(draft: ManualOrderDraft): Promise<boolean> {
     const result = await perform(
       `manual:${JSON.stringify(draft)}`,
@@ -444,6 +534,20 @@ export function WaiterWorkspace({
             </span>
           ) : null}
         </button>
+        {isManager ? (
+          <button
+            aria-pressed={tab === "caja"}
+            onClick={() => setTab("caja")}
+            type="button"
+          >
+            Caja
+            {!accounts.cashRegisterOpen ? (
+              <span aria-label="caja cerrada" className="waiter-count">
+                !
+              </span>
+            ) : null}
+          </button>
+        ) : null}
         {canCreateOrders ? (
           <button
             aria-pressed={tab === "comanda"}
@@ -496,11 +600,24 @@ export function WaiterWorkspace({
         <AccountsPanel
           accounts={accounts.accounts}
           busy={busy}
+          cashOpen={accounts.cashRegisterOpen}
           collectSessionId={collectSession}
           isManager={isManager}
           onDiscount={(sessionId, draft) => void discount(sessionId, draft)}
           onKeepOpen={(sessionId) => void keepOpen(sessionId)}
           onPay={(sessionId, draft) => void pay(sessionId, draft)}
+          onRefund={(sessionId, draft) => void refund(sessionId, draft)}
+        />
+      ) : tab === "caja" && cash ? (
+        <CashPanel
+          busy={busy}
+          onClose={closeRegister}
+          onMovement={(kind, amount, reason) =>
+            void moveCash(kind, amount, reason)
+          }
+          onOpen={(opening) => void openRegister(opening)}
+          owingAccounts={owing}
+          view={cash}
         />
       ) : tab === "pedidos" ? (
         <OrdersInProgress

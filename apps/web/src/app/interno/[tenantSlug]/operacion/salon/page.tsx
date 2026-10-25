@@ -1,4 +1,5 @@
 import {
+  parseCashRegisterView,
   parseCatalogDraft,
   parseWaiterAccountsView,
   parseWaiterOrdersView,
@@ -49,7 +50,11 @@ async function loadSalon(tenantSlug: string) {
 }
 
 async function loadAccounts(tenantSlug: string) {
-  const empty = { accounts: [], generatedAt: new Date().toISOString() };
+  const empty = {
+    accounts: [],
+    cashRegisterOpen: false,
+    generatedAt: new Date().toISOString()
+  };
   try {
     const response = await callStaffApi(
       tenantSlug,
@@ -64,6 +69,22 @@ async function loadAccounts(tenantSlug: string) {
     );
   } catch {
     return empty;
+  }
+}
+
+async function loadCash(tenantSlug: string) {
+  try {
+    const response = await callStaffApi(
+      tenantSlug,
+      "GET",
+      "/v1/staff/cash-register"
+    );
+    if ("sessionMissing" in response || !response.ok) return null;
+    return parseCashRegisterView(
+      (response.body as { data?: unknown } | null)?.data
+    );
+  } catch {
+    return null;
   }
 }
 
@@ -103,6 +124,8 @@ export default async function WaiterSalonPage({
 
   const orders = await loadOrders(tenantSlug);
   const accounts = await loadAccounts(tenantSlug);
+  const isManager = session.identity.staff.role === "manager";
+  const cash = isManager ? await loadCash(tenantSlug) : null;
   const salon = await loadSalon(tenantSlug);
   if (salon === "expired") redirect(`/interno/${tenantSlug}`);
   const view = salon;
@@ -139,18 +162,21 @@ export default async function WaiterSalonPage({
             canCreateOrders={canCreateOrders}
             canValidate={capabilities.includes("orders.validate")}
             initialAccounts={accounts}
+            initialCash={cash}
             initialOrders={orders}
             initialTab={
               vista === "comanda" && canCreateOrders
                 ? "comanda"
-                : vista === "pedidos"
+                : vista === "caja" && cash
+                  ? "caja"
+                  : vista === "pedidos"
                   ? "pedidos"
                   : vista === "cuentas"
                     ? "cuentas"
                     : "salon"
             }
             initialView={view}
-            isManager={session.identity.staff.role === "manager"}
+            isManager={isManager}
             menu={menu}
             tenantSlug={tenantSlug}
           />

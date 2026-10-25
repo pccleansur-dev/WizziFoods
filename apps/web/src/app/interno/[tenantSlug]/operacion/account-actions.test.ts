@@ -29,8 +29,10 @@ function json(status: number, body: unknown) {
 const payment = {
   amountCents: 10_000,
   paymentCents: 10_500,
+  paymentId: "33333333-3333-4333-8333-333333333333",
   pendingCents: 5_000,
   sessionId,
+  shiftId: "44444444-4444-4444-8444-444444444444",
   tipCents: 500
 };
 
