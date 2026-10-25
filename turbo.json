@@ -3,6 +3,17 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
+      "passThroughEnv": [
+        "APP_ENV",
+        "LOG_LEVEL",
+        "WEB_METRICS_PORT",
+        "API_PORT",
+        "API_METRICS_PORT",
+        "WORKER_HEARTBEAT_MS",
+        "WORKER_METRICS_PORT",
+        "WORKER_POLL_MS",
+        "WORKER_VISIBILITY_TIMEOUT_SECONDS"
+      ],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
