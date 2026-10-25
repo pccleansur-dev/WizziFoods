@@ -6,12 +6,16 @@ import {
   parseDiscountResult,
   parseKeepOpenRequest,
   parseKeepOpenResult,
+  parseOnlineRefundRequest,
+  parseOnlineRefundResult,
   parsePaymentResult,
   parseRecordPaymentRequest,
   type ApplyDiscountRequest,
   type DiscountResult,
   type KeepOpenRequest,
   type KeepOpenResult,
+  type OnlineRefundRequest,
+  type OnlineRefundResult,
   type PaymentResult,
   type RecordPaymentRequest
 } from "@platform/contracts";
@@ -93,5 +97,21 @@ export async function keepAccountOpenAction(
     `/v1/staff/accounts/${sessionId}/keep-open`,
     parsed,
     parseKeepOpenResult
+  );
+}
+
+/** Manager only: Mercado Pago performs the refund and confirms its state. */
+export async function refundOnlinePaymentAction(
+  tenantSlug: string,
+  sessionId: string,
+  request: OnlineRefundRequest
+): Promise<WaiterActionResult<OnlineRefundResult>> {
+  const parsed = parseOnlineRefundRequest(request);
+  if (!isWaiterUuid(sessionId) || !parsed) return invalid();
+  return run(
+    tenantSlug,
+    `/v1/staff/accounts/${sessionId}/online-refunds`,
+    parsed,
+    parseOnlineRefundResult
   );
 }

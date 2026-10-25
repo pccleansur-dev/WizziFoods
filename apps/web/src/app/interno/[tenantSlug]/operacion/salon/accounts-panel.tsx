@@ -10,7 +10,10 @@ import {
   paymentMethodChoices,
   paymentMethodName
 } from "../../../../../staff/account-view";
-import { refundablePayments } from "../../../../../staff/cash-view";
+import {
+  onlineRefundablePayments,
+  refundablePayments
+} from "../../../../../staff/cash-view";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
 
 export type PaymentDraft = {
@@ -40,11 +43,12 @@ export type AccountsPanelProps = {
   isManager: boolean;
   onDiscount(sessionId: string, draft: DiscountDraft): void;
   onKeepOpen(sessionId: string): void;
+  onOnlineRefund(sessionId: string, draft: RefundDraft): void;
   onPay(sessionId: string, draft: PaymentDraft): void;
   onRefund(sessionId: string, draft: RefundDraft): void;
 };
 
-type Panel = "collect" | "discount" | "refund" | null;
+type Panel = "collect" | "discount" | "online-refund" | "refund" | null;
 
 function signed(cents: number): string {
   return `${cents < 0 ? "−" : "+"}${formatMoney(Math.abs(cents))}`;
@@ -58,6 +62,7 @@ function AccountCard({
   isManager,
   onDiscount,
   onKeepOpen,
+  onOnlineRefund,
   onPay,
   onRefund
 }: Omit<AccountsPanelProps, "accounts"> & { account: WaiterAccount }) {
@@ -73,14 +78,24 @@ function AccountCard({
   const [refundPayment, setRefundPayment] = useState("");
   const [refundAmount, setRefundAmount] = useState("");
   const [refundReason, setRefundReason] = useState("");
+  const [onlinePayment, setOnlinePayment] = useState("");
+  const [onlineAmount, setOnlineAmount] = useState("");
+  const [onlineReason, setOnlineReason] = useState("");
   const { summary } = account;
   const payments = refundablePayments(account);
+  const onlinePayments = onlineRefundablePayments(account);
   const refundCents = parseMoneyInput(refundAmount);
   const refundValid =
     refundCents !== null &&
     refundCents > 0 &&
     refundReason.trim().length > 0 &&
     payments.some((payment) => payment.paymentId === refundPayment);
+  const onlineCents = parseMoneyInput(onlineAmount);
+  const onlineValid =
+    onlineCents !== null &&
+    onlineCents > 0 &&
+    onlineReason.trim().length > 0 &&
+    onlinePayments.some((payment) => payment.paymentId === onlinePayment);
   const tables = account.tableLabels.join(" + ");
   const titleId = `account-${account.sessionId}`;
   const owes = summary.pendingCents > 0;
@@ -195,6 +210,20 @@ function AccountCard({
             type="button"
           >
             Devolver…
+          </button>
+        ) : null}
+        {isManager && onlinePayments.length > 0 ? (
+          <button
+            aria-expanded={panel === "online-refund"}
+            aria-label={`Devolver por Mercado Pago: mesa ${tables}`}
+            className="button button--secondary"
+            disabled={busy !== null}
+            onClick={() =>
+              setPanel(panel === "online-refund" ? null : "online-refund")
+            }
+            type="button"
+          >
+            Devolver por Mercado Pago…
           </button>
         ) : null}
       </div>
@@ -366,6 +395,66 @@ function AccountCard({
             type="submit"
           >
             Registrar devolución
+          </button>
+        </form>
+      ) : null}
+      {panel === "online-refund" && isManager ? (
+        <form
+          className="waiter-reject account-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!onlineValid || onlineCents === null) return;
+            onOnlineRefund(account.sessionId, {
+              amountCents: onlineCents,
+              paymentId: onlinePayment,
+              reason: onlineReason.trim()
+            });
+          }}
+        >
+          <label htmlFor={`online-payment-${account.sessionId}`}>
+            Pago de Mercado Pago a devolver
+          </label>
+          <select
+            id={`online-payment-${account.sessionId}`}
+            onChange={(event) => setOnlinePayment(event.target.value)}
+            value={onlinePayment}
+          >
+            <option value="">Elegí el pago…</option>
+            {onlinePayments.map((payment) => (
+              <option key={payment.paymentId} value={payment.paymentId}>
+                {payment.label}
+              </option>
+            ))}
+          </select>
+          <label htmlFor={`online-amount-${account.sessionId}`}>
+            Monto a devolver por Mercado Pago
+          </label>
+          <input
+            id={`online-amount-${account.sessionId}`}
+            inputMode="decimal"
+            onChange={(event) => setOnlineAmount(event.target.value)}
+            value={onlineAmount}
+          />
+          <label htmlFor={`online-reason-${account.sessionId}`}>
+            Motivo de la devolución online (obligatorio)
+          </label>
+          <textarea
+            id={`online-reason-${account.sessionId}`}
+            maxLength={200}
+            onChange={(event) => setOnlineReason(event.target.value)}
+            rows={2}
+            value={onlineReason}
+          />
+          <p className="waiter-note">
+            Mercado Pago procesa la devolución. No sale efectivo de la caja y
+            nunca se solicitan datos de la tarjeta.
+          </p>
+          <button
+            className="button button--secondary"
+            disabled={busy !== null || !onlineValid}
+            type="submit"
+          >
+            Devolver por Mercado Pago
           </button>
         </form>
       ) : null}

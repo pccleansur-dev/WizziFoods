@@ -25,7 +25,8 @@ import {
 import {
   applyDiscountAction,
   keepAccountOpenAction,
-  recordPaymentAction
+  recordPaymentAction,
+  refundOnlinePaymentAction
 } from "../account-actions";
 import {
   closeShiftAction,
@@ -123,19 +124,21 @@ export function WaiterWorkspace({
     try {
       const [response, ordersResponse, accountsResponse, cashResponse] =
         await Promise.all([
-        fetch(`/interno/${tenantSlug}/operacion/vista`, { cache: "no-store" }),
-        fetch(`/interno/${tenantSlug}/operacion/pedidos/vista`, {
-          cache: "no-store"
-        }),
-        fetch(`/interno/${tenantSlug}/operacion/cuentas/vista`, {
-          cache: "no-store"
-        }),
-        isManager
-          ? fetch(`/interno/${tenantSlug}/operacion/caja/vista`, {
-              cache: "no-store"
-            })
-          : Promise.resolve(null)
-      ]);
+          fetch(`/interno/${tenantSlug}/operacion/vista`, {
+            cache: "no-store"
+          }),
+          fetch(`/interno/${tenantSlug}/operacion/pedidos/vista`, {
+            cache: "no-store"
+          }),
+          fetch(`/interno/${tenantSlug}/operacion/cuentas/vista`, {
+            cache: "no-store"
+          }),
+          isManager
+            ? fetch(`/interno/${tenantSlug}/operacion/caja/vista`, {
+                cache: "no-store"
+              })
+            : Promise.resolve(null)
+        ]);
       if (
         response.status === 401 ||
         ordersResponse.status === 401 ||
@@ -396,6 +399,18 @@ export function WaiterWorkspace({
     report(result, "Devolución registrada en la caja.");
   }
 
+  async function onlineRefund(sessionId: string, draft: RefundDraft) {
+    const result = await perform(
+      `online-refund:${sessionId}:${draft.paymentId}:${draft.amountCents}:${draft.reason}`,
+      (commandId) =>
+        refundOnlinePaymentAction(tenantSlug, sessionId, {
+          ...draft,
+          commandId
+        })
+    );
+    report(result, "Devolución confirmada por Mercado Pago.");
+  }
+
   async function openRegister(openingCashCents: number) {
     const result = await perform(`open:${openingCashCents}`, (commandId) =>
       openShiftAction(tenantSlug, { commandId, openingCashCents })
@@ -605,6 +620,9 @@ export function WaiterWorkspace({
           isManager={isManager}
           onDiscount={(sessionId, draft) => void discount(sessionId, draft)}
           onKeepOpen={(sessionId) => void keepOpen(sessionId)}
+          onOnlineRefund={(sessionId, draft) =>
+            void onlineRefund(sessionId, draft)
+          }
           onPay={(sessionId, draft) => void pay(sessionId, draft)}
           onRefund={(sessionId, draft) => void refund(sessionId, draft)}
         />

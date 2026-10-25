@@ -6,6 +6,7 @@ import {
   cashDifferenceLabel,
   cashMovementLabel,
   closureSummary,
+  onlineRefundablePayments,
   refundablePayments
 } from "./cash-view";
 
@@ -82,7 +83,7 @@ describe("cash view helpers", () => {
       kind: "payment" | "charge" | "refund",
       amountCents: number,
       sourceId: string,
-      paymentMethod: "cash" | "debit_card" | null
+      paymentMethod: "cash" | "debit_card" | "mercado_pago" | null
     ) => ({
       amountCents,
       cause: "x",
@@ -98,7 +99,8 @@ describe("cash view helpers", () => {
         entry(1, "charge", 12_500, "c1", null),
         entry(2, "payment", -10_000, "p1", "cash"),
         entry(3, "payment", -4_000, "p2", "debit_card"),
-        entry(4, "refund", 4_000, "r1", "debit_card")
+        entry(4, "refund", 4_000, "r1", "debit_card"),
+        entry(5, "payment", -12_500, "p3", "mercado_pago")
       ]
     } as unknown as WaiterAccount;
     expect(refundablePayments(account)).toEqual([
@@ -111,6 +113,13 @@ describe("cash view helpers", () => {
         amountCents: 4_000,
         label: expect.stringContaining("débito"),
         paymentId: "p2"
+      }
+    ]);
+    expect(onlineRefundablePayments(account)).toEqual([
+      {
+        amountCents: 12_500,
+        label: expect.stringContaining("Mercado Pago"),
+        paymentId: "p3"
       }
     ]);
   });

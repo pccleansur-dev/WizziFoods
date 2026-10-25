@@ -70,7 +70,27 @@ export function refundablePayments(
   account: WaiterAccount
 ): RefundablePayment[] {
   return account.entries
-    .filter((entry) => entry.kind === "payment" && entry.paymentMethod !== null)
+    .filter(
+      (entry) =>
+        entry.kind === "payment" &&
+        entry.paymentMethod !== null &&
+        entry.paymentMethod !== "mercado_pago"
+    )
+    .map((entry) => ({
+      amountCents: -entry.amountCents,
+      label: `${entry.paymentMethod ? paymentMethodName(entry.paymentMethod) : ""} · ${formatMoney(-entry.amountCents)}`,
+      paymentId: entry.sourceId
+    }));
+}
+
+export function onlineRefundablePayments(
+  account: WaiterAccount
+): RefundablePayment[] {
+  return account.entries
+    .filter(
+      (entry) =>
+        entry.kind === "payment" && entry.paymentMethod === "mercado_pago"
+    )
     .map((entry) => ({
       amountCents: -entry.amountCents,
       label: `${entry.paymentMethod ? paymentMethodName(entry.paymentMethod) : ""} · ${formatMoney(-entry.amountCents)}`,

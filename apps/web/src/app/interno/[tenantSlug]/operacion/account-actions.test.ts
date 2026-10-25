@@ -93,6 +93,29 @@ describe("account server actions", () => {
     ]);
   });
 
+  it("sends an online refund only to the Mercado Pago endpoint", async () => {
+    const { refundOnlinePaymentAction } = await import("./account-actions");
+    fetchMock.mockResolvedValue(
+      json(200, {
+        data: {
+          paymentId: "33333333-3333-4333-8333-333333333333",
+          refundedCents: 4_000
+        }
+      })
+    );
+    await expect(
+      refundOnlinePaymentAction("bar", sessionId, {
+        amountCents: 4_000,
+        commandId,
+        paymentId: "33333333-3333-4333-8333-333333333333",
+        reason: "Producto cancelado"
+      })
+    ).resolves.toMatchObject({ status: "ok" });
+    expect(fetchMock.mock.calls[0]![0]).toBe(
+      `http://api.localhost:3001/v1/staff/accounts/${sessionId}/online-refunds`
+    );
+  });
+
   it("fails closed without a session cookie and never calls the API", async () => {
     cookieValue.mockReturnValue(undefined);
     const { recordPaymentAction } = await import("./account-actions");
