@@ -627,6 +627,85 @@ begin
 end;
 $$;
 
+-- The diner proves the intent is theirs with the QR token of its table.
+create function private.diner_owns_intent(
+  target_tenant_id uuid,
+  target_location_id uuid,
+  target_token text,
+  target_intent_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+set row_security = off
+as $$
+  select exists (
+    select 1
+    from private.order_intents intent
+    join private.floor_table_qr_codes qr
+      on qr.tenant_id = intent.tenant_id
+      and qr.location_id = intent.location_id
+      and qr.table_id = intent.table_id
+    where intent.tenant_id = target_tenant_id
+      and intent.location_id = target_location_id
+      and intent.id = target_intent_id
+      and qr.token = target_token
+      and qr.status = 'active'
+  );
+$$;
+
+create function private.begin_diner_online_payment(
+  target_tenant_id uuid,
+  target_location_id uuid,
+  target_token text,
+  target_intent_id uuid
+)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = ''
+set row_security = off
+as $$
+begin
+  if not private.diner_owns_intent(
+    target_tenant_id, target_location_id, target_token, target_intent_id
+  ) then
+    raise exception 'intent not found' using errcode = 'PT201';
+  end if;
+  return private.begin_online_payment(
+    target_tenant_id, target_location_id, target_intent_id
+  );
+end;
+$$;
+
+create function private.diner_online_payment_view(
+  target_tenant_id uuid,
+  target_location_id uuid,
+  target_token text,
+  target_intent_id uuid
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+set row_security = off
+as $$
+begin
+  if not private.diner_owns_intent(
+    target_tenant_id, target_location_id, target_token, target_intent_id
+  ) then
+    raise exception 'intent not found' using errcode = 'PT201';
+  end if;
+  return private.online_payment_view(
+    target_tenant_id, target_location_id, target_intent_id
+  );
+end;
+$$;
+
 -- What the diner may see while waiting: the intent and its latest attempt.
 create function private.online_payment_view(
   target_tenant_id uuid,
@@ -939,7 +1018,8 @@ create function private.prepare_online_refund(
   target_staff_id uuid,
   target_session_id uuid,
   target_payment_id uuid,
-  target_amount_cents integer
+  target_amount_cents integer,
+  target_reason text
 )
 returns jsonb
 language plpgsql
@@ -952,6 +1032,7 @@ declare
   actor_role text;
   payment private.online_payments%rowtype;
   credit integer;
+  clean_reason text;
 begin
   select member.role into actor_role
   from public.staff_members member
@@ -965,6 +1046,7 @@ begin
   if actor_role <> 'manager' then
     raise exception 'only a manager can refund' using errcode = 'PT222';
   end if;
+  clean_reason := private.required_reason(target_reason);
   if target_amount_cents is null or target_amount_cents <= 0 then
     raise exception 'invalid refund' using errcode = 'PT212';
   end if;
@@ -990,7 +1072,7 @@ begin
   end if;
   perform private.append_audit_event(
     target_tenant_id, 'staff', target_staff_id, 'online_payment.refund_requested',
-    'Devolución de un pago online solicitada', 'mp:' || payment.id::text,
+    'Devolución de un pago online solicitada: ' || clean_reason, 'mp:' || payment.id::text,
     'online_payment', payment.id
   );
   return jsonb_build_object(
@@ -1101,8 +1183,11 @@ revoke all on function
   private.online_payment_json(private.online_payments),
   private.begin_online_payment(uuid, uuid, uuid),
   private.online_payment_view(uuid, uuid, uuid),
+  private.diner_owns_intent(uuid, uuid, text, uuid),
+  private.begin_diner_online_payment(uuid, uuid, text, uuid),
+  private.diner_online_payment_view(uuid, uuid, text, uuid),
   private.reconcile_online_payment(uuid, uuid, uuid, text, text, text, text, integer, integer, timestamptz),
-  private.prepare_online_refund(uuid, uuid, uuid, uuid, uuid, integer),
+  private.prepare_online_refund(uuid, uuid, uuid, uuid, uuid, integer, text),
   private.online_payments_needing_refund(integer),
   private.claim_mp_webhook_event(text, uuid, uuid, text, text),
   private.finish_mp_webhook_event(text, text)
@@ -1117,8 +1202,10 @@ grant execute on function
   private.resolve_mp_account(text),
   private.begin_online_payment(uuid, uuid, uuid),
   private.online_payment_view(uuid, uuid, uuid),
+  private.begin_diner_online_payment(uuid, uuid, text, uuid),
+  private.diner_online_payment_view(uuid, uuid, text, uuid),
   private.reconcile_online_payment(uuid, uuid, uuid, text, text, text, text, integer, integer, timestamptz),
-  private.prepare_online_refund(uuid, uuid, uuid, uuid, uuid, integer),
+  private.prepare_online_refund(uuid, uuid, uuid, uuid, uuid, integer, text),
   private.online_payments_needing_refund(integer),
   private.claim_mp_webhook_event(text, uuid, uuid, text, text),
   private.finish_mp_webhook_event(text, text)

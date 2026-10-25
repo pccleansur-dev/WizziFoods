@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(106);
+select plan(110);
 
 insert into auth.users (id) values
   ('2e100000-0000-4000-8000-000000000001'),
@@ -287,6 +287,23 @@ select throws_ok(
   'PT201', null, 'and only the owner business can read it'
 );
 
+select is(
+  (select private.begin_diner_online_payment((select t1 from scope), (select l1 from scope), pg_temp.token('1'), (select (a ->> 'intentId')::uuid from intents)) ->> 'paymentId'),
+  (select p ->> 'paymentId' from pay_a), 'the diner of that table starts the payment with the table token'
+);
+select throws_ok(
+  $$ select private.begin_diner_online_payment((select t1 from scope), (select l1 from scope), pg_temp.token('2'), (select (a ->> 'intentId')::uuid from intents)) $$,
+  'PT201', null, 'the token of another table cannot start it'
+);
+select throws_ok(
+  $$ select private.diner_online_payment_view((select t1 from scope), (select l1 from scope), repeat('0', 64), (select (a ->> 'intentId')::uuid from intents)) $$,
+  'PT201', null, 'an invented token cannot read it'
+);
+select is(
+  private.diner_online_payment_view((select t1 from scope), (select l1 from scope), pg_temp.token('1'), (select (a ->> 'intentId')::uuid from intents)) ->> 'intentStatus',
+  'payment_pending', 'the owner reads the state with the token'
+);
+
 -- Pending and mismatches change nothing -------------------------------------------------------
 select is(
   (select pg_temp.snap((select p ->> 'paymentId' from pay_a), '5550001', 'pending', 25000, 0, 1) ->> 'outcome'),
@@ -446,24 +463,24 @@ select private.cancel_order_item(
 select throws_ok(
   $$ select private.prepare_online_refund((select t1 from scope), (select l1 from scope), (select ana from staff),
        (select session_id from private.online_payments where id = (select (p ->> 'paymentId')::uuid from pay_a)),
-       (select (p ->> 'paymentId')::uuid from pay_a), 100) $$,
+       (select (p ->> 'paymentId')::uuid from pay_a), 100, 'Devolución de prueba') $$,
   'PT222', null, 'a waiter cannot refund an online payment'
 );
 select throws_ok(
   $$ select private.prepare_online_refund((select t1 from scope), (select l1 from scope), (select manager from staff),
        (select session_id from private.online_payments where id = (select (p ->> 'paymentId')::uuid from pay_a)),
-       (select (p ->> 'paymentId')::uuid from pay_a), 13001) $$,
+       (select (p ->> 'paymentId')::uuid from pay_a), 13001, 'Devolución de prueba') $$,
   'PT242', null, 'a refund above the credit and the rest of the payment is refused'
 );
 select is(
   (select private.prepare_online_refund((select t1 from scope), (select l1 from scope), (select manager from staff),
        (select session_id from private.online_payments where id = (select (p ->> 'paymentId')::uuid from pay_a)),
-       (select (p ->> 'paymentId')::uuid from pay_a), 13000) ->> 'providerPaymentId'),
+       (select (p ->> 'paymentId')::uuid from pay_a), 13000, 'Devolución de prueba') ->> 'providerPaymentId'),
   '5550001', 'a manager gets the provider payment to refund, up to the limit'
 );
 select throws_ok(
   $$ select private.prepare_online_refund((select t1 from scope), (select l1 from scope), (select manager from staff),
-       '2ef00000-0000-4000-8000-0000000000ff', (select (p ->> 'paymentId')::uuid from pay_a), 100) $$,
+       '2ef00000-0000-4000-8000-0000000000ff', (select (p ->> 'paymentId')::uuid from pay_a), 100, 'Devolución de prueba') $$,
   'PT201', null, 'a payment is only refunded from its own account'
 );
 
