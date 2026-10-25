@@ -1,15 +1,19 @@
 import { readWebConfig } from "@platform/config";
 
 import { tenantFetch } from "../../../panel/tenant-fetch";
-import { isSameOrigin } from "../../business-media/same-origin";
-import { clearSessionCookie, readCookie, sessionCookie } from "../diner-proxy";
+import {
+  clearSessionCookie,
+  isOwnSite,
+  readCookie,
+  sessionCookie
+} from "../diner-proxy";
 
 /** Ends the session on the API and forgets it in the browser, whatever the API says. */
 export async function POST(request: Request): Promise<Response> {
   const host = request.headers.get("host") ?? "";
   const headers = new Headers({ "cache-control": "no-store" });
   headers.append("set-cookie", clearSessionCookie());
-  if (!isSameOrigin(request)) {
+  if (!isOwnSite(request)) {
     return new Response(null, { headers, status: 403 });
   }
   const token = readCookie(request, sessionCookie);

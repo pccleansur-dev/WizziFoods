@@ -67,11 +67,8 @@ describe("diner proxy", () => {
       { headers: Record<string, string> }
     ];
     expect(url).toBe("http://api.localhost:3001/v1/public/diner/me");
-    expect(init.headers).toEqual({
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-      host
-    });
+    // No body, no content type: the API rejects an empty body declared as JSON.
+    expect(init.headers).toEqual({ authorization: `Bearer ${token}`, host });
     expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
@@ -100,6 +97,29 @@ describe("diner proxy", () => {
       expect(response.status).toBe(403);
     }
     expect(tenantFetch).not.toHaveBeenCalled();
+  });
+
+  it("trusts Sec-Fetch-Site over an Origin of null (pages that send no referrer)", async () => {
+    tenantFetch.mockResolvedValue(new Response("{}", { status: 200 }));
+    const { isOwnSite, sessionCookie } = await import("./diner-proxy");
+    const base = { "content-type": "application/json", host };
+    const with_ = (extra: Record<string, string>) =>
+      new Request(`http://${host}/api/diner/profile`, {
+        body: "{}",
+        headers: { ...base, ...extra, cookie: `${sessionCookie}=${token}` },
+        method: "PUT"
+      });
+    expect(
+      isOwnSite(with_({ origin: "null", "sec-fetch-site": "same-origin" }))
+    ).toBe(true);
+    expect(
+      isOwnSite(
+        with_({ origin: `http://${host}`, "sec-fetch-site": "cross-site" })
+      )
+    ).toBe(false);
+    expect(isOwnSite(with_({ "sec-fetch-site": "same-site" }))).toBe(false);
+    expect(isOwnSite(with_({ origin: `http://${host}` }))).toBe(true);
+    expect(isOwnSite(with_({ origin: "http://evil.test" }))).toBe(false);
   });
 
   it("forgets a session the API rejects", async () => {

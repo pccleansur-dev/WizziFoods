@@ -1,8 +1,12 @@
 import { readWebConfig } from "@platform/config";
 
 import { tenantFetch } from "../../../panel/tenant-fetch";
-import { isSameOrigin } from "../../business-media/same-origin";
-import { bindingCookieHeader, localPath, newBinding } from "../diner-proxy";
+import {
+  bindingCookieHeader,
+  isOwnSite,
+  localPath,
+  newBinding
+} from "../diner-proxy";
 
 /**
  * Starts the optional Google login. The browser keeps a random secret in an HttpOnly
@@ -18,7 +22,7 @@ export async function POST(request: Request): Promise<Response> {
     headers: { location: next },
     status: 303
   });
-  if (!host || !isSameOrigin(request)) return back;
+  if (!host || !isOwnSite(request)) return back;
   try {
     const { binding, bindingHash } = newBinding();
     const config = readWebConfig(process.env);

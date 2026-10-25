@@ -3,8 +3,8 @@ import postgres from "postgres";
 import { PaymentSecretSealer } from "../apps/api/src/payment-methods/payment-secret-sealer";
 import { adminDatabaseUrl, e2eHostname, ownerDatabaseUrl } from "./stack-env";
 
-const tenantId = "fe000000-0000-4000-8000-000000000013";
-const userId = "fe000000-0000-4000-8000-000000000011";
+export const tenantId = "fe000000-0000-4000-8000-000000000013";
+export const userId = "fe000000-0000-4000-8000-000000000011";
 const otherTenantId = "fe000000-0000-4000-8000-000000000023";
 const otherUserId = "fe000000-0000-4000-8000-000000000021";
 export const otherHostname = "e2e-other.localhost";

@@ -67,6 +67,17 @@ export function localPath(value: string | null, fallback = "/"): string {
     : fallback;
 }
 
+/**
+ * The diner pages ask browsers not to send a referrer, and with that policy a
+ * same-site POST carries `Origin: null`. `Sec-Fetch-Site` is set by the browser and
+ * cannot be forged by a page, so it decides when present; the Origin check is the
+ * fallback for clients that do not send it.
+ */
+export function isOwnSite(request: Request): boolean {
+  const site = request.headers.get("sec-fetch-site");
+  return site ? site === "same-origin" : isSameOrigin(request);
+}
+
 function failure(status: number, code: string, message: string): Response {
   return Response.json({ error: { code, message } }, { status });
 }
@@ -84,7 +95,7 @@ export async function proxyDiner(
   if (!host) {
     return failure(404, "TENANT_NOT_FOUND", "Local no disponible.");
   }
-  if (options.method !== "GET" && !isSameOrigin(request)) {
+  if (options.method !== "GET" && !isOwnSite(request)) {
     return failure(403, "FORBIDDEN_ORIGIN", "Origen no permitido.");
   }
   const token = readCookie(request, sessionCookie);
@@ -108,7 +119,7 @@ export async function proxyDiner(
       cache: "no-store",
       headers: {
         authorization: `Bearer ${token}`,
-        "content-type": "application/json",
+        ...(body === undefined ? {} : { "content-type": "application/json" }),
         host
       },
       method: options.method
