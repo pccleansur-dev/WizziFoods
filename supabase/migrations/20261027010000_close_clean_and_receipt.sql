@@ -351,7 +351,7 @@ declare
   covered uuid[];
   pending integer;
   next_number integer;
-  closing_time timestamptz := now();
+  closing_time timestamptz;
   receipt jsonb;
 begin
   stored := private.claim_waiter_command(
@@ -421,6 +421,9 @@ begin
   ) then
     raise exception 'an online payment still has to be returned' using errcode = 'PT271';
   end if;
+
+  -- Taken after the lock, so every movement that made it into the ledger is older.
+  closing_time := clock_timestamp();
 
   -- A split nobody finished can no longer be paid once the account is closed.
   perform private.supersede_account_split(
