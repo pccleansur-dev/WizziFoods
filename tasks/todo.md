@@ -842,20 +842,22 @@ sesión y liberar la mesa (T26).
 
 **Tamaño:** M.
 
-### T27. Unir y separar mesas conservando historia
+### T27. Unir y separar mesas conservando historia — completada
 
 **Descripción:** Aplicar agrupaciones durante el servicio sin redistribuir deuda ni invalidar QR físicos.
 
 **Criterios de aceptación:**
 
-- [ ] Todos los QR reconocen la agrupación vigente.
-- [ ] Separar exige mesa ancla para la sesión abierta y libera las restantes según estado.
-- [ ] Pedidos, pagos y deuda nunca se mueven automáticamente.
+- [x] Todos los QR reconocen la agrupación vigente.
+- [x] Separar exige mesa ancla para la sesión abierta y libera las restantes según estado.
+- [x] Pedidos, pagos y deuda nunca se mueven automáticamente.
 
 **Verificación:**
 
-- [ ] Pruebas de agrupación concurrente y restricciones.
-- [ ] E2E unir → consumir → pagar parcial → separar → nueva sesión.
+- [x] Pruebas de agrupación concurrente y restricciones.
+- [x] E2E unir → consumir → pagar parcial → separar → nueva sesión.
+
+**Resultado:** el personal une mesas (`POST /v1/staff/table-groups`) y las separa (`…/:groupId/separate`) con el servicio en marcha. Una sola cuenta abierta sigue al grupo; dos cuentas distintas no se mezclan (`PT278`); al separar con una cuenta abierta hay que elegir la mesa ancla (`PT279`) y las demás se liberan según su estado (Ocupada → Disponible; limpieza pendiente y fuera de servicio se conservan). El libro, los pedidos y el saldo no se tocan y cada QR lee el grupo vigente. El editor del plano no puede romper los grupos de una cuenta abierta (`PT280`) y unir/separar suben la versión del plano. Un candado por ubicación (compartido al abrir sesiones, exclusivo al unir/separar) evita sesiones con alcance viejo: la prueba de carrera falla si se quita. Verificado con 85 aserciones pgTap, 9 pruebas de integración con carreras reales, contratos, repositorio, controlador, acciones web y un Playwright (móvil 375 px y escritorio, 3100/3101). Runbook: `docs/runbooks/unir-y-separar-mesas.md`.
 
 **Dependencias:** T13, T22, T26.
 

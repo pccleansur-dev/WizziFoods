@@ -24,7 +24,8 @@ Disponible ──primer pedido──▶ Ocupada ──cerrar cuenta (saldo 0)─
   simultáneos terminan en un solo comprobante (el segundo recibe `409 ACCOUNT_ALREADY_CLOSED`);
   el mismo `commandId` devuelve siempre el mismo resultado.
 - Todas las mesas de la sesión (la propia y las del grupo) pasan a `needs_cleaning`; una mesa que
-  ya estaba fuera de servicio sigue así.
+  ya estaba fuera de servicio sigue así. Si el grupo se separó antes (T27), la sesión cubre sólo su
+  mesa ancla y las mesas liberadas no cambian de estado al cerrar.
 - El libro de una cuenta cerrada queda **congelado**: sólo acepta una devolución (`refund`) que
   llegue después, por ejemplo de Mercado Pago (`PT273`). Una confirmación que compitió con el
   cierre espera el candado y falla en vez de cargar un ítem a una cuenta cerrada.

@@ -109,7 +109,8 @@ una sola unidad.
   aparte. Los llamados al mozo también salen con la mesa de origen.
 - **Cuenta.** Es una sola; cobrar o dividir se hace sobre el grupo (T25). El comensal ve
   «Estás en Cumpleaños (mesas 1 y 2)».
-- **Agrupar y separar con la mesa en uso.** Se pregunta antes y nunca se mueve la deuda ni se
-  pierde historial (T27). Al separar, el encargado elige con qué mesa queda la cuenta.
+- **Agrupar y separar con la mesa en uso.** Se hace desde el salón (no desde el editor), nunca mueve
+  la deuda ni pierde historial y, al separar, el personal elige con qué mesa queda la cuenta (T27,
+  `unir-y-separar-mesas.md`). El editor del plano ya no puede romper los grupos de una cuenta abierta.
 - **Cuentas distintas.** No se agrupan mesas que ya tienen cuentas abiertas distintas: se bloquea
   hasta que una cierre, para no mezclar deuda de personas distintas.

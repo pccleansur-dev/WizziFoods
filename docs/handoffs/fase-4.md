@@ -166,7 +166,7 @@ Hecho: ver `docs/runbooks/entrada-por-qr.md`. `FloorPlanRepository.resolveTableE
 `POST /v1/public/table-entry` son el punto de entrada del comensal; la página es
 `/m/[token]`. La tabla `floor_table_service_states` es la única fuente del estado de
 mesa y la deben escribir T19/T22/T26. T22 debe colgar la sesión de `group.id` (o de la
-mesa) y T22/T27 debe aplicar «no agrupar mesas con cuentas abiertas distintas».
+mesa) y T22/T27 debe aplicar «no agrupar mesas con cuentas abiertas distintas» (hecho en T27: `PT278`).
 
 ### Estado de T17 — carta y borrador privado
 
@@ -477,3 +477,30 @@ los estados `needs_cleaning`. Pendientes conscientes: envío del comprobante por
 en servidor (hoy se imprime o guarda desde el navegador) y que el comensal vea su comprobante.
 
 Corregido aparte de T26: `local-table-entry.integration.test.ts` ahora borra `location_publications` en su limpieza (se puede correr seguido) y los pgTap `tenancy_rls`, `platform_operations`, `business_sandbox` y `catalog_imports` acotan sus conteos a su propio fixture, así que ya no dependen de los datos de la base de desarrollo.
+
+## Estado de T27 — unir y separar mesas
+
+Hecho: ver `docs/runbooks/unir-y-separar-mesas.md`. Migración `20261027020000_regroup_tables.sql` (rollback probado
+aplicar → revertir → reaplicar, pgTap `table_regrouping.test.sql` con 85 aserciones). API en
+`apps/api/src/table-regrouping`, repositorio `packages/database/src/table-regrouping-repository.ts`, contratos
+`packages/contracts/src/table-regrouping.ts` y web en `salon/waiter-tables.tsx`, `regrouping-actions.ts` y
+`staff/regroup-view.ts`.
+
+- Una sesión abierta **sigue al grupo** al unir y **se queda con la mesa ancla** al separar; el libro y
+  `confirmed_orders` no se tocan. Dos cuentas abiertas distintas no se unen (`PT278`); separar con cuenta
+  abierta sin ancla es `PT279`; el editor del plano no puede romper un grupo con cuenta abierta (`PT280`).
+  Códigos usados hasta ahora: `PT270`–`PT280`.
+- Sólo `join_tables` y `separate_tables` pueden cambiar `scope_key`/`group_id`/`table_id` de una sesión abierta
+  (`private.regroup_session = on` local a la transacción). Abrir una sesión toma un candado compartido por
+  ubicación (`private.table_groups_lock_key`) que unir, separar y guardar el plano toman exclusivo: cualquier
+  función nueva que abra sesiones o cambie grupos debe respetarlo.
+- `private.table_group_events` es la historia append-only de cada unión y separación. Los limpiadores que borran
+  `table_sessions` deben borrar antes `table_group_events` (además de `cashier_requests`, `account_receipts` y
+  `receipt_counters`), con `session_replication_role = replica` en una transacción.
+- Unir y separar suben `floor_plans.version`: un editor con versión vieja recibe `FLOOR_PLAN_VERSION_CONFLICT`.
+- La API se prueba en serie (`--no-file-parallelism`) con `DATABASE_ADMIN_URL` del dueño de las tablas
+  (`supabase_admin.<tenant>`); Playwright usa 3100/3101 y la caja de la demo queda cerrada (Marta, PIN 246810).
+
+Punto de partida para el Checkpoint 8 / T28+: el salón ya cubre mesa → pedido → cobro → cierre → limpieza y
+unir/separar. Pendientes conscientes: sacar una sola mesa de un grupo grande, que el comensal confirme que se une a
+la cuenta del grupo, envío del comprobante y PDF en servidor (T26), y la regla de tasa de tokens (T33).

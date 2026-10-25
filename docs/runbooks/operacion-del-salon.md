@@ -37,6 +37,9 @@ Realtime queda para T31. Un fallo de red conserva la última lectura y lo dice.
   alguna de sus mesas está en el alcance del Mozo, pero **los llamados, las intenciones y
   las operaciones sólo cubren las mesas dentro de su alcance**; las demás se marcan
   «otro sector».
+- **Unir y separar:** cada mesa o grupo ofrece «Unir con otra mesa» y los grupos «Separar mesas»
+  (T27, `unir-y-separar-mesas.md`). Una cuenta abierta sigue al grupo; al separar se elige la mesa
+  ancla; los pedidos, los pagos y el saldo no se mueven.
 - Cada unidad muestra su sesión y su saldo derivado del libro («Cuenta abierta · Saldo
   $ …») o «Sin cuenta abierta»; confirmar un pedido deja la mesa Ocupada (T22).
 - Un pago online pendiente (Mercado Pago, `payment_pending`) **nunca** aparece: la vista

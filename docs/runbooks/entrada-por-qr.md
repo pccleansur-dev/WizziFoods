@@ -58,15 +58,17 @@ cada 15 segundos y al volver a la pestaña (`EntryRefresh`); no guarda nada en e
 dispositivo. Así si el grupo se arma, se separa o la
 mesa se retira, el comensal ve el estado vigente; si el QR se rotó o la mesa se retiró,
 ve «No reconocemos este código» y la indicación de pedir uno nuevo al personal. No hay
-sesión viva que migrar todavía: cuando T22/T27 existan, separar o unir mesas con una
-sesión abierta debe pedir confirmación y nunca mover deuda (ver `plano-salon.md`).
+sesión viva que migrar: unir o separar mesas con una cuenta abierta cambia qué mesas cubre la
+sesión, nunca mueve deuda ni pedidos, y el personal elige la mesa ancla al separar (T27, ver
+`unir-y-separar-mesas.md`). Todos los QR del grupo leen el grupo vigente en cada escaneo.
 
 ## Qué no hace T16
 
 - No hay carta pública navegable, borrador de pedido ni llamado al mozo (T17–T19): la
   página lista lo que el comensal podrá hacer.
-- **No se tocó la regla «no agrupar mesas con cuentas abiertas distintas»**: no existen
-  cuentas. Debe aplicarla T22/T27 al guardar el plano.
+- **La regla «no agrupar mesas con cuentas abiertas distintas»** la aplican T27 (al unir en el
+  servicio, `PT278`) y el editor del plano (no puede romper los grupos de una cuenta abierta,
+  `PT280`).
 - No hay límite de tasa para probar tokens; con 256 bits de entropía no es adivinable, pero
   conviene un límite por IP en T33.
 

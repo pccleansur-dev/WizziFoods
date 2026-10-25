@@ -154,7 +154,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 - [ ] T25. Cobrar importes parciales y dividir saldo con concurrencia segura.
 - [x] T26. Cerrar cuenta, limpiar, habilitar y emitir comprobante no fiscal.
-- [ ] T27. Unir/separar mesas sin mover deuda ni perder historia.
+- [x] T27. Unir/separar mesas sin mover deuda ni perder historia.
 
 ### Fase 9 — Retención
 

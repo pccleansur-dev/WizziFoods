@@ -14,6 +14,8 @@ y arqueo (T23), Mercado Pago (T24) y dividir por persona (T25) no están acá.
   misma sesión. `confirmed_orders.session_id` la referencia.
 - Al abrirla, `floor_table_service_states` pasa la mesa a `occupied`. Una sesión no se borra
   ni se reescribe (`PT209`); sólo puede cerrarse (T26: ver `cierre-limpieza-y-comprobante.md`; cerrar no libera la mesa).
+  La única excepción es el alcance de una sesión **abierta** (`scope_key`, `group_id`, `table_id`), que cambian
+  sólo unir y separar mesas sin tocar el libro ni los pedidos (T27: `unir-y-separar-mesas.md`).
 - Los pedidos confirmados antes de esta migración no tienen cuenta (datos de desarrollo).
 
 ## Movimientos
