@@ -1,7 +1,7 @@
 "use client";
 
 import type { AccountPaymentMethod, WaiterAccount } from "@platform/contracts";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   accountBalanceLabel,
@@ -84,12 +84,6 @@ function AccountCard({
   const tables = account.tableLabels.join(" + ");
   const titleId = `account-${account.sessionId}`;
   const owes = summary.pendingCents > 0;
-
-  // A registered payment starts the next one from a clean form.
-  useEffect(() => {
-    setAmount("");
-    setTip("");
-  }, [summary.paidCents]);
 
   const typedAmount = amount.trim() === "" ? null : parseMoneyInput(amount);
   const typedTip = tip.trim() === "" ? 0 : parseMoneyInput(tip);
@@ -398,7 +392,11 @@ export function AccountsPanel(props: AccountsPanelProps) {
       ) : (
         <div className="waiter-list">
           {props.accounts.map((account) => (
-            <AccountCard {...props} account={account} key={account.sessionId} />
+            <AccountCard
+              {...props}
+              account={account}
+              key={`${account.sessionId}:${account.summary.paidCents}`}
+            />
           ))}
         </div>
       )}

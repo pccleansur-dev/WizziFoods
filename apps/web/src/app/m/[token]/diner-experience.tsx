@@ -3,7 +3,8 @@
 import type {
   CatalogProduct,
   DinerDraftItem,
-  DinerDraftQuote
+  DinerDraftQuote,
+  OrderIntentResult
 } from "@platform/contracts";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -28,6 +29,7 @@ import {
 } from "./order-intent";
 import type { PublicCatalog } from "./public-catalog";
 import { newId } from "../../../lib/new-id";
+import { OnlinePaymentCheckout } from "./online-payment-checkout";
 
 export function DinerExperience({
   catalog,
@@ -43,9 +45,7 @@ export function DinerExperience({
   const [items, setItems] = useState<DinerDraftItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [quote, setQuote] = useState<DinerDraftQuote | null>(null);
-  const [accepted, setAccepted] = useState<
-    "awaiting_waiter" | "payment_pending" | null
-  >(null);
+  const [accepted, setAccepted] = useState<OrderIntentResult | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [view, setView] = useState<"menu" | "order" | "checkout">("menu");
@@ -184,7 +184,7 @@ export function DinerExperience({
         if (!result) throw new Error("intent rejected");
         window.localStorage.removeItem(storageKey);
         setItems([]);
-        setAccepted(result.status);
+        setAccepted(result);
       })
       .catch(() => {
         setCheckoutError(
@@ -194,7 +194,10 @@ export function DinerExperience({
       .finally(() => setSubmitting(false));
   };
 
-  if (accepted) return <DinerIntentAccepted status={accepted} />;
+  if (accepted?.status === "payment_pending") {
+    return <OnlinePaymentCheckout intentId={accepted.intentId} token={token} />;
+  }
+  if (accepted) return <DinerIntentAccepted status={accepted.status} />;
   return (
     <div className="diner-experience">
       <nav aria-label="Carta y pedido" className="diner-nav">

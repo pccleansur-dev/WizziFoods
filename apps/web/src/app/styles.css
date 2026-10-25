@@ -3465,6 +3465,33 @@ main:has(.diner-experience) .diner-entry {
   gap: 1rem;
 }
 
+.diner-online-payment {
+  gap: 1rem;
+}
+
+.diner-payment-status {
+  border-left: 0.25rem solid var(--color-accent, #2f6b4f);
+  padding-left: 1rem;
+}
+
+.diner-payment-status h2,
+.diner-payment-status p {
+  margin-bottom: 0.35rem;
+  margin-top: 0;
+}
+
+.diner-payment-sandbox {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.diner-payment-sandbox select {
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+}
+
 .diner-checkout h2,
 .diner-accepted h2 {
   margin: 0 0 0.5rem;
