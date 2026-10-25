@@ -154,7 +154,10 @@ export function LoyaltyPanel() {
                   Usar en mi cuenta
                 </button>
               ) : (
-                <small> Se usa cuando tengas una cuenta abierta en una mesa.</small>
+                <small>
+                  {" "}
+                  Se usa cuando tengas una cuenta abierta en una mesa.
+                </small>
               )}
             </li>
           ))}

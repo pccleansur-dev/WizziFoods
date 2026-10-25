@@ -1,9 +1,6 @@
 "use client";
 
-import type {
-  AccountPaymentMethod,
-  SessionReward
-} from "@platform/contracts";
+import type { AccountPaymentMethod, SessionReward } from "@platform/contracts";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 

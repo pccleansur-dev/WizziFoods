@@ -125,7 +125,10 @@ describe("LoyaltyStaffController", () => {
       redeemReward: vi.fn().mockResolvedValue({ redeemed: true }),
       saveSettings: vi.fn().mockResolvedValue(settings)
     };
-    return { controller: new LoyaltyStaffController(service as never), service };
+    return {
+      controller: new LoyaltyStaffController(service as never),
+      service
+    };
   }
 
   it("only the manager reads and changes the program", async () => {

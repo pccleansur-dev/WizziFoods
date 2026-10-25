@@ -46,7 +46,9 @@ describe("loyalty settings", () => {
       })
     ).not.toBeNull();
     expect(parseLoyaltySettings({ ...settings, enabled: "yes" })).toBeNull();
-    expect(parseLoyaltySettings({ ...settings, rewardKind: "free" })).toBeNull();
+    expect(
+      parseLoyaltySettings({ ...settings, rewardKind: "free" })
+    ).toBeNull();
   });
 });
 
@@ -80,7 +82,11 @@ describe("diner requests", () => {
 describe("till requests", () => {
   it("accepts the in-person methods and defaults the tip to zero", () => {
     expect(
-      parseRedeemRewardRequest({ commandId: id, method: "cash", rewardId: other })
+      parseRedeemRewardRequest({
+        commandId: id,
+        method: "cash",
+        rewardId: other
+      })
     ).toEqual({ commandId: id, method: "cash", rewardId: other, tipCents: 0 });
     expect(
       parseRedeemRewardRequest({

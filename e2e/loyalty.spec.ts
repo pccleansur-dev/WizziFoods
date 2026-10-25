@@ -84,7 +84,9 @@ test("completes the goal and uses the reward in the same purchase", async ({
 
   // 1. Ana signs in with the (simulated) Google and creates her profile.
   await diner.goto(`/m/${token}`);
-  await expect(diner.getByText("Hacer el pedido", { exact: true })).toBeVisible();
+  await expect(
+    diner.getByText("Hacer el pedido", { exact: true })
+  ).toBeVisible();
   await diner
     .getByRole("button", { name: /Ingresar con Google/u })
     .first()
@@ -104,7 +106,9 @@ test("completes the goal and uses the reward in the same purchase", async ({
   await diner.goto(`/m/${token}`);
   await expect(diner.getByText("Hola, Ana")).toBeVisible();
   await diner.getByRole("link", { name: "Mi cuenta" }).click();
-  await expect(diner.getByRole("heading", { name: "Mis premios" })).toBeVisible();
+  await expect(
+    diner.getByRole("heading", { name: "Mis premios" })
+  ).toBeVisible();
   await expect(diner.getByText("10% de descuento")).toBeVisible();
   const use = diner.getByRole("button", { name: "Usar en mi cuenta" });
   await expect(use).toBeVisible({ timeout: 30_000 });
@@ -156,12 +160,16 @@ test("completes the goal and uses the reward in the same purchase", async ({
   expect(await business.visits("Ana")).toEqual(["credited", "credited"]);
 
   await diner.goto(`/cuenta?volver=/m/${token}`);
-  await expect(diner.getByText("¡ya tenés un premio disponible!")).toBeVisible();
+  await expect(
+    diner.getByText("¡ya tenés un premio disponible!")
+  ).toBeVisible();
 });
 
 test("the menu never depends on the loyalty program", async ({ browser }) => {
   const guest = await newPage(browser);
   await guest.route("**/api/diner/loyalty**", (route) => route.abort());
   await guest.goto(`/m/${await business.dinerToken("6")}`);
-  await expect(guest.getByText("Hacer el pedido", { exact: true })).toBeVisible();
+  await expect(
+    guest.getByText("Hacer el pedido", { exact: true })
+  ).toBeVisible();
 });

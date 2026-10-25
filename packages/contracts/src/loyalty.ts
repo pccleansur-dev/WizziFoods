@@ -7,10 +7,7 @@
 export type LoyaltyRewardKind = "amount" | "percent";
 export type LoyaltyRewardStatus = "available" | "reserved";
 export type LoyaltyPaymentMethod =
-  | "cash"
-  | "credit_card"
-  | "debit_card"
-  | "other_in_person";
+  "cash" | "credit_card" | "debit_card" | "other_in_person";
 
 export type LoyaltySettings = {
   birthdayMaxChanges: number;
@@ -225,13 +222,17 @@ export function parseRedeemRewardRequest(
   input: unknown
 ): RedeemRewardRequest | null {
   const root = record(input);
-  if (!root || !exactKeys(root, ["commandId", "method", "rewardId"], ["tipCents"])) {
+  if (
+    !root ||
+    !exactKeys(root, ["commandId", "method", "rewardId"], ["tipCents"])
+  ) {
     return null;
   }
   const commandId = uuid(root.commandId);
   const rewardId = uuid(root.rewardId);
   const method = methods.find((candidate) => candidate === root.method);
-  const tipCents = root.tipCents === undefined ? 0 : integer(root.tipCents, 0, 1_000_000_000);
+  const tipCents =
+    root.tipCents === undefined ? 0 : integer(root.tipCents, 0, 1_000_000_000);
   return commandId && rewardId && method && tipCents !== null
     ? { commandId, method, rewardId, tipCents }
     : null;
@@ -328,8 +329,16 @@ export function parseDinerLoyaltyView(input: unknown): DinerLoyaltyView | null {
   for (const item of root.openSessions) {
     const open = record(item);
     const sessionId = open ? uuid(open.sessionId) : null;
-    const pendingCents = open ? integer(open.pendingCents, -1_000_000_000, 1_000_000_000) : null;
-    if (!open || !exactKeys(open, ["pendingCents", "sessionId"]) || !sessionId || pendingCents === null) return null;
+    const pendingCents = open
+      ? integer(open.pendingCents, -1_000_000_000, 1_000_000_000)
+      : null;
+    if (
+      !open ||
+      !exactKeys(open, ["pendingCents", "sessionId"]) ||
+      !sessionId ||
+      pendingCents === null
+    )
+      return null;
     openSessions.push({ pendingCents, sessionId });
   }
   if (
@@ -384,7 +393,10 @@ export function parseReserveRewardResult(
   const pendingCents = integer(root.pendingCents, 0, 1_000_000_000);
   const rewardId = uuid(root.rewardId);
   const sessionId = uuid(root.sessionId);
-  return discountCents !== null && pendingCents !== null && rewardId && sessionId
+  return discountCents !== null &&
+    pendingCents !== null &&
+    rewardId &&
+    sessionId
     ? { discountCents, pendingCents, rewardId, sessionId }
     : null;
 }
