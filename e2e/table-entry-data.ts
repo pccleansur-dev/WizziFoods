@@ -179,7 +179,7 @@ export async function seedBusiness(): Promise<SeededBusiness> {
   await sql`select private.ensure_payment_methods(${tenantId}::uuid, ${locationId}::uuid)`;
   const sealed = new PaymentSecretSealer(Buffer.alloc(32)).seal(
     JSON.stringify({
-      accessToken: "TEST-13579113-aabbccddeeff",
+      accessToken: "TEST-13579113-aabbccddeeff", // secret-scan: allow -- fake gateway fixture
       expiresAt: "2099-01-01T00:00:00.000Z",
       refreshToken: "TESTREFRESH-13579113-aabbccddeeff"
     }),

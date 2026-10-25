@@ -206,7 +206,7 @@ export async function seedAdjustmentsBusiness({
   const sealer = new PaymentSecretSealer(Buffer.alloc(32));
   const sealed = sealer.seal(
     JSON.stringify({
-      accessToken: "TEST-24681012-aabbccddeeff",
+      accessToken: "TEST-24681012-aabbccddeeff", // secret-scan: allow -- fake gateway fixture
       expiresAt: "2099-01-01T00:00:00.000Z",
       refreshToken: "TESTREFRESH-24681012-aabbccddeeff"
     }),

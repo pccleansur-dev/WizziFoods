@@ -1,5 +1,6 @@
 import postgres from "postgres";
 
+import { PaymentSecretSealer } from "../apps/api/src/payment-methods/payment-secret-sealer";
 import { hashStaffPin } from "../apps/api/src/staff-auth/pin-credential";
 import { adminDatabaseUrl, ownerDatabaseUrl } from "./stack-env";
 
@@ -176,16 +177,29 @@ export async function seedWaiterBusiness(): Promise<WaiterBusiness> {
     values (${tenantId}, ${locationId}, ${userId})
   `;
   await sql`select private.ensure_payment_methods(${tenantId}::uuid, ${locationId}::uuid)`;
+  const sealedPaymentCredentials = new PaymentSecretSealer(
+    Buffer.alloc(32)
+  ).seal(
+    JSON.stringify({
+      accessToken: "TEST-31415926-aabbccddeeff", // secret-scan: allow -- fake gateway fixture
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      refreshToken: "TESTREFRESH-31415926-aabbccddeeff"
+    }),
+    { locationId, tenantId },
+    "mercado_pago"
+  );
   await sql`
-    update private.payment_methods
-    set enabled = true, public_config = '{"publicKey":"E2E_PUBLIC_KEY"}'
-    where tenant_id = ${tenantId} and location_id = ${locationId}
-      and method_key = 'mercado_pago'
+    select private.finish_mp_connection(
+      ${tenantId}::uuid, ${locationId}::uuid, ${userId}::uuid,
+      '31415926', false, 'TEST-public-key-31415926',
+      ${sealedPaymentCredentials.ciphertext}, ${sealedPaymentCredentials.keyVersion}
+    )
   `;
   await sql`
-    insert into private.payment_method_secrets
-      (tenant_id, location_id, method_key, ciphertext, key_version)
-    values (${tenantId}, ${locationId}, 'mercado_pago', decode(repeat('ab', 29), 'hex'), 1)
+    update private.payment_methods
+    set enabled = true
+    where tenant_id = ${tenantId} and location_id = ${locationId}
+      and method_key = 'mercado_pago'
   `;
   await owner`
     insert into private.published_catalogs (

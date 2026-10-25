@@ -31,7 +31,7 @@ describe("online payment API responses", () => {
           mode: "live",
           payment,
           publicKey: "APP_USR-public",
-          accessToken: "must-not-reach-the-browser"
+          accessToken: "must-not-reach-the-browser" // secret-scan: allow -- negative fixture
         }
       })
     ).toBeNull();

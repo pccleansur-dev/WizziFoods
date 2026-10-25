@@ -66,10 +66,19 @@ async function dinerSends(
   await page.getByLabel("Tu nombre").fill(dinerName);
   if (method === "Mercado Pago") await page.getByLabel("Mercado Pago").check();
   await page.getByRole("button", { name: "Enviar pedido" }).click();
+  if (method === "Mercado Pago") {
+    await expect(
+      page.getByRole("heading", { name: "Pagá para confirmar el pedido" })
+    ).toBeVisible();
+    await page.getByLabel("Resultado de prueba").selectOption("pending");
+    await page.getByRole("button", { name: "Simular pago" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Todavía no se acreditó" })
+    ).toBeVisible();
+    return;
+  }
   await expect(
-    page.getByRole("heading", {
-      name: method === "Efectivo" ? "Ya avisamos al mozo" : "Pago pendiente"
-    })
+    page.getByRole("heading", { name: "Ya avisamos al mozo" })
   ).toBeVisible();
 }
 

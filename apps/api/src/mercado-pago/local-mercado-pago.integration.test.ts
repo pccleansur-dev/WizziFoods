@@ -289,11 +289,19 @@ describeWithLocalStack("Mercado Pago with local Supabase", () => {
     return { intentId: row!.result.intentId, token: await tokenOf(table) };
   }
 
+  type DinerResponseBody = {
+    data: {
+      outcome: string;
+      payment: { paymentId: string; [key: string]: unknown };
+      [key: string]: unknown;
+    };
+  };
+
   async function diner(
     host: string,
     path: string,
     payload: unknown
-  ): Promise<{ body: any; status: number }> {
+  ): Promise<{ body: DinerResponseBody; status: number }> {
     const response = await app!
       .getHttpAdapter()
       .getInstance()
@@ -303,7 +311,10 @@ describeWithLocalStack("Mercado Pago with local Supabase", () => {
         payload: payload as object,
         url: `/v1/public/online-payments${path}`
       });
-    return { body: response.json(), status: response.statusCode };
+    return {
+      body: response.json() as DinerResponseBody,
+      status: response.statusCode
+    };
   }
 
   const sandbox = (
