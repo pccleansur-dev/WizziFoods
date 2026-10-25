@@ -6,7 +6,8 @@ vi.mock("../admin-api", () => ({
   dataOf: (body: { data?: unknown }) => body?.data
 }));
 
-const { paymentsCommandAction } = await import("./actions");
+const { mercadoPagoConnectionAction, paymentsCommandAction } =
+  await import("./actions");
 
 const secret = "APP_USR-0123456789-web-secret";
 const statuses = [
@@ -73,6 +74,44 @@ describe("paymentsCommandAction", () => {
     expect(result).toMatchObject({
       message: "Debe quedar al menos un medio de pago disponible.",
       status: "invalid"
+    });
+  });
+});
+
+describe("mercadoPagoConnectionAction", () => {
+  beforeEach(() => adminApi.mockReset());
+
+  it("returns only a validated authorization URL", async () => {
+    adminApi.mockResolvedValue({
+      body: {
+        data: {
+          authorizationUrl:
+            "http://localhost:3101/v1/dev/mercado-pago/authorize?state=safe"
+        }
+      },
+      ok: true,
+      status: 200
+    });
+    expect(await mercadoPagoConnectionAction()).toEqual({
+      authorizationUrl:
+        "http://localhost:3101/v1/dev/mercado-pago/authorize?state=safe",
+      message: "",
+      status: "redirect"
+    });
+    expect(adminApi).toHaveBeenCalledWith("/v1/tenant/mercado-pago/connect", {
+      method: "POST"
+    });
+  });
+
+  it("fails closed on a malformed response", async () => {
+    adminApi.mockResolvedValue({
+      body: { data: { authorizationUrl: "javascript:alert(1)" } },
+      ok: true,
+      status: 200
+    });
+    expect(await mercadoPagoConnectionAction()).toMatchObject({
+      authorizationUrl: null,
+      status: "error"
     });
   });
 });

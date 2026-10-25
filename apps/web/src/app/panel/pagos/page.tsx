@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
-import { paymentsCommandAction } from "./actions";
+import { mercadoPagoConnectionAction, paymentsCommandAction } from "./actions";
 import { PaymentMethodsManager } from "./payment-methods-manager";
 import { loadPaymentMethods } from "./payments";
 import { OnboardingShell } from "../onboarding/onboarding-shell";
@@ -20,6 +20,7 @@ export default async function PaymentMethodsPage() {
         <PaymentMethodsManager
           initialMethods={payments.methods}
           onCommand={paymentsCommandAction}
+          onConnect={mercadoPagoConnectionAction}
         />
       ) : (
         <section className="panel-content" role="alert">

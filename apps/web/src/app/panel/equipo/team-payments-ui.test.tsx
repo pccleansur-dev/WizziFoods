@@ -52,7 +52,11 @@ describe("payment methods manager", () => {
     updatedAt: "2026-10-24T00:00:00Z"
   }));
   const markup = renderToStaticMarkup(
-    <PaymentMethodsManager initialMethods={methods} onCommand={noop} />
+    <PaymentMethodsManager
+      initialMethods={methods}
+      onCommand={noop}
+      onConnect={noop}
+    />
   );
 
   it("shows state and the public key only", () => {
@@ -60,6 +64,7 @@ describe("payment methods manager", () => {
     expect(markup).toContain("Mercado Pago");
     expect(markup).toContain("APP_USR-public-1");
     expect(markup).toContain("guardada, no se puede ver");
+    expect(markup).toContain("Conectar Mercado Pago");
   });
 
   it("has no field that could carry a stored credential back", () => {

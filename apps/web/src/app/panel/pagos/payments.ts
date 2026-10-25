@@ -12,6 +12,12 @@ export type PaymentsActionState = {
   status: "error" | "idle" | "invalid" | "saved";
 };
 
+export type MercadoPagoConnectionState = {
+  authorizationUrl: string | null;
+  message: string;
+  status: "error" | "redirect";
+};
+
 export type PaymentsCommand =
   | {
       enabled: boolean;

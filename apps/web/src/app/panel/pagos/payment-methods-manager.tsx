@@ -8,14 +8,20 @@ import {
 } from "@platform/contracts";
 import { useState, useTransition, type FormEvent } from "react";
 
-import type { PaymentsActionState, PaymentsCommand } from "./payments";
+import type {
+  MercadoPagoConnectionState,
+  PaymentsActionState,
+  PaymentsCommand
+} from "./payments";
 
 export function PaymentMethodsManager({
   initialMethods,
-  onCommand
+  onCommand,
+  onConnect
 }: {
   initialMethods: PaymentMethodStatus[];
   onCommand: (command: PaymentsCommand) => Promise<PaymentsActionState>;
+  onConnect: () => Promise<MercadoPagoConnectionState>;
 }) {
   const [methods, setMethods] = useState(initialMethods);
   const [feedback, setFeedback] = useState<PaymentsActionState>({
@@ -31,6 +37,17 @@ export function PaymentMethodsManager({
       setFeedback(next);
       if (next.methods) setMethods(next.methods);
       if (next.status === "saved") onDone?.();
+    });
+  }
+
+  function connect() {
+    startTransition(async () => {
+      const next = await onConnect();
+      if (next.status === "redirect" && next.authorizationUrl) {
+        window.location.assign(next.authorizationUrl);
+        return;
+      }
+      setFeedback({ message: next.message, methods: null, status: "error" });
     });
   }
 
@@ -68,6 +85,7 @@ export function PaymentMethodsManager({
             method={method}
             pending={pending}
             run={run}
+            onConnect={connect}
           />
         ))}
       </ul>
@@ -78,11 +96,13 @@ export function PaymentMethodsManager({
 function MethodCard({
   method,
   pending,
-  run
+  run,
+  onConnect
 }: {
   method: PaymentMethodStatus;
   pending: boolean;
   run: (command: PaymentsCommand, onDone?: () => void) => void;
+  onConnect(): void;
 }) {
   const isProvider = PROVIDER_PAYMENT_METHODS.includes(method.method);
   const label = paymentMethodLabels[method.method];
@@ -152,6 +172,22 @@ function MethodCard({
 
       {isProvider ? (
         <div className="payment-card__provider">
+          {method.method === "mercado_pago" ? (
+            <div className="profile-form">
+              <p>
+                Autorizá a este negocio en Mercado Pago. Las credenciales se
+                reciben y guardan únicamente en el servidor.
+              </p>
+              <button
+                className="button button--primary"
+                disabled={pending}
+                onClick={onConnect}
+                type="button"
+              >
+                Conectar Mercado Pago
+              </button>
+            </div>
+          ) : null}
           <form className="profile-form" onSubmit={saveConfig}>
             <label className="field-group">
               <span>Clave pública</span>

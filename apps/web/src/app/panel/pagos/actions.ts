@@ -1,17 +1,51 @@
 "use server";
 
 import {
+  parseMercadoPagoConnectResult,
   parsePaymentMethodKey,
   parsePaymentMethodUpdate,
   parsePaymentSecretRequest
 } from "@platform/contracts";
 
-import { adminApi } from "../admin-api";
+import { adminApi, dataOf } from "../admin-api";
 import {
+  type MercadoPagoConnectionState,
   parsePaymentList,
   type PaymentsActionState,
   type PaymentsCommand
 } from "./payments";
+
+export async function mercadoPagoConnectionAction(): Promise<MercadoPagoConnectionState> {
+  try {
+    const result = await adminApi("/v1/tenant/mercado-pago/connect", {
+      method: "POST"
+    });
+    if (!result.ok) {
+      return {
+        authorizationUrl: null,
+        message:
+          result.status === 401
+            ? "La sesión venció. Volvé a ingresar."
+            : (result.message ??
+              "No pudimos iniciar la conexión con Mercado Pago."),
+        status: "error"
+      };
+    }
+    const parsed = parseMercadoPagoConnectResult(dataOf(result.body));
+    if (!parsed) throw new Error("invalid Mercado Pago authorization URL");
+    return {
+      authorizationUrl: parsed.authorizationUrl,
+      message: "",
+      status: "redirect"
+    };
+  } catch {
+    return {
+      authorizationUrl: null,
+      message: "No pudimos iniciar la conexión con Mercado Pago.",
+      status: "error"
+    };
+  }
+}
 
 const state = (
   status: PaymentsActionState["status"],
