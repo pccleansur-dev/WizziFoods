@@ -75,7 +75,7 @@ items }`. Atribución a la mesa (nombre y silla opcionales) o a una persona (amb
 obligatorios). El servidor resuelve título, precio, sector de producción y total desde
 la carta publicada (`private.quote_and_reserve_lines`); un precio enviado es 400. La mesa
 debe estar disponible u ocupada (y aceptar mesas nuevas si estaba libre); pendiente de
-limpieza o fuera de servicio responde `409 TABLE_NOT_ENABLED` — habilitarla es de T26.
+limpieza o fuera de servicio responde `409 TABLE_NOT_ENABLED` — habilitarla es de T26 (hecho: «Marcar limpia», ver `cierre-limpieza-y-comprobante.md`).
 
 ## Idempotencia y append-only
 

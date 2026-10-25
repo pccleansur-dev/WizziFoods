@@ -449,3 +449,34 @@ Hasta entonces debe mantenerse `MERCADO_PAGO_MODE=fake` fuera de producción.
 ## Estado de T25 — dividir el saldo
 
 Hecho: ver `docs/runbooks/dividir-cuenta.md`. Migración `20261026010000_create_account_splits.sql` (rollback y pgTap `account_splits.test.sql`). `waiter_accounts_view` ahora trae `split` por cuenta; el cobro de partes reutiliza `record_account_payment`, así que caja, límites y libro no cambian. Después se completó lo pendiente: división por consumo, reserva desde el teléfono y pago de una parte con Mercado Pago (migraciones `20261026020000`, `20261026030000` y `20261026040000`, todas con rollback y pgTap). Siguiente: **T26** (cerrar la sesión cuando el saldo es cero, pasar la mesa a pendiente de limpieza, habilitarla solo con personal autorizado y emitir el comprobante). Al cerrar una sesión hay que cancelar divisiones abiertas (`supersede_account_split`) y no cerrar con pagos online en `needs_refund`. La API se prueba en serie (`--no-file-parallelism`) por el pool de Supavisor.
+
+## Estado de T26 — cierre, limpieza y comprobante
+
+Hecho: ver `docs/runbooks/cierre-limpieza-y-comprobante.md`. Migración
+`20261027010000_close_clean_and_receipt.sql` (rollback probado aplicar → revertir → reaplicar, pgTap
+`table_closing.test.sql` con 59 aserciones). API en `apps/api/src/table-closing`, repositorio
+`packages/database/src/table-closing-repository.ts`, contratos `packages/contracts/src/table-closing.ts`
+y web en `salon/closed-accounts-panel.tsx`, `salon/accounts-panel.tsx` («Cerrar cuenta»),
+`salon/waiter-tables.tsx` («Marcar limpia») y `comprobante/[sessionId]`.
+
+- Cerrar exige saldo cero y ningún pago online en `needs_refund`, anula la división abierta con
+  `supersede_account_split`, deja **todas** las mesas de la sesión en `needs_cleaning` y emite un
+  comprobante numerado por ubicación, inmutable y no fiscal. El libro de una cuenta cerrada sólo acepta
+  devoluciones (`PT273`). Códigos nuevos: `PT270`–`PT276`.
+- `floor_table_service_states` tiene ahora máquina de estados (`PT275`): una mesa pendiente de
+  limpieza o fuera de servicio nunca pasa a ocupada; sólo `mark_table_clean` (Mozo de la mesa o
+  Encargado) borra la fila y la deja Disponible.
+- «Avisar a caja» = una solicitud abierta por sesión, sin datos fiscales; el Encargado la marca atendida.
+- Los cleanups de integración/E2E que borran sesiones deben borrar antes `cashier_requests`,
+  `account_receipts` y `receipt_counters` (con `session_replication_role = replica`).
+- La caja del E2E y de la demo empieza cerrada; Marta (PIN 246810) la abre desde Caja.
+
+Punto de partida para T27: al separar mesas, el cierre ya considera el grupo de la sesión
+(`private.session_table_ids`); T27 debe decidir qué ancla conserva la sesión abierta y cómo se reparten
+los estados `needs_cleaning`. Pendientes conscientes: envío del comprobante por correo/WhatsApp, PDF generado
+en servidor (hoy se imprime o guarda desde el navegador) y que el comensal vea su comprobante.
+
+Preexistente, no de T26: `local-table-entry.integration.test.ts` falla cuando se corre dos veces seguidas
+(su limpieza no borra `location_publications`; se destraba borrando esas filas del tenant `fd00…`), y cuatro
+pgTap (`business_sandbox`, `catalog_imports`, `platform_operations`, `tenancy_rls`) fallan en la base de
+desarrollo por filas de otros tenants (idéntico sin la migración).

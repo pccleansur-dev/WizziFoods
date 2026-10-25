@@ -27,7 +27,7 @@ estado de servicio, si el negocio está publicado y si acepta mesas nuevas
 
 `private.floor_table_service_states` guarda `occupied`, `needs_cleaning` o `out_of_service`.
 **Una mesa sin fila está disponible.** T16 sólo lee esta tabla; quien la escribirá es la
-operación del salón (T19), la sesión de mesa (T22) y el cierre/limpieza (T26).
+operación del salón (T19), la sesión de mesa (T22) y el cierre/limpieza (T26, ya implementado: `cierre-limpieza-y-comprobante.md`).
 
 | Situación                                     | Modo          | ¿Confirma pedido? | Mensaje                                        |
 | --------------------------------------------- | ------------- | ----------------- | ---------------------------------------------- |

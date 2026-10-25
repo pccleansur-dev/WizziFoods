@@ -819,20 +819,22 @@ sesión y liberar la mesa (T26).
 
 **Tamaño:** M.
 
-### T26. Cerrar, limpiar, habilitar y emitir comprobante
+### T26. Cerrar, limpiar, habilitar y emitir comprobante — completada
 
 **Descripción:** Completar el ciclo de la sesión sin liberar automáticamente la mesa al pagar.
 
 **Criterios de aceptación:**
 
-- [ ] Saldo cero permite cerrar y mueve a Pendiente de limpieza.
-- [ ] Sólo personal autorizado marca limpia y Disponible.
-- [ ] Comprobante indica que no es factura y `Avisar a caja` crea una solicitud interna.
+- [x] Saldo cero permite cerrar y mueve a Pendiente de limpieza.
+- [x] Sólo personal autorizado marca limpia y Disponible.
+- [x] Comprobante indica que no es factura y `Avisar a caja` crea una solicitud interna.
 
 **Verificación:**
 
-- [ ] Máquina de estados de mesa con transiciones inválidas rechazadas.
-- [ ] E2E pago → cierre → QR bloqueado → limpieza → nueva sesión.
+- [x] Máquina de estados de mesa con transiciones inválidas rechazadas.
+- [x] E2E pago → cierre → QR bloqueado → limpieza → nueva sesión.
+
+**Resultado:** una cuenta con saldo exactamente cero (y sin pagos online por devolver) se cierra: la división abierta se anula, todas las mesas de la sesión pasan a Pendiente de limpieza y se emite un comprobante numerado, inmutable y no fiscal («Comprobante de consumo — no válido como factura»). Sólo el Mozo de la mesa o el Encargado la marca limpia y Disponible; una mesa en limpieza no puede volver a Ocupada (máquina de estados con `PT275`) y su QR queda en sólo lectura. «Avisar a caja» crea una única solicitud interna sin datos fiscales. Verificado con 59 aserciones pgTap, 6 pruebas de integración con carreras reales (cierres, cobro y pedido simultáneos, limpiezas), contratos, repositorio, controlador, acciones web y 4 recorridos Playwright (móvil 375 px y escritorio, 3100/3101). Runbook: `docs/runbooks/cierre-limpieza-y-comprobante.md`. Pendientes: envío del comprobante, PDF en servidor.
 
 **Dependencias:** T23, T25.
 

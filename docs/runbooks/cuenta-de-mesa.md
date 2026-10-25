@@ -13,7 +13,7 @@ y arqueo (T23), Mercado Pago (T24) y dividir por persona (T25) no están acá.
   grupo o de la mesa; índice único parcial). Dos confirmaciones simultáneas terminan en la
   misma sesión. `confirmed_orders.session_id` la referencia.
 - Al abrirla, `floor_table_service_states` pasa la mesa a `occupied`. Una sesión no se borra
-  ni se reescribe (`PT209`); sólo puede cerrarse (liberar la mesa es de T26).
+  ni se reescribe (`PT209`); sólo puede cerrarse (T26: ver `cierre-limpieza-y-comprobante.md`; cerrar no libera la mesa).
 - Los pedidos confirmados antes de esta migración no tienen cuenta (datos de desarrollo).
 
 ## Movimientos
@@ -24,13 +24,13 @@ la originó. Signo: `charge`, `tip` y `refund` suman lo que la mesa debe; `disco
 `payment` lo restan; `adjustment` revierte un cargo. Nunca vale cero. Hay un único
 movimiento por fuente y tipo: un reintento no puede cargar dos veces un ítem.
 
-| Origen | Movimiento |
-|---|---|
-| Ítem confirmado | `charge` por el total del ítem (reemplazos incluidos) |
-| Ítem cancelado | `adjustment` negativo por el total original (vinculado al ajuste) |
+| Origen             | Movimiento                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Ítem confirmado    | `charge` por el total del ítem (reemplazos incluidos)                                                       |
+| Ítem cancelado     | `adjustment` negativo por el total original (vinculado al ajuste)                                           |
 | Reemplazo aceptado | `adjustment` negativo del original + `charge` del reemplazo: la diferencia queda vinculada al ajuste de T21 |
-| Descuento | `discount` negativo, con motivo |
-| Cobro presencial | `tip` (si hay propina) y `payment` negativo, con medio |
+| Descuento          | `discount` negativo, con motivo                                                                             |
+| Cobro presencial   | `tip` (si hay propina) y `payment` negativo, con medio                                                      |
 
 **Saldo derivado** (`private.account_summary`): consumido = cargos + ajustes; pendiente =
 consumido − descuentos + propinas − cobrado + devuelto. Un ítem cancelado después de
@@ -40,12 +40,12 @@ sin leer el libro, y confirma que coincide.
 
 ## Operaciones
 
-| Operación | Ruta | Capacidad | Quién |
-|---|---|---|---|
-| Ver cuentas abiertas | `GET /v1/staff/accounts` | `tables.serve` | Mozo (sus mesas y grupos), Encargado (todas) |
-| Cobrar | `POST /v1/staff/accounts/:sessionId/payments` | `payments.collect` | Mozo, Encargado |
-| Descuento | `POST /v1/staff/accounts/:sessionId/discounts` | `operations.approve` | Sólo Encargado |
-| Dejar cuenta abierta | `POST /v1/staff/accounts/:sessionId/keep-open` | `payments.collect` | Mozo, Encargado |
+| Operación            | Ruta                                           | Capacidad            | Quién                                        |
+| -------------------- | ---------------------------------------------- | -------------------- | -------------------------------------------- |
+| Ver cuentas abiertas | `GET /v1/staff/accounts`                       | `tables.serve`       | Mozo (sus mesas y grupos), Encargado (todas) |
+| Cobrar               | `POST /v1/staff/accounts/:sessionId/payments`  | `payments.collect`   | Mozo, Encargado                              |
+| Descuento            | `POST /v1/staff/accounts/:sessionId/discounts` | `operations.approve` | Sólo Encargado                               |
+| Dejar cuenta abierta | `POST /v1/staff/accounts/:sessionId/keep-open` | `payments.collect`   | Mozo, Encargado                              |
 
 - **Cobrar:** `{ commandId, method, amountCents | null, tipCents }`. Medios presenciales
   (`cash`, `credit_card`, `debit_card`, `other_in_person`); nunca se pide número, vencimiento
@@ -103,10 +103,10 @@ Migración `20261024120000_create_table_accounts.sql` (parchea dos líneas de
 ## Límites conocidos
 
 - Sin arqueo, turnos ni caja (T23), sin Mercado Pago (T24), sin cobrar parcialmente por
-  persona ni dividir (T25), sin cerrar la sesión ni liberar la mesa (T26).
+  persona ni dividir (T25), el cierre de la sesión, la limpieza y el comprobante son de T26 (`cierre-limpieza-y-comprobante.md`).
 - Un saldo a favor del comensal (cancelación tras cobrar) se muestra pero no hay
   devolución todavía.
 - La vista lista los últimos 60 movimientos por cuenta.
 - Tests de integración: no apagar triggers append-only con `ALTER TABLE` (es global y
   rompe archivos que corren en paralelo); usar `set local session_replication_role =
-  replica` dentro de una transacción y borrar el negocio en una sentencia normal.
+replica` dentro de una transacción y borrar el negocio en una sentencia normal.
