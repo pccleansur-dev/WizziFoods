@@ -116,6 +116,9 @@ describeWithLocalStack("table accounts with local Supabase", () => {
       const tenant = fixture.tenantId;
       await admin.begin(async (tx) => {
         await tx`set local session_replication_role = replica`;
+        await tx`delete from private.cash_movements where tenant_id = ${tenant}`;
+        await tx`delete from private.cash_shift_closures where tenant_id = ${tenant}`;
+        await tx`delete from private.cash_shifts where tenant_id = ${tenant}`;
         await tx`delete from private.account_entries where tenant_id = ${tenant}`;
         await tx`delete from private.account_decisions where tenant_id = ${tenant}`;
         await tx`delete from private.table_sessions where tenant_id = ${tenant}`;
@@ -355,6 +358,13 @@ describeWithLocalStack("table accounts with local Supabase", () => {
     await createStaff(one, locationOne, "coco", "kitchen", []);
     await createStaff(one, locationOne, "beto", "bar", []);
     await createStaff(two, locationTwo, "otro", "waiter", [sectorSalon]);
+    // Collecting needs an open register (T23).
+    await admin`
+      select private.open_cash_shift(
+        ${one.tenantId}::uuid, ${locationOne}::uuid, ${manager()}::uuid,
+        ${next()}::uuid, 0
+      )
+    `;
 
     const config: ApiRuntimeConfig = {
       adminInviteRedirectUrl: "https://app.example.test/auth/callback",

@@ -99,6 +99,9 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
   ] as const) {
     await owner.begin(async (tx) => {
       await tx`set local session_replication_role = replica`;
+      await tx`delete from private.cash_movements where tenant_id = ${tenant}`;
+      await tx`delete from private.cash_shift_closures where tenant_id = ${tenant}`;
+      await tx`delete from private.cash_shifts where tenant_id = ${tenant}`;
       await tx`delete from private.account_entries where tenant_id = ${tenant}`;
       await tx`delete from private.account_decisions where tenant_id = ${tenant}`;
       await tx`delete from private.table_sessions where tenant_id = ${tenant}`;

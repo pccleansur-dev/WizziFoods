@@ -13,6 +13,8 @@ import {
 const commandId = "11111111-1111-4111-8111-111111111111";
 const sessionId = "22222222-2222-4222-8222-222222222222";
 const tableId = "33333333-3333-4333-8333-333333333333";
+const paymentId = "66666666-6666-4666-8666-666666666666";
+const shiftId = "77777777-7777-4777-8777-777777777777";
 
 describe("table account requests", () => {
   it("accepts a method, an optional amount and a tip, never a total or a currency", () => {
@@ -140,11 +142,14 @@ describe("table account results", () => {
     const result = {
       amountCents: 10_000,
       paymentCents: 10_500,
+      paymentId,
       pendingCents: 21_900,
       sessionId,
+      shiftId,
       tipCents: 500
     };
     expect(parsePaymentResult(result)).toEqual(result);
+    expect(parsePaymentResult({ ...result, paymentId: "x" })).toBeNull();
     expect(parsePaymentResult({ ...result, paymentCents: 10_000 })).toBeNull();
   });
 
@@ -169,7 +174,8 @@ describe("waiter accounts view", () => {
         id: 1,
         kind: "charge",
         origin: "order_confirmed",
-        paymentMethod: null
+        paymentMethod: null,
+        sourceId: tableId
       },
       {
         amountCents: -10_000,
@@ -178,7 +184,8 @@ describe("waiter accounts view", () => {
         id: 2,
         kind: "payment",
         origin: "payment",
-        paymentMethod: "cash"
+        paymentMethod: "cash",
+        sourceId: paymentId
       }
     ],
     keptOpen: false,
@@ -195,7 +202,11 @@ describe("waiter accounts view", () => {
     tableId,
     tableLabels: ["5"]
   };
-  const view = { accounts: [account], generatedAt: "2026-10-24T12:10:00.000Z" };
+  const view = {
+    accounts: [account],
+    cashRegisterOpen: true,
+    generatedAt: "2026-10-24T12:10:00.000Z"
+  };
 
   it("parses a canonical view", () => {
     expect(parseWaiterAccountsView(view)).toEqual(view);

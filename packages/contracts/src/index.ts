@@ -216,6 +216,31 @@ export {
   type WaiterTableState
 } from "./waiter-operations.js";
 export {
+  parseCashMovementRequest,
+  parseCashMovementResult,
+  parseCashRegisterView,
+  parseCloseShiftRequest,
+  parseCloseShiftResult,
+  parseOpenShiftRequest,
+  parseOpenShiftResult,
+  parseRefundRequest,
+  parseRefundResult,
+  type CashMovementKind,
+  type CashMovementRequest,
+  type CashMovementResult,
+  type CashMovementView,
+  type CashRegisterState,
+  type CashRegisterView,
+  type CashShiftClosure,
+  type CloseShiftRequest,
+  type CloseShiftResult,
+  type OpenShiftRequest,
+  type OpenShiftResult,
+  type RefundRequest,
+  type RefundResult,
+  type ShiftBreakdown
+} from "./cash-register.js";
+export {
   parseApplyDiscountRequest,
   parseDiscountResult,
   parseKeepOpenRequest,

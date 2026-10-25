@@ -83,6 +83,11 @@ function mapFailure(error: unknown): never {
           message: "Los descuentos los otorga el Encargado."
         }
       });
+    case "PT240":
+      throw conflict(
+        "CASH_REGISTER_CLOSED",
+        "La caja está cerrada. El Encargado tiene que abrirla."
+      );
     case "PT230":
       throw conflict(
         "PAYMENT_EXCEEDS_PENDING",

@@ -60,7 +60,8 @@ function normalizeAccounts(value: unknown, generatedAt: string): unknown {
   if (
     !root ||
     !Array.isArray(root.accounts) ||
-    Object.keys(root).sort().join() !== "accounts"
+    typeof root.cashRegisterOpen !== "boolean" ||
+    Object.keys(root).sort().join() !== "accounts,cashRegisterOpen"
   ) {
     return null;
   }
@@ -81,6 +82,7 @@ function normalizeAccounts(value: unknown, generatedAt: string): unknown {
         openedAt: isoTimestamp(account.openedAt)
       };
     }),
+    cashRegisterOpen: root.cashRegisterOpen,
     generatedAt
   };
 }

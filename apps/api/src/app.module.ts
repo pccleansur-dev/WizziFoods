@@ -43,6 +43,8 @@ import {
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { StaffSessionGuard } from "./staff-auth/staff-session.guard.js";
+import { CashRegisterController } from "./cash-register/cash-register.controller.js";
+import { CashRegisterService } from "./cash-register/cash-register.service.js";
 import { TableAccountsController } from "./table-accounts/table-accounts.controller.js";
 import { TableAccountsService } from "./table-accounts/table-accounts.service.js";
 import { OrderAdjustmentsController } from "./order-adjustments/order-adjustments.controller.js";
@@ -115,6 +117,7 @@ export class AppModule {
         TranslationAdminController,
         TenantSuspensionController,
         OrderAdjustmentsController,
+        CashRegisterController,
         TableAccountsController,
         ProductionController,
         WaiterController
@@ -279,6 +282,12 @@ export class AppModule {
               database.identityAccessRepository,
               database.tenantSuspensionRepository
             )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: CashRegisterService,
+          useFactory: (database: TenantDatabase) =>
+            new CashRegisterService(database.cashRegisterRepository)
         },
         {
           inject: [TENANT_DATABASE],

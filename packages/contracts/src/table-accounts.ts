@@ -22,9 +22,13 @@ export type KeepOpenRequest = { commandId: string };
 
 export type PaymentResult = {
   amountCents: number;
+  /** The payment's own id: a refund points at it. */
+  paymentId: string;
   paymentCents: number;
   pendingCents: number;
   sessionId: string;
+  /** The register shift the collection belongs to. */
+  shiftId: string;
   tipCents: number;
 };
 
@@ -61,6 +65,8 @@ export type AccountEntryView = {
   kind: AccountMovementKind;
   origin: string;
   paymentMethod: AccountPaymentMethod | null;
+  /** Id of the movement's source; a payment's id is what a refund points at. */
+  sourceId: string;
 };
 
 export type WaiterAccount = {
@@ -76,6 +82,8 @@ export type WaiterAccount = {
 
 export type WaiterAccountsView = {
   accounts: WaiterAccount[];
+  /** Whether a register shift is open: nobody collects while it is closed. */
+  cashRegisterOpen: boolean;
   generatedAt: string;
 };
 
@@ -222,8 +230,10 @@ export function parsePaymentResult(input: unknown): PaymentResult | null {
     !hasExactKeys(root, [
       "amountCents",
       "paymentCents",
+      "paymentId",
       "pendingCents",
       "sessionId",
+      "shiftId",
       "tipCents"
     ])
   ) {
@@ -231,20 +241,32 @@ export function parsePaymentResult(input: unknown): PaymentResult | null {
   }
   const amountCents = positive(root.amountCents);
   const paymentCents = positive(root.paymentCents);
+  const paymentId = uuid(root.paymentId);
   const pendingCents = integer(root.pendingCents);
   const sessionId = uuid(root.sessionId);
+  const shiftId = uuid(root.shiftId);
   const tipCents = nonNegative(root.tipCents);
   if (
     amountCents === null ||
     paymentCents === null ||
+    !paymentId ||
     pendingCents === null ||
     !sessionId ||
+    !shiftId ||
     tipCents === null ||
     paymentCents !== amountCents + tipCents
   ) {
     return null;
   }
-  return { amountCents, paymentCents, pendingCents, sessionId, tipCents };
+  return {
+    amountCents,
+    paymentCents,
+    paymentId,
+    pendingCents,
+    sessionId,
+    shiftId,
+    tipCents
+  };
 }
 
 export function parseDiscountResult(input: unknown): DiscountResult | null {
@@ -335,7 +357,8 @@ function entry(input: unknown): AccountEntryView | null {
       "id",
       "kind",
       "origin",
-      "paymentMethod"
+      "paymentMethod",
+      "sourceId"
     ])
   ) {
     return null;
@@ -346,6 +369,7 @@ function entry(input: unknown): AccountEntryView | null {
   const createdAt = timestamp(root.createdAt);
   const id = positive(root.id);
   const origin = bounded(root.origin, 40);
+  const sourceId = uuid(root.sourceId);
   const paymentMethod =
     root.paymentMethod === null ? null : method(root.paymentMethod);
   if (
@@ -356,6 +380,7 @@ function entry(input: unknown): AccountEntryView | null {
     !createdAt ||
     id === null ||
     !origin ||
+    !sourceId ||
     (root.paymentMethod !== null && !paymentMethod) ||
     // Money in raises what the table owes; money out lowers it.
     ((kind === "charge" || kind === "tip" || kind === "refund") &&
@@ -364,7 +389,16 @@ function entry(input: unknown): AccountEntryView | null {
   ) {
     return null;
   }
-  return { amountCents, cause, createdAt, id, kind, origin, paymentMethod };
+  return {
+    amountCents,
+    cause,
+    createdAt,
+    id,
+    kind,
+    origin,
+    paymentMethod,
+    sourceId
+  };
 }
 
 function account(input: unknown): WaiterAccount | null {
@@ -426,7 +460,8 @@ export function parseWaiterAccountsView(
   const root = record(input);
   if (
     !root ||
-    !hasExactKeys(root, ["accounts", "generatedAt"]) ||
+    !hasExactKeys(root, ["accounts", "cashRegisterOpen", "generatedAt"]) ||
+    typeof root.cashRegisterOpen !== "boolean" ||
     !Array.isArray(root.accounts) ||
     root.accounts.length > 200
   ) {
@@ -440,5 +475,5 @@ export function parseWaiterAccountsView(
     if (!parsed) return null;
     accounts.push(parsed);
   }
-  return { accounts, generatedAt };
+  return { accounts, cashRegisterOpen: root.cashRegisterOpen, generatedAt };
 }

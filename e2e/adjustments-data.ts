@@ -107,6 +107,9 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
   await owner.begin(async (tx) => {
     await tx`set local session_replication_role = replica`;
     for (const table of [
+      "cash_movements",
+      "cash_shift_closures",
+      "cash_shifts",
       "account_entries",
       "account_decisions",
       "table_sessions",
@@ -192,6 +195,13 @@ export async function seedAdjustmentsBusiness(): Promise<AdjustmentsBusiness> {
   const [manager] = await sql<{ id: string }[]>`
     select id from public.staff_members
     where tenant_id = ${tenantId} and username = 'marta'
+  `;
+  // Collecting needs an open register (T23).
+  await sql`
+    select private.open_cash_shift(
+      ${tenantId}::uuid, ${locationId}::uuid, ${manager!.id}::uuid,
+      gen_random_uuid(), 0
+    )
   `;
 
   return {

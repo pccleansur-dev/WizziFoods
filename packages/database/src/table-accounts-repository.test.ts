@@ -22,6 +22,7 @@ function sqlValues(client: ReturnType<typeof vi.fn>): unknown[] {
 describe("table accounts repository", () => {
   it("normalizes database timestamps in the accounts view", async () => {
     const view = {
+      cashRegisterOpen: true,
       accounts: [
         {
           currency: "ARS",
@@ -33,7 +34,8 @@ describe("table accounts repository", () => {
               id: 1,
               kind: "charge",
               origin: "order_confirmed",
-              paymentMethod: null
+              paymentMethod: null,
+              sourceId: tableId
             }
           ],
           keptOpen: false,
@@ -59,13 +61,18 @@ describe("table accounts repository", () => {
     expect(result.accounts[0]?.entries[0]?.createdAt).toBe(
       "2026-10-24T12:00:00.123Z"
     );
+    expect(result.cashRegisterOpen).toBe(true);
     expect(Number.isFinite(Date.parse(result.generatedAt))).toBe(true);
   });
 
   it("refuses a view that does not add up or carries unexpected fields", async () => {
     await expect(
       createTableAccountsRepository(
-        clientReturning({ accounts: [], tenantId: scope.tenantId }) as never
+        clientReturning({
+          accounts: [],
+          cashRegisterOpen: true,
+          tenantId: scope.tenantId
+        }) as never
       ).getAccounts({ scope, staffId })
     ).rejects.toThrow("accounts view must be canonical");
   });
@@ -74,8 +81,10 @@ describe("table accounts repository", () => {
     const client = clientReturning({
       amountCents: 10_000,
       paymentCents: 10_500,
+      paymentId: tableId,
       pendingCents: 21_900,
       sessionId,
+      shiftId: commandId,
       tipCents: 500
     });
     const result = await createTableAccountsRepository(

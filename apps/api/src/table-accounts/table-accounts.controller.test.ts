@@ -161,7 +161,8 @@ describe("TableAccountsController", () => {
     ["PT222", ForbiddenException],
     ["PT230", ConflictException],
     ["PT231", ConflictException],
-    ["PT232", ConflictException]
+    ["PT232", ConflictException],
+    ["PT240", ConflictException]
   ])("maps %s without echoing database detail", async (code, expected) => {
     const service = serviceStub();
     service.recordPayment.mockRejectedValue(databaseError(code));
