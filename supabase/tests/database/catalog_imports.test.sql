@@ -85,6 +85,11 @@ select throws_ok(
   'an administrator from another tenant cannot read the import'
 );
 
+-- The development queue may hold leftovers from earlier runs that a worker keeps
+-- re-reading; this transaction (rolled back) only looks at its own message.
+delete from pgmq.q_catalog_import_processing
+where enqueued_at < transaction_timestamp();
+
 create temporary table claimed_job on commit drop as
 select * from private.read_catalog_import_job(60);
 
