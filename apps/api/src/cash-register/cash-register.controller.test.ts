@@ -165,7 +165,8 @@ describe("CashRegisterController", () => {
     ["PT222", ForbiddenException, "MANAGER_REQUIRED"],
     ["PT240", ConflictException, "CASH_REGISTER_CLOSED"],
     ["PT241", ConflictException, "CASH_REGISTER_ALREADY_OPEN"],
-    ["PT242", ConflictException, "REFUND_EXCEEDS_LIMIT"]
+    ["PT242", ConflictException, "REFUND_EXCEEDS_LIMIT"],
+    ["PT243", ConflictException, "ONLINE_PAYMENT_REFUND_ONLINE"]
   ])(
     "maps %s to %s without echoing database detail",
     async (code, expected, name) => {

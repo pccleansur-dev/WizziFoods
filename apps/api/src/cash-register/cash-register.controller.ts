@@ -89,6 +89,11 @@ function mapFailure(error: unknown): never {
         "CASH_REGISTER_CLOSED",
         "La caja está cerrada. El Encargado tiene que abrirla."
       );
+    case "PT243":
+      throw conflict(
+        "ONLINE_PAYMENT_REFUND_ONLINE",
+        "Un pago online se devuelve desde Mercado Pago, no desde la caja."
+      );
     case "PT241":
       throw conflict("CASH_REGISTER_ALREADY_OPEN", "La caja ya está abierta.");
     case "PT242":

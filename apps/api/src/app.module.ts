@@ -43,6 +43,21 @@ import {
 } from "./staff-auth/staff-auth.controller.js";
 import { StaffAuthService } from "./staff-auth/staff-auth.service.js";
 import { StaffSessionGuard } from "./staff-auth/staff-session.guard.js";
+import {
+  FakeMercadoPagoController,
+  FAKE_MERCADO_PAGO
+} from "./mercado-pago/fake-mercado-pago.controller.js";
+import {
+  MercadoPagoAdminController,
+  OnlineRefundsController
+} from "./mercado-pago/mercado-pago-admin.controller.js";
+import { MercadoPagoWebhookController } from "./mercado-pago/mercado-pago-webhook.controller.js";
+import {
+  MercadoPagoCallbackController,
+  OnlinePaymentsController
+} from "./mercado-pago/online-payments.controller.js";
+import { createMercadoPagoRuntime } from "./mercado-pago/mercado-pago.runtime.js";
+import { MercadoPagoService } from "./mercado-pago/mercado-pago.service.js";
 import { CashRegisterController } from "./cash-register/cash-register.controller.js";
 import { CashRegisterService } from "./cash-register/cash-register.service.js";
 import { TableAccountsController } from "./table-accounts/table-accounts.controller.js";
@@ -91,6 +106,7 @@ class TenantDatabaseLifecycle implements OnApplicationShutdown {
 @Module({})
 export class AppModule {
   static register(config: ApiRuntimeConfig): DynamicModule {
+    const mercadoPago = createMercadoPagoRuntime(config);
     return {
       controllers: [
         AppController,
@@ -118,6 +134,13 @@ export class AppModule {
         TenantSuspensionController,
         OrderAdjustmentsController,
         CashRegisterController,
+        MercadoPagoAdminController,
+        MercadoPagoCallbackController,
+        MercadoPagoWebhookController,
+        OnlinePaymentsController,
+        OnlineRefundsController,
+        // The sandbox exists only with the simulator, which production refuses.
+        ...(mercadoPago.fake ? [FakeMercadoPagoController] : []),
         TableAccountsController,
         ProductionController,
         WaiterController
@@ -281,6 +304,23 @@ export class AppModule {
             new TenantSuspensionService(
               database.identityAccessRepository,
               database.tenantSuspensionRepository
+            )
+        },
+        { provide: FAKE_MERCADO_PAGO, useValue: mercadoPago.fake },
+        {
+          inject: [TENANT_DATABASE],
+          provide: MercadoPagoService,
+          useFactory: (database: TenantDatabase) =>
+            new MercadoPagoService(
+              database.mercadoPagoRepository,
+              config.paymentSecretKey
+                ? new PaymentSecretSealer(config.paymentSecretKey)
+                : null,
+              mercadoPago.gateway,
+              {
+                returnUrl: mercadoPago.returnUrl,
+                webhookSecret: mercadoPago.webhookSecret
+              }
             )
         },
         {

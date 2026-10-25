@@ -101,6 +101,7 @@ describe("runtime configuration", () => {
       }).mercadoPago
     ).toEqual({
       mode: "fake",
+      redirectUri: "http://localhost:3001/v1/payments/mercado-pago/callback",
       returnUrl: "https://app.example.test/panel/pagos",
       webhookSecret: webhook
     });

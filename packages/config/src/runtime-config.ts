@@ -15,7 +15,12 @@ export type BaseRuntimeConfig = {
  */
 export type MercadoPagoConfig =
   | { mode: "off" }
-  | { mode: "fake"; returnUrl: string; webhookSecret: string }
+  | {
+      mode: "fake";
+      redirectUri: string;
+      returnUrl: string;
+      webhookSecret: string;
+    }
   | {
       clientId: string;
       clientSecret: string;
@@ -182,7 +187,8 @@ function readMercadoPagoConfig(
   source: EnvironmentSource,
   environment: AppEnvironment,
   paymentSecretKey: Buffer | null,
-  adminInviteRedirectUrl: string
+  adminInviteRedirectUrl: string,
+  port: number
 ): MercadoPagoConfig {
   const mode = source.MERCADO_PAGO_MODE?.trim() || "off";
   if (!["off", "fake", "live"].includes(mode)) {
@@ -210,7 +216,21 @@ function readMercadoPagoConfig(
         "an absolute HTTP(S) URL"
       )
     : new URL("/panel/pagos", adminInviteRedirectUrl).toString();
-  if (mode === "fake") return { mode: "fake", returnUrl, webhookSecret };
+  if (mode === "fake") {
+    return {
+      mode: "fake",
+      redirectUri: source.MERCADO_PAGO_REDIRECT_URI?.trim()
+        ? readUrl(
+            source,
+            "MERCADO_PAGO_REDIRECT_URI",
+            ["http:", "https:"],
+            "an absolute HTTP(S) URL"
+          )
+        : `http://localhost:${port}/v1/payments/mercado-pago/callback`,
+      returnUrl,
+      webhookSecret
+    };
+  }
   return {
     clientId: required(source, "MERCADO_PAGO_CLIENT_ID"),
     clientSecret: required(source, "MERCADO_PAGO_CLIENT_SECRET"),
@@ -304,7 +324,8 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
         source,
         base.environment,
         paymentSecretKey,
-        adminInviteRedirectUrl
+        adminInviteRedirectUrl,
+        port
       ),
       metricsPort,
       platformBaseDomain,
