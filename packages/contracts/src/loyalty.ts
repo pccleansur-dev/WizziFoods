@@ -38,10 +38,14 @@ export type DinerReward = {
   value: number;
 };
 
+export type DinerOpenSession = { pendingCents: number; sessionId: string };
+
 export type DinerLoyaltyView = {
   birthday: DinerBirthday | null;
   enabled: boolean;
   minSpendCents: number;
+  /** Open accounts the diner is linked to: where a reward can be used. */
+  openSessions: DinerOpenSession[];
   /** Visits that still count toward the next reward. */
   progress: number;
   rewardKind: LoyaltyRewardKind;
@@ -301,6 +305,7 @@ export function parseDinerLoyaltyView(input: unknown): DinerLoyaltyView | null {
       "birthday",
       "enabled",
       "minSpendCents",
+      "openSessions",
       "progress",
       "rewardKind",
       "rewardValue",
@@ -318,6 +323,15 @@ export function parseDinerLoyaltyView(input: unknown): DinerLoyaltyView | null {
   const rewardValue = integer(root.rewardValue, 1, 1_000_000_000);
   const visits = integer(root.visits, 0, 1_000_000);
   const visitsGoal = integer(root.visitsGoal, 1, 50);
+  const openSessions: DinerOpenSession[] = [];
+  if (!Array.isArray(root.openSessions)) return null;
+  for (const item of root.openSessions) {
+    const open = record(item);
+    const sessionId = open ? uuid(open.sessionId) : null;
+    const pendingCents = open ? integer(open.pendingCents, -1_000_000_000, 1_000_000_000) : null;
+    if (!open || !exactKeys(open, ["pendingCents", "sessionId"]) || !sessionId || pendingCents === null) return null;
+    openSessions.push({ pendingCents, sessionId });
+  }
   if (
     parsedBirthday === undefined ||
     typeof root.enabled !== "boolean" ||
@@ -341,6 +355,7 @@ export function parseDinerLoyaltyView(input: unknown): DinerLoyaltyView | null {
     birthday: parsedBirthday,
     enabled: root.enabled,
     minSpendCents,
+    openSessions,
     progress,
     rewardKind: kind,
     rewardValue,

@@ -613,6 +613,21 @@ begin
         and reward.location_id = target_location_id
         and (reward.status in ('available', 'reserved') and reward.expires_at > now())
     ), '[]'::jsonb),
+    'openSessions', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'sessionId', account_session.id,
+        'pendingCents', (private.account_summary(
+          account_session.tenant_id, account_session.location_id, account_session.id
+        ) ->> 'pendingCents')::integer
+      ) order by account_session.opened_at, account_session.id)
+      from private.diner_session_links link
+      join private.table_sessions account_session
+        on account_session.tenant_id = link.tenant_id
+        and account_session.location_id = link.location_id
+        and account_session.id = link.session_id
+      where link.tenant_id = target_tenant_id and link.location_id = target_location_id
+        and link.profile_id = own_profile_id and account_session.status = 'open'
+    ), '[]'::jsonb),
     'birthday', private.loyalty_birthday_json(target_tenant_id, own_profile_id)
   );
 end;

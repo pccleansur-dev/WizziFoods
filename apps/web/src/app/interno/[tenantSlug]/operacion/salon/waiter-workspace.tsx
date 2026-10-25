@@ -65,6 +65,7 @@ import {
   type SharesDraft
 } from "./accounts-panel";
 import { CashPanel } from "./cash-panel";
+import { LoyaltySettingsPanel } from "./loyalty-settings-panel";
 import { OrdersInProgress } from "./orders-in-progress";
 import { WaiterPending } from "./waiter-pending";
 import { WaiterTables } from "./waiter-tables";
@@ -829,16 +830,19 @@ export function WaiterWorkspace({
           />
         </>
       ) : tab === "caja" && cash ? (
-        <CashPanel
-          busy={busy}
-          onClose={closeRegister}
-          onMovement={(kind, amount, reason) =>
-            void moveCash(kind, amount, reason)
-          }
-          onOpen={(opening) => void openRegister(opening)}
-          owingAccounts={owing}
-          view={cash}
-        />
+        <>
+          <CashPanel
+            busy={busy}
+            onClose={closeRegister}
+            onMovement={(kind, amount, reason) =>
+              void moveCash(kind, amount, reason)
+            }
+            onOpen={(opening) => void openRegister(opening)}
+            owingAccounts={owing}
+            view={cash}
+          />
+          <LoyaltySettingsPanel tenantSlug={tenantSlug} />
+        </>
       ) : tab === "pedidos" ? (
         <OrdersInProgress
           busy={busy}

@@ -16,6 +16,7 @@ import {
   saveProfile,
   setConsent
 } from "../diner-account/diner-client";
+import { LoyaltyPanel } from "./loyalty-panel";
 
 const consentTitles: Record<DinerConsentKind, string> = {
   marketing: "Novedades y promociones",
@@ -170,6 +171,8 @@ export function AccountPanel({ back }: { back: string }) {
       ) : (
         <p>Guardá tu nombre para poder elegir tus permisos.</p>
       )}
+
+      {view.profile ? <LoyaltyPanel /> : null}
 
       <div className="diner-account-panel__data">
         <h2>Tus datos</h2>

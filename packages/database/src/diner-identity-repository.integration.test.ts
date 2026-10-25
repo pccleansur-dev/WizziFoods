@@ -44,6 +44,10 @@ describeWithLocalStack("diner identity races against local Supabase", () => {
   async function cleanup() {
     await admin.begin(async (tx) => {
       await tx`set local session_replication_role = replica`;
+      await tx`delete from private.loyalty_visits where tenant_id = ${tenantId}`;
+      await tx`delete from private.loyalty_rewards where tenant_id = ${tenantId}`;
+      await tx`delete from private.diner_birthdays where tenant_id = ${tenantId}`;
+      await tx`delete from private.loyalty_settings where tenant_id = ${tenantId}`;
       await tx`delete from private.diner_session_links where tenant_id = ${tenantId}`;
       await tx`delete from private.diner_consent_events where tenant_id = ${tenantId}`;
       await tx`delete from private.diner_profile_links where tenant_id = ${tenantId}`;

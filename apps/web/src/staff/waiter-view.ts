@@ -107,6 +107,12 @@ const errorMessages: Record<string, string> = {
     "El ítem no puede pasar a ese estado. Actualizá la pantalla.",
   SPLIT_SHARE_UNAVAILABLE:
     "Esa parte ya se cobró o la división cambió. Actualizá la cuenta.",
+  INVALID_LOYALTY_REQUEST: "Revisá los datos del premio.",
+  LOYALTY_DISABLED: "El programa de premios no está activo.",
+  LOYALTY_INVALID: "Revisá los datos del programa de premios.",
+  REWARD_NOT_APPLICABLE: "No se puede aplicar un premio a esta cuenta.",
+  REWARD_UNAVAILABLE:
+    "Ese premio ya no está disponible. Actualizá la pantalla.",
   STAFF_FORBIDDEN: "Tu rol no puede realizar esta operación.",
   STAFF_SESSION_INVALID:
     "Tu sesión venció. Volvé a ingresar con tu usuario y PIN.",

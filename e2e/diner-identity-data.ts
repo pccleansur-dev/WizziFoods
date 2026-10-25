@@ -31,6 +31,10 @@ async function cleanupDiners(owner: postgres.Sql) {
     const owned = await tx<
       { account_id: string }[]
     >`select account_id from private.diner_profile_links where tenant_id = ${tenantId}`;
+    await tx`delete from private.loyalty_visits where tenant_id = ${tenantId}`;
+    await tx`delete from private.loyalty_rewards where tenant_id = ${tenantId}`;
+    await tx`delete from private.diner_birthdays where tenant_id = ${tenantId}`;
+    await tx`delete from private.loyalty_settings where tenant_id = ${tenantId}`;
     await tx`delete from private.diner_session_links where tenant_id = ${tenantId}`;
     await tx`delete from private.diner_consent_events where tenant_id = ${tenantId}`;
     await tx`delete from private.diner_profile_links where tenant_id = ${tenantId}`;

@@ -139,6 +139,7 @@ describe("diner view", () => {
     birthday: null,
     enabled: true,
     minSpendCents: 5000,
+    openSessions: [],
     progress: 2,
     rewardKind: "percent",
     rewardValue: 1000,
