@@ -320,3 +320,5 @@ export {
 export * from "./mercado-pago.js";
 
 export * from "./split-claims.js";
+
+export * from "./table-closing.js";
