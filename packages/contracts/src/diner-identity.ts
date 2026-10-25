@@ -221,14 +221,17 @@ export function parseDinerSessionLinkResult(
   input: unknown
 ): DinerSessionLinkResult | null {
   const root = record(input);
-  return root && hasOnlyKeys(root, ["linked"]) && typeof root.linked === "boolean"
+  return root &&
+    hasOnlyKeys(root, ["linked"]) &&
+    typeof root.linked === "boolean"
     ? { linked: root.linked }
     : null;
 }
 
 function consentState(input: unknown): DinerConsentState | null {
   const root = record(input);
-  if (!root || !hasOnlyKeys(root, ["at", "granted", "textVersion"])) return null;
+  if (!root || !hasOnlyKeys(root, ["at", "granted", "textVersion"]))
+    return null;
   const { at, granted, textVersion } = root;
   return (at === null || typeof at === "string") &&
     typeof granted === "boolean" &&
@@ -242,7 +245,12 @@ function profile(input: unknown): DinerProfile | null {
   const root = record(input);
   if (
     !root ||
-    !hasOnlyKeys(root, ["consents", "displayName", "profileId", "whatsappPhone"])
+    !hasOnlyKeys(root, [
+      "consents",
+      "displayName",
+      "profileId",
+      "whatsappPhone"
+    ])
   ) {
     return null;
   }

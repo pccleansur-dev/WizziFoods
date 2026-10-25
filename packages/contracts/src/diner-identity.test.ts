@@ -31,7 +31,10 @@ describe("save profile request", () => {
 
   it("rejects bad phones, empty names, long names and extra fields", () => {
     expect(
-      parseSaveDinerProfileRequest({ displayName: "Ana", whatsappPhone: "1234" })
+      parseSaveDinerProfileRequest({
+        displayName: "Ana",
+        whatsappPhone: "1234"
+      })
     ).toBeNull();
     expect(parseSaveDinerProfileRequest({ displayName: "  " })).toBeNull();
     expect(
@@ -110,9 +113,10 @@ describe("login and link requests", () => {
   });
 
   it("redeems with a code and the binding, nothing else", () => {
-    expect(
-      parseRedeemDinerLoginRequest({ binding, code: binding })
-    ).toEqual({ binding, code: binding });
+    expect(parseRedeemDinerLoginRequest({ binding, code: binding })).toEqual({
+      binding,
+      code: binding
+    });
     expect(parseRedeemDinerLoginRequest({ binding, code: "short" })).toBeNull();
     expect(
       parseRedeemDinerLoginRequest({ binding, code: binding, extra: 1 })
@@ -146,9 +150,9 @@ describe("responses", () => {
       profileId,
       whatsappPhone: null
     };
-    expect(parseDinerProfileView({ profile, texts })?.profile?.displayName).toBe(
-      "Ana"
-    );
+    expect(
+      parseDinerProfileView({ profile, texts })?.profile?.displayName
+    ).toBe("Ana");
   });
 
   it("refuses a profile view that leaks extra fields", () => {
