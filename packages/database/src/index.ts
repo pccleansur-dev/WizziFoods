@@ -141,3 +141,13 @@ export {
   type TeamSummary,
   type UpdateTeamMemberInput
 } from "./team-repository.js";
+export {
+  createMercadoPagoRepository,
+  type MercadoPagoRepository,
+  type PaymentNeedingRefund,
+  type PreparedOnlineRefund,
+  type SealedCredential,
+  type StoredMercadoPagoCredential,
+  type WebhookClaim,
+  type WebhookOutcome
+} from "./mercado-pago-repository.js";

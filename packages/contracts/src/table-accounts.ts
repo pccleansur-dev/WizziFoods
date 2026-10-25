@@ -1,6 +1,9 @@
-/** In-person methods only: online payments are a later task (T24). */
+/** In-person methods: the only ones staff can register by hand. */
 export type AccountPaymentMethod =
   "cash" | "credit_card" | "debit_card" | "other_in_person";
+
+/** What the ledger may show: also the online payment, which only Mercado Pago records. */
+export type AccountEntryPaymentMethod = AccountPaymentMethod | "mercado_pago";
 
 export type RecordPaymentRequest = {
   /** Null collects the whole pending balance. */
@@ -64,7 +67,7 @@ export type AccountEntryView = {
   id: number;
   kind: AccountMovementKind;
   origin: string;
-  paymentMethod: AccountPaymentMethod | null;
+  paymentMethod: AccountEntryPaymentMethod | null;
   /** Id of the movement's source; a payment's id is what a refund points at. */
   sourceId: string;
 };
@@ -162,6 +165,10 @@ const kinds: readonly AccountMovementKind[] = [
 
 function method(value: unknown): AccountPaymentMethod | null {
   return methods.find((entry) => entry === value) ?? null;
+}
+
+function entryMethod(value: unknown): AccountEntryPaymentMethod | null {
+  return value === "mercado_pago" ? value : method(value);
 }
 
 export function parseRecordPaymentRequest(
@@ -371,7 +378,7 @@ function entry(input: unknown): AccountEntryView | null {
   const origin = bounded(root.origin, 40);
   const sourceId = uuid(root.sourceId);
   const paymentMethod =
-    root.paymentMethod === null ? null : method(root.paymentMethod);
+    root.paymentMethod === null ? null : entryMethod(root.paymentMethod);
   if (
     !kind ||
     amountCents === null ||

@@ -1,4 +1,5 @@
 import type {
+  AccountEntryPaymentMethod,
   AccountMovementKind,
   AccountPaymentMethod,
   AccountSummary,
@@ -42,7 +43,8 @@ export const paymentMethodChoices: readonly {
   { label: "Otro medio presencial", value: "other_in_person" }
 ];
 
-export function paymentMethodName(method: AccountPaymentMethod): string {
+export function paymentMethodName(method: AccountEntryPaymentMethod): string {
+  if (method === "mercado_pago") return "Mercado Pago";
   return (
     paymentMethodChoices.find((choice) => choice.value === method)?.label ??
     method

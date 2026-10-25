@@ -250,6 +250,7 @@ export {
   parseWaiterAccountsView,
   type AccountEntryView,
   type AccountMovementKind,
+  type AccountEntryPaymentMethod,
   type AccountPaymentMethod,
   type AccountSummary,
   type ApplyDiscountRequest,
@@ -300,3 +301,4 @@ export {
   type ProductionTicket,
   type ProductionTicketItem
 } from "./production.js";
+export * from "./mercado-pago.js";
