@@ -2,12 +2,15 @@
 
 import {
   parseCashRegisterView,
+  parseClosedAccountsView,
   parseWaiterAccountsView,
   parseWaiterOrdersView,
   parseWaiterSalonView,
   type CashMovementKind,
   type CashRegisterView,
+  type ClosedAccountsView,
   type CloseShiftResult,
+  type WaiterSalonUnit,
   type WaiterAccountsView,
   type WaiterOrderResult,
   type WaiterOrdersView,
@@ -43,7 +46,14 @@ import {
   deliverItemAction,
   proposeReplacementAction
 } from "../order-adjustment-actions";
+import {
+  cleanTableAction,
+  closeAccountAction,
+  requestCashierAction,
+  resolveCashierRequestAction
+} from "../closing-actions";
 import type { WaiterActionResult } from "../waiter-action-result";
+import { ClosedAccountsPanel } from "./closed-accounts-panel";
 import { ConfirmedOrderPanel } from "./confirmed-order-panel";
 import { ManualOrderForm, type ManualOrderDraft } from "./manual-order-form";
 import {
@@ -77,6 +87,7 @@ export function WaiterWorkspace({
   canValidate,
   initialAccounts,
   initialCash,
+  initialClosed,
   initialOrders,
   initialTab,
   initialView,
@@ -87,6 +98,7 @@ export function WaiterWorkspace({
   canCreateOrders: boolean;
   canValidate: boolean;
   initialAccounts: WaiterAccountsView;
+  initialClosed: ClosedAccountsView;
   /** Only a manager operates the register, so only a manager loads it. */
   initialCash: CashRegisterView | null;
   initialOrders: WaiterOrdersView;
@@ -99,6 +111,7 @@ export function WaiterWorkspace({
   const [view, setView] = useState(initialView);
   const [orders, setOrders] = useState(initialOrders);
   const [accounts, setAccounts] = useState(initialAccounts);
+  const [closed, setClosed] = useState(initialClosed);
   const [cash, setCash] = useState(initialCash);
   // Account whose collection form opens when the accounts tab is shown.
   const [collectSession, setCollectSession] = useState<string | null>(null);
@@ -126,8 +139,13 @@ export function WaiterWorkspace({
 
   const refresh = useCallback(async () => {
     try {
-      const [response, ordersResponse, accountsResponse, cashResponse] =
-        await Promise.all([
+      const [
+        response,
+        ordersResponse,
+        accountsResponse,
+        closedResponse,
+        cashResponse
+      ] = await Promise.all([
           fetch(`/interno/${tenantSlug}/operacion/vista`, {
             cache: "no-store"
           }),
@@ -135,6 +153,9 @@ export function WaiterWorkspace({
             cache: "no-store"
           }),
           fetch(`/interno/${tenantSlug}/operacion/cuentas/vista`, {
+            cache: "no-store"
+          }),
+          fetch(`/interno/${tenantSlug}/operacion/cuentas/cerradas`, {
             cache: "no-store"
           }),
           isManager
@@ -147,6 +168,7 @@ export function WaiterWorkspace({
         response.status === 401 ||
         ordersResponse.status === 401 ||
         accountsResponse.status === 401 ||
+        closedResponse.status === 401 ||
         cashResponse?.status === 401
       ) {
         setExpired(true);
@@ -156,6 +178,7 @@ export function WaiterWorkspace({
         !response.ok ||
         !ordersResponse.ok ||
         !accountsResponse.ok ||
+        !closedResponse.ok ||
         (cashResponse !== null && !cashResponse.ok)
       ) {
         throw new Error("salon unavailable");
@@ -165,10 +188,11 @@ export function WaiterWorkspace({
       const parsedAccounts = parseWaiterAccountsView(
         await accountsResponse.json()
       );
+      const parsedClosed = parseClosedAccountsView(await closedResponse.json());
       const parsedCash = cashResponse
         ? parseCashRegisterView(await cashResponse.json())
         : null;
-      if (!parsed || !parsedOrders || !parsedAccounts) {
+      if (!parsed || !parsedOrders || !parsedAccounts || !parsedClosed) {
         throw new Error("salon invalid");
       }
       if (cashResponse && !parsedCash) throw new Error("cash invalid");
@@ -176,6 +200,7 @@ export function WaiterWorkspace({
       setView(parsed);
       setOrders(parsedOrders);
       setAccounts(parsedAccounts);
+      setClosed(parsedClosed);
       setStale(false);
       setNow(Date.now());
     } catch {
@@ -388,6 +413,66 @@ export function WaiterWorkspace({
       keepAccountOpenAction(tenantSlug, sessionId, { commandId })
     );
     report(result, "La cuenta quedó abierta: cobrás después desde Cuentas.");
+  }
+
+  async function closeAccount(sessionId: string) {
+    const result = await perform(`close:${sessionId}`, (commandId) =>
+      closeAccountAction(tenantSlug, sessionId, { commandId })
+    );
+    report(
+      result,
+      result.status === "ok"
+        ? `Cuenta cerrada. ${
+            result.data.tables.length === 1
+              ? `La mesa ${result.data.tables[0]?.label} quedó`
+              : `Las mesas ${result.data.tables.map((table) => table.label).join(" + ")} quedaron`
+          } pendiente de limpieza. Comprobante N° ${result.data.receipt.number}.`
+        : ""
+    );
+  }
+
+  async function cleanUnit(unit: WaiterSalonUnit) {
+    let cleaned = 0;
+    let failureText: string | null = null;
+    for (const table of unit.tables.filter((entry) => entry.inScope)) {
+      const result = await perform(`clean:${table.id}`, (commandId) =>
+        cleanTableAction(tenantSlug, table.id, { commandId })
+      );
+      if (result.status === "ok") cleaned += 1;
+      else if (result.code !== "TABLE_NOT_PENDING_CLEANING") {
+        failureText = result.message;
+      }
+    }
+    setNotice(
+      failureText
+        ? { kind: "error", text: failureText }
+        : cleaned > 0
+          ? {
+              kind: "ok",
+              text: `${unit.label} quedó limpia y disponible.`
+            }
+          : {
+              kind: "error",
+              text: waiterErrorMessage("TABLE_NOT_PENDING_CLEANING")
+            }
+    );
+  }
+
+  async function notifyCashier(sessionId: string) {
+    const result = await perform(`cashier:${sessionId}`, (commandId) =>
+      requestCashierAction(tenantSlug, sessionId, { commandId })
+    );
+    report(
+      result,
+      "Avisaste a caja. El cliente completa sus datos de facturación directamente en caja."
+    );
+  }
+
+  async function resolveCashierRequest(requestId: string) {
+    const result = await perform(`cashier-done:${requestId}`, (commandId) =>
+      resolveCashierRequestAction(tenantSlug, requestId, { commandId })
+    );
+    report(result, "Marcaste el aviso a caja como atendido.");
   }
 
   async function itemSplitAccount(
@@ -658,12 +743,14 @@ export function WaiterWorkspace({
       ) : null}
 
       {tab === "cuentas" ? (
+        <>
         <AccountsPanel
           accounts={accounts.accounts}
           busy={busy}
           cashOpen={accounts.cashRegisterOpen}
           collectSessionId={collectSession}
           isManager={isManager}
+          onClose={(sessionId) => void closeAccount(sessionId)}
           onDiscount={(sessionId, draft) => void discount(sessionId, draft)}
           onKeepOpen={(sessionId) => void keepOpen(sessionId)}
           onOnlineRefund={(sessionId, draft) =>
@@ -677,6 +764,17 @@ export function WaiterWorkspace({
           onSplit={(sessionId, parts) => void splitAccount(sessionId, parts)}
           onRefund={(sessionId, draft) => void refund(sessionId, draft)}
         />
+        <ClosedAccountsPanel
+          accounts={closed.accounts}
+          busy={busy}
+          isManager={isManager}
+          onNotifyCashier={(sessionId) => void notifyCashier(sessionId)}
+          onResolveRequest={(requestId) =>
+            void resolveCashierRequest(requestId)
+          }
+          tenantSlug={tenantSlug}
+        />
+        </>
       ) : tab === "caja" && cash ? (
         <CashPanel
           busy={busy}
@@ -720,7 +818,11 @@ export function WaiterWorkspace({
               onReject={(intentId, reason) => void reject(intentId, reason)}
             />
           ) : null}
-          <WaiterTables view={view} />
+          <WaiterTables
+            busy={busy}
+            onClean={(unit) => void cleanUnit(unit)}
+            view={view}
+          />
         </>
       ) : (
         <ManualOrderForm

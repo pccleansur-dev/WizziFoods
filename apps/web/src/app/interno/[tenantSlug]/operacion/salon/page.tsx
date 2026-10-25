@@ -1,6 +1,7 @@
 import {
   parseCashRegisterView,
   parseCatalogDraft,
+  parseClosedAccountsView,
   parseWaiterAccountsView,
   parseWaiterOrdersView,
   parseWaiterSalonView
@@ -72,6 +73,25 @@ async function loadAccounts(tenantSlug: string) {
   }
 }
 
+async function loadClosed(tenantSlug: string) {
+  const empty = { accounts: [], generatedAt: new Date().toISOString() };
+  try {
+    const response = await callStaffApi(
+      tenantSlug,
+      "GET",
+      "/v1/staff/closed-accounts"
+    );
+    if ("sessionMissing" in response || !response.ok) return empty;
+    return (
+      parseClosedAccountsView(
+        (response.body as { data?: unknown } | null)?.data
+      ) ?? empty
+    );
+  } catch {
+    return empty;
+  }
+}
+
 async function loadCash(tenantSlug: string) {
   try {
     const response = await callStaffApi(
@@ -124,6 +144,7 @@ export default async function WaiterSalonPage({
 
   const orders = await loadOrders(tenantSlug);
   const accounts = await loadAccounts(tenantSlug);
+  const closed = await loadClosed(tenantSlug);
   const isManager = session.identity.staff.role === "manager";
   const cash = isManager ? await loadCash(tenantSlug) : null;
   const salon = await loadSalon(tenantSlug);
@@ -163,6 +184,7 @@ export default async function WaiterSalonPage({
             canValidate={capabilities.includes("orders.validate")}
             initialAccounts={accounts}
             initialCash={cash}
+            initialClosed={closed}
             initialOrders={orders}
             initialTab={
               vista === "comanda" && canCreateOrders

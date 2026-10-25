@@ -4157,3 +4157,100 @@ main:has(.diner-experience) .diner-entry {
   background: #fff;
   font: inherit;
 }
+
+/* Closed accounts and the non-fiscal receipt (T26). */
+.closed-accounts__list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.closed-account {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #d8d0c2;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.receipt-page {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.receipt {
+  width: min(100%, 26rem);
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #8f8576;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #1f1b16;
+}
+
+.receipt h1 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.receipt p {
+  margin: 0.25rem 0 0;
+}
+
+.receipt__items {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.receipt__items li,
+.receipt__totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.receipt__totals {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #8f8576;
+}
+
+.receipt__totals dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.receipt__invoice {
+  font-weight: 700;
+}
+
+.receipt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+@media print {
+  .receipt-actions {
+    display: none;
+  }
+
+  .receipt-page {
+    padding: 0;
+  }
+
+  .receipt {
+    border: 0;
+  }
+}

@@ -70,7 +70,16 @@ const errorMessages: Record<string, string> = {
     "Los precios de la carta cambiaron. Pedí al comensal que revise el pedido.",
   ORDER_ITEMS_CHANGED:
     "La disponibilidad de la carta cambió. Revisá el pedido.",
+  ACCOUNT_ALREADY_CLOSED: "Esa cuenta ya está cerrada. Actualizá el salón.",
   ACCOUNT_NOT_FOUND: "No encontramos esa cuenta en tu zona.",
+  BALANCE_NOT_SETTLED:
+    "La cuenta todavía tiene saldo: cobralo o ajustalo antes de cerrarla.",
+  INVALID_TABLE_CLOSING_REQUEST: "Revisá los datos de la operación.",
+  ONLINE_REFUND_PENDING:
+    "Hay un pago online por devolver. Devolvelo antes de cerrar la cuenta.",
+  RECEIPT_NOT_READY: "La cuenta todavía no tiene comprobante.",
+  TABLE_NOT_PENDING_CLEANING: "Esa mesa ya no está pendiente de limpieza.",
+  TABLE_STATE_INVALID: "La mesa no puede pasar a ese estado.",
   ADJUSTMENT_ALREADY_DECIDED:
     "Ese reemplazo ya fue decidido o ya hay uno pendiente.",
   DISCOUNT_TOO_LARGE: "El descuento supera el saldo pendiente.",

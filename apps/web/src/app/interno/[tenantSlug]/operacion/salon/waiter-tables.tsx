@@ -1,6 +1,6 @@
 "use client";
 
-import type { WaiterSalonView } from "@platform/contracts";
+import type { WaiterSalonUnit, WaiterSalonView } from "@platform/contracts";
 
 import {
   groupUnitsByFloor,
@@ -8,7 +8,16 @@ import {
 } from "../../../../../staff/waiter-view";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
 
-export function WaiterTables({ view }: { view: WaiterSalonView }) {
+export function WaiterTables({
+  busy,
+  onClean,
+  view
+}: {
+  busy: string | null;
+  /** Marks every table of the unit that waits for cleaning as clean and available. */
+  onClean(unit: WaiterSalonUnit): void;
+  view: WaiterSalonView;
+}) {
   const groups = groupUnitsByFloor(view);
   return (
     <section aria-labelledby="tables-title" className="waiter-section">
@@ -50,6 +59,18 @@ export function WaiterTables({ view }: { view: WaiterSalonView }) {
                   ) : (
                     <small>Sin cuenta abierta</small>
                   )}
+                  {unit.state === "needs_cleaning" &&
+                  unit.tables.some((table) => table.inScope) ? (
+                    <button
+                      aria-label={`Marcar limpia y habilitar: ${unit.label}`}
+                      className="button button--secondary"
+                      disabled={busy !== null}
+                      onClick={() => onClean(unit)}
+                      type="button"
+                    >
+                      Marcar limpia
+                    </button>
+                  ) : null}
                   {unit.openCalls > 0 || unit.pendingIntents > 0 ? (
                     <b className="waiter-badge">
                       {unit.openCalls} llamado{unit.openCalls === 1 ? "" : "s"}
