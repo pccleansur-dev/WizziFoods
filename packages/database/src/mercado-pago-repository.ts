@@ -1,13 +1,20 @@
+import { createHash } from "node:crypto";
+
 import {
   parseBeginOnlinePaymentResult,
   parseOnlinePaymentView,
   parseProviderPaymentSnapshot,
   parseReconcileResult,
+  parseShareAttempt,
+  parseSharePaymentView,
   parseTenantScope,
   type BeginOnlinePaymentResult,
   type OnlinePaymentView,
   type ProviderPaymentSnapshot,
   type ReconcileResult,
+  type ShareAttempt,
+  type ShareTarget,
+  type SharePaymentView,
   type TenantScope
 } from "@platform/contracts";
 import type { Sql } from "postgres";
@@ -46,6 +53,14 @@ export type PreparedOnlineRefund = {
 };
 
 export interface MercadoPagoRepository {
+  beginSharePayment(input: {
+    scope: TenantScope;
+    target: ShareTarget;
+  }): Promise<ShareAttempt>;
+  sharePaymentView(input: {
+    scope: TenantScope;
+    target: ShareTarget;
+  }): Promise<SharePaymentView>;
   beginOAuth(input: {
     requesterId: string;
     scope: TenantScope;
@@ -321,6 +336,38 @@ export function createMercadoPagoRepository(
       const result = parseReconcileResult(row?.result);
       if (!result) throw new Error("reconcile result must be canonical");
       return result;
+    },
+
+    async beginSharePayment(input) {
+      const scope = assertScope(input.scope);
+      const [row] = await client<ResultRow[]>`
+        select private.begin_share_online_payment(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.target.token},
+          ${input.target.position}::integer,
+          ${createHash("sha256").update(input.target.secret).digest()}::bytea
+        ) as result
+      `;
+      const result = parseShareAttempt(row?.result);
+      if (!result) throw new Error("share attempt must be canonical");
+      return result;
+    },
+
+    async sharePaymentView(input) {
+      const scope = assertScope(input.scope);
+      const [row] = await client<ResultRow[]>`
+        select private.share_payment_view(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.target.token},
+          ${input.target.position}::integer,
+          ${createHash("sha256").update(input.target.secret).digest()}::bytea
+        ) as result
+      `;
+      const view = parseSharePaymentView(row?.result);
+      if (!view) throw new Error("share payment view must be canonical");
+      return view;
     },
 
     async prepareRefund(input) {

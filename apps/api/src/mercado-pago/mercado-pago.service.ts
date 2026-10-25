@@ -17,6 +17,10 @@ import {
   type OnlineRefundRequest,
   type OnlineRefundResult,
   type PayOnlinePaymentRequest,
+  type PayShareRequest,
+  type ShareCheckout,
+  type SharePaymentView,
+  type ShareTarget,
   type ProviderPaymentSnapshot,
   type ReconcileResult,
   type TenantScope
@@ -209,6 +213,62 @@ export class MercadoPagoService {
       scope,
       token: request.token
     });
+  }
+
+  // Paying a share this phone reserved -----------------------------------------------------
+
+  async startSharePayment(
+    scope: TenantScope,
+    target: ShareTarget
+  ): Promise<ShareCheckout> {
+    const gateway = this.requireGateway();
+    const stored = await this.repository.readCredentials(scope);
+    if (!stored) throw this.notConnected();
+    const payment = await this.repository.beginSharePayment({ scope, target });
+    return {
+      mode: gateway.mode === "fake" ? "sandbox" : "live",
+      payment,
+      publicKey: stored.publicKey
+    };
+  }
+
+  async payShare(
+    scope: TenantScope,
+    request: PayShareRequest
+  ): Promise<SharePaymentView> {
+    const gateway = this.requireGateway();
+    if (request.method.kind === "sandbox" && gateway.mode !== "fake") {
+      throw new BadRequestException({
+        error: {
+          code: "SANDBOX_NOT_AVAILABLE",
+          message: "El pago de prueba no está disponible."
+        }
+      });
+    }
+    const { method, ...target } = request;
+    const attempt = await this.repository.beginSharePayment({ scope, target });
+    // Only a fresh attempt reaches the provider: a retry never charges twice.
+    if (attempt.status === "created") {
+      const credential = await this.credential(scope);
+      const snapshot = await this.guard(() =>
+        gateway.createPayment(credential.accessToken, {
+          amountCents: attempt.amountCents,
+          description: "Parte de la cuenta",
+          externalReference: attempt.externalReference,
+          idempotencyKey: attempt.paymentId,
+          method
+        })
+      );
+      await this.apply(scope, attempt.paymentId, snapshot, "pay");
+    }
+    return this.repository.sharePaymentView({ scope, target });
+  }
+
+  shareStatus(
+    scope: TenantScope,
+    target: ShareTarget
+  ): Promise<SharePaymentView> {
+    return this.repository.sharePaymentView({ scope, target });
   }
 
   status(

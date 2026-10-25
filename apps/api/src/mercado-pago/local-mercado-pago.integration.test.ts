@@ -126,6 +126,7 @@ describeWithLocalStack("Mercado Pago with local Supabase", () => {
         await tx`delete from private.cash_movements where tenant_id = ${tenant}`;
         await tx`delete from private.cash_shift_closures where tenant_id = ${tenant}`;
         await tx`delete from private.cash_shifts where tenant_id = ${tenant}`;
+        await tx`delete from private.account_split_assignments where split_id in (select id from private.account_splits where tenant_id = ${tenant})`;
         await tx`delete from private.account_split_shares where split_id in (select id from private.account_splits where tenant_id = ${tenant})`;
         await tx`delete from private.account_splits where tenant_id = ${tenant}`;
         await tx`delete from private.account_entries where tenant_id = ${tenant}`;
@@ -893,6 +894,144 @@ describeWithLocalStack("Mercado Pago with local Supabase", () => {
       });
     expect(inPerson.statusCode).toBe(409);
     expect(inPerson.json().error.code).toBe("ONLINE_PAYMENT_REFUND_ONLINE");
+  });
+
+  it("pays a reserved share online, once, and keeps the rest of the account apart", async () => {
+    const lines = [milanesa, cerveza].map((productId) => ({
+      lineId: next(),
+      productId,
+      quantity: 1,
+      variantId: null
+    }));
+    await admin`
+      select private.create_manual_order(
+        ${one.tenantId}::uuid, ${locationOne}::uuid, ${managerId}::uuid, ${next()}::uuid,
+        ${tableId(5)}::uuid, 'table', null, null, ${admin.json(lines)}
+      )`;
+    const [session] = await admin<{ id: string }[]>`
+      select id from private.table_sessions
+      where tenant_id = ${one.tenantId} and scope_key = ${tableId(5)} and status = 'open'`;
+    await admin`
+      select private.create_account_split(
+        ${one.tenantId}::uuid, ${locationOne}::uuid, ${managerId}::uuid, ${next()}::uuid,
+        ${session!.id}::uuid, 2
+      )`;
+    const token = await tokenOf(5);
+    const phone = "P".repeat(43);
+    const other = "Q".repeat(43);
+    const split = (path: string, body: object, host = one.host) =>
+      app!
+        .getHttpAdapter()
+        .getInstance()
+        .inject({
+          headers: { host },
+          method: "POST",
+          payload: body as object,
+          url: `/v1/public/account-splits/${path}`
+        });
+    const claim = await split("claim", {
+      label: "Ana",
+      position: 1,
+      secret: phone,
+      token
+    });
+    expect(claim.statusCode).toBe(200);
+
+    const share = (path: string, body: object, host = one.host) =>
+      app!
+        .getHttpAdapter()
+        .getInstance()
+        .inject({
+          headers: { host },
+          method: "POST",
+          payload: body as object,
+          url: `/v1/public/online-payments/share/${path}`
+        });
+    const target = { position: 1, secret: phone, token };
+    // Only the phone that reserved it can start or pay; others and other businesses cannot.
+    expect(
+      (await share("start", { ...target, secret: other })).statusCode
+    ).toBe(409);
+    expect((await share("start", target, two.host)).statusCode).toBe(404);
+    expect((await share("start", { ...target, position: 2 })).statusCode).toBe(
+      409
+    );
+    const started = await share("start", target);
+    expect(started.statusCode).toBe(200);
+    expect(started.json().data).toMatchObject({
+      mode: "sandbox",
+      payment: { amountCents: 8_250, status: "created" }
+    });
+
+    const method = (outcome: string) => ({ kind: "sandbox", outcome });
+    const rejected = await share("pay", {
+      ...target,
+      method: method("rejected")
+    });
+    expect(rejected.json().data).toMatchObject({
+      payment: { status: "rejected" },
+      shareStatus: "claimed"
+    });
+    expect(await pendingOf(session!.id)).toBe(16_500);
+
+    const pending = await share("pay", {
+      ...target,
+      method: method("pending")
+    });
+    expect(pending.json().data).toMatchObject({
+      payment: { status: "pending" },
+      shareStatus: "claimed"
+    });
+    const paymentId = pending.json().data.payment.paymentId as string;
+    const providerId = (await row(paymentId)).provider_payment_id;
+    fake.gateway.simulate(providerId, { status: "approved" });
+    expect(
+      (await webhook({ dataId: providerId, userId: sellerOne })).body.data
+        .outcome
+    ).toBe("applied");
+    const paid = await share("status", target);
+    expect(paid.json().data).toMatchObject({
+      payment: { fulfillment: "confirmed", status: "approved" },
+      shareStatus: "paid"
+    });
+    expect(await pendingOf(session!.id)).toBe(8_250);
+    const [entry] = await admin<
+      {
+        actor_type: string;
+        payment_method: string;
+        shift_id: string | null;
+        amount_cents: number;
+      }[]
+    >`
+      select actor_type, payment_method, shift_id, amount_cents from private.account_entries
+      where source_id = ${paymentId} and kind = 'payment'`;
+    expect(entry).toEqual({
+      actor_type: "system",
+      amount_cents: -8_250,
+      payment_method: "mercado_pago",
+      shift_id: null
+    });
+
+    // Paying it again does not charge twice, and a replayed notification is a duplicate.
+    await share("pay", { ...target, method: method("approved") });
+    const [attempts] = await admin<{ count: number }[]>`
+      select count(*)::int as count from private.online_payments where status = 'approved' and share_split_id is not null
+        and tenant_id = ${one.tenantId}`;
+    expect(attempts!.count).toBe(1);
+    expect(await pendingOf(session!.id)).toBe(8_250);
+
+    // The staff can still return part of it from the provider, like any online payment.
+    const [shareRow] = await admin<{ split_id: string }[]>`
+      select share_split_id as split_id from private.online_payments where id = ${paymentId}`;
+    expect(shareRow!.split_id).toBeTruthy();
+    expect(
+      (
+        await share("pay", {
+          ...target,
+          method: { kind: "card", card: { number: "4111111111111111" } }
+        })
+      ).statusCode
+    ).toBe(400);
   });
 
   it("rejects malformed or forged payment requests before touching the provider", async () => {

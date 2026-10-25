@@ -1,8 +1,12 @@
 import {
   parseOnlineCheckout,
   parseOnlinePaymentView,
+  parseShareCheckout,
+  parseSharePaymentView,
   type OnlineCheckout,
-  type OnlinePaymentView
+  type OnlinePaymentView,
+  type ShareCheckout,
+  type SharePaymentView
 } from "@platform/contracts";
 
 function dataOf(body: unknown): unknown {
@@ -27,4 +31,14 @@ export function parseOnlinePaymentResponse(
   body: unknown
 ): OnlinePaymentView | null {
   return parseOnlinePaymentView(dataOf(body));
+}
+
+export function parseShareCheckoutResponse(body: unknown): ShareCheckout | null {
+  return parseShareCheckout(dataOf(body));
+}
+
+export function parseSharePaymentResponse(
+  body: unknown
+): SharePaymentView | null {
+  return parseSharePaymentView(dataOf(body));
 }

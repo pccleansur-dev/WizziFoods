@@ -128,6 +128,8 @@ export type AdjustmentsBusiness = {
 async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
   await owner.begin(async (tx) => {
     await tx`set local session_replication_role = replica`;
+    await tx`delete from private.account_split_assignments where split_id in (select id from private.account_splits where tenant_id = ${tenantId})`;
+    await tx`delete from private.account_split_shares where split_id in (select id from private.account_splits where tenant_id = ${tenantId})`;
     for (const table of [
       "mp_webhook_events",
       "online_payments",

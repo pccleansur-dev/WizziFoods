@@ -65,6 +65,13 @@ export function mapPaymentFailure(error: unknown): never {
             "La devolución supera el saldo a favor o lo cobrado en ese pago."
         }
       });
+    case "PT260":
+      throw new ConflictException({
+        error: {
+          code: "SPLIT_SHARE_UNAVAILABLE",
+          message: "Esa parte ya no está disponible. Actualizá la cuenta."
+        }
+      });
     case "PT252":
       throw new ConflictException({
         error: {

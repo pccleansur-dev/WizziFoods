@@ -815,7 +815,7 @@ sesión y liberar la mesa (T26).
 
 **Archivos probables:** módulo allocations, flujo split UI, conciliación, pruebas.
 
-**Estado:** hecho. Ver `docs/runbooks/dividir-cuenta.md`: partes iguales sobre el saldo vigente, cobro atómico de una o varias partes, pruebas con carreras reales y E2E de tres personas.
+**Estado:** hecho. Ver `docs/runbooks/dividir-cuenta.md`: partes iguales o por consumo sobre el saldo vigente, reserva de partes desde el teléfono, cobro atómico (presencial o con Mercado Pago) de una o varias partes, pruebas con carreras reales y E2E de tres personas.
 
 **Tamaño:** M.
 

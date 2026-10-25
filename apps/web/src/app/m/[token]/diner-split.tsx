@@ -8,6 +8,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { formatMoney } from "./diner-catalog-format";
+import { SharePayment } from "./share-payment";
 
 const POLL_MS = 5_000;
 
@@ -48,6 +49,8 @@ export function DinerSplit({ token }: { token: string }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [paying, setPaying] = useState<number | null>(null);
+  const [deviceKey, setDeviceKey] = useState<string | null>(null);
 
   const call = useCallback(
     async (action: "claim" | "release" | "view", extra: object = {}) => {
@@ -72,6 +75,8 @@ export function DinerSplit({ token }: { token: string }) {
   );
 
   useEffect(() => {
+    secret.current ??= deviceSecret(token);
+    setDeviceKey(secret.current);
     let stopped = false;
     const tick = () => {
       if (!stopped && document.visibilityState === "visible") {
@@ -84,7 +89,7 @@ export function DinerSplit({ token }: { token: string }) {
       stopped = true;
       window.clearInterval(timer);
     };
-  }, [call]);
+  }, [call, token]);
 
   async function act(action: "claim" | "release", position: number) {
     setBusy(true);
@@ -150,21 +155,45 @@ export function DinerSplit({ token }: { token: string }) {
                 Tomar
               </button>
             ) : share.status === "claimed" && share.mine ? (
-              <button
-                aria-label={`Soltar la parte ${share.position}`}
-                className="button button--secondary"
-                disabled={busy}
-                onClick={() => void act("release", share.position)}
-                type="button"
-              >
-                Soltar
-              </button>
+              <div className="diner-split-actions">
+                <button
+                  aria-label={`Pagar la parte ${share.position} con Mercado Pago`}
+                  className="button button--primary"
+                  disabled={busy}
+                  onClick={() => {
+                    secret.current ??= deviceSecret(token);
+                    setPaying(paying === share.position ? null : share.position);
+                  }}
+                  type="button"
+                >
+                  Pagar acá
+                </button>
+                <button
+                  aria-label={`Soltar la parte ${share.position}`}
+                  className="button button--secondary"
+                  disabled={busy}
+                  onClick={() => void act("release", share.position)}
+                  type="button"
+                >
+                  Soltar
+                </button>
+              </div>
+            ) : null}
+            {paying === share.position &&
+            share.status === "claimed" &&
+            share.mine &&
+            deviceKey ? (
+              <SharePayment
+                position={share.position}
+                secret={deviceKey}
+                token={token}
+              />
             ) : null}
           </li>
         ))}
       </ul>
       <p className="diner-note">
-        Nadie te pide datos de tarjeta acá: el mozo cobra tu parte en la mesa.
+        Podés pagar tu parte acá con Mercado Pago, o avisarle al mozo para que la cobre en la mesa. Nunca te pedimos datos de tarjeta fuera del formulario seguro.
       </p>
     </section>
   );

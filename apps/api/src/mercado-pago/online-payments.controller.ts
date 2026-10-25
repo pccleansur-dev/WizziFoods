@@ -13,7 +13,9 @@ import {
 } from "@nestjs/common";
 import {
   parseDinerPaymentTarget,
-  parsePayOnlinePaymentRequest
+  parsePayOnlinePaymentRequest,
+  parsePayShareRequest,
+  parseShareTarget
 } from "@platform/contracts";
 import type { FastifyReply } from "fastify";
 
@@ -65,6 +67,44 @@ export class OnlinePaymentsController {
     if (!parsed) throw invalidPaymentRequest();
     try {
       return { data: await this.service.pay(scopeOf(request), parsed) };
+    } catch (error) {
+      return mapPaymentFailure(error);
+    }
+  }
+
+  @Post("share/start")
+  @HttpCode(HttpStatus.OK)
+  async startShare(@Req() request: PublicRequest, @Body() body: unknown) {
+    const target = parseShareTarget(body);
+    if (!target) throw invalidPaymentRequest();
+    try {
+      return {
+        data: await this.service.startSharePayment(scopeOf(request), target)
+      };
+    } catch (error) {
+      return mapPaymentFailure(error);
+    }
+  }
+
+  @Post("share/pay")
+  @HttpCode(HttpStatus.OK)
+  async payShare(@Req() request: PublicRequest, @Body() body: unknown) {
+    const parsed = parsePayShareRequest(body);
+    if (!parsed) throw invalidPaymentRequest();
+    try {
+      return { data: await this.service.payShare(scopeOf(request), parsed) };
+    } catch (error) {
+      return mapPaymentFailure(error);
+    }
+  }
+
+  @Post("share/status")
+  @HttpCode(HttpStatus.OK)
+  async shareStatus(@Req() request: PublicRequest, @Body() body: unknown) {
+    const target = parseShareTarget(body);
+    if (!target) throw invalidPaymentRequest();
+    try {
+      return { data: await this.service.shareStatus(scopeOf(request), target) };
     } catch (error) {
       return mapPaymentFailure(error);
     }

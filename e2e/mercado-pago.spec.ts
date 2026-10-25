@@ -97,3 +97,56 @@ test("sandbox covers accredited, pending, rejected and partial refund", async ({
     .poll(async () => (await business.latestOnlinePayment()).refundedCents)
     .toBe(4_000);
 });
+
+test("a diner pays the share they reserved with Mercado Pago", async ({
+  page
+}) => {
+  await business.placeOrder("6", ["milanesa", "cerveza"]);
+  await managerLogin(page);
+  await page.goto(
+    `${origin}/interno/${adjustmentsSlug}/operacion/salon?vista=cuentas`
+  );
+  const account = page.getByRole("article", { name: "Mesa 6" });
+  await expect(account).toContainText("Pendiente $ 165,00");
+  const open = account.getByRole("button", { name: /^Dividir la cuenta/u });
+  await expect(async () => {
+    if (
+      !(await account.getByLabel("Partes iguales del saldo pendiente").count())
+    ) {
+      await open.click({ timeout: 2_000 }).catch(() => undefined);
+    }
+    await expect(
+      account.getByLabel("Partes iguales del saldo pendiente")
+    ).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await account.getByLabel("Partes iguales del saldo pendiente").fill("2");
+  await account.getByRole("button", { name: "Dividir", exact: true }).click();
+  await expect(
+    account.getByRole("list", { name: "Partes de la cuenta" })
+  ).toContainText("$ 82,50");
+
+  await page.goto(`${origin}/m/${await business.dinerToken("6")}`);
+  await expect(async () => {
+    await page
+      .getByRole("button", { name: "Dividir la cuenta" })
+      .click({ timeout: 2_000 })
+      .catch(() => undefined);
+    await expect(
+      page.getByRole("heading", { name: "Tu parte de la cuenta" })
+    ).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await page.getByLabel("Tu nombre").fill("Ana");
+  await page.getByRole("button", { name: "Tomar la parte 1" }).click();
+  await page
+    .getByRole("button", { name: "Pagar la parte 1 con Mercado Pago" })
+    .click();
+  await page.getByRole("button", { name: "Simular pago" }).click();
+  await expect(page.getByRole("heading", { name: "Parte pagada" })).toBeVisible(
+    { timeout: 20_000 }
+  );
+  await expect(page.getByLabel(/número|vencimiento|cvv|cvc/iu)).toHaveCount(0);
+  const payments = (await business.entries()).filter(
+    (entry) => entry.kind === "payment"
+  );
+  expect(payments.at(-1)?.amount).toBe(-8_250);
+});

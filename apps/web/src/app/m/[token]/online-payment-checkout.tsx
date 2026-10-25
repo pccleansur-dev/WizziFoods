@@ -54,7 +54,7 @@ function loadMercadoPago(): Promise<void> {
   });
 }
 
-async function post(path: string, body: unknown): Promise<unknown> {
+export async function post(path: string, body: unknown): Promise<unknown> {
   const response = await fetch(path, {
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
@@ -125,7 +125,7 @@ export function OnlinePaymentStatus({ view }: { view: OnlinePaymentView }) {
   );
 }
 
-function SandboxCheckout({
+export function SandboxCheckout({
   busy,
   onPay
 }: {
@@ -160,12 +160,15 @@ function SandboxCheckout({
   );
 }
 
-function CardBrick({
+export function CardBrick({
   checkout,
   onPay,
   onProblem
 }: {
-  checkout: OnlineCheckout;
+  checkout: {
+    payment: { amountCents: number };
+    publicKey: string | null;
+  };
   onPay(method: OnlinePaymentMethodInput): Promise<void>;
   onProblem(): void;
 }) {

@@ -12,7 +12,12 @@ import {
   parseOnlineRefundResult,
   parsePayOnlinePaymentRequest,
   parseProviderPaymentSnapshot,
-  parseReconcileResult
+  parseReconcileResult,
+  parseShareAttempt,
+  parseShareCheckout,
+  parseShareTarget,
+  parsePayShareRequest,
+  parseSharePaymentView
 } from "./mercado-pago.js";
 
 const id = "2e000000-0000-4000-8000-000000000001";
@@ -235,5 +240,80 @@ describe("Mercado Pago contracts", () => {
     ]) {
       expect(parseMercadoPagoNotification(bad)).toBeNull();
     }
+  });
+});
+
+describe("share payments", () => {
+  const secret = "S".repeat(43);
+  it("validates the target and the payment method", () => {
+    const target = { position: 2, secret, token };
+    expect(parseShareTarget(target)).toEqual(target);
+    expect(parseShareTarget({ ...target, position: 0 })).toBeNull();
+    expect(parseShareTarget({ ...target, secret: "x" })).toBeNull();
+    expect(parseShareTarget({ ...target, tenantId: id })).toBeNull();
+    const sandbox = { kind: "sandbox", outcome: "approved" };
+    expect(parsePayShareRequest({ ...target, method: sandbox })).toMatchObject({
+      method: sandbox
+    });
+    expect(
+      parsePayShareRequest({
+        ...target,
+        method: { kind: "sandbox", outcome: "paid" }
+      })
+    ).toBeNull();
+    expect(
+      parsePayShareRequest({
+        ...target,
+        method: { kind: "card", card: { number: "4111" } }
+      })
+    ).toBeNull();
+  });
+
+  it("parses an attempt, a checkout and a view", () => {
+    const attempt = {
+      amountCents: 8_250,
+      externalReference: id,
+      fulfillment: "waiting",
+      paymentId: other,
+      position: 2,
+      refundedCents: 0,
+      status: "created"
+    };
+    expect(parseShareAttempt(attempt)).toEqual(attempt);
+    expect(parseShareAttempt({ ...attempt, intentId: id })).toBeNull();
+    expect(
+      parseShareCheckout({ mode: "sandbox", payment: attempt, publicKey: null })
+    ).toMatchObject({ mode: "sandbox" });
+    const payment = {
+      amountCents: 8_250,
+      fulfillment: "confirmed",
+      paymentId: other,
+      refundedCents: 0,
+      status: "approved",
+      statusDetail: null
+    };
+    expect(parseSharePaymentView({ payment, shareStatus: "paid" })).toEqual({
+      payment,
+      shareStatus: "paid"
+    });
+    expect(parseSharePaymentView({ payment: null, shareStatus: null })).toEqual(
+      { payment: null, shareStatus: null }
+    );
+    expect(parseSharePaymentView({ payment, shareStatus: "gone" })).toBeNull();
+  });
+
+  it("accepts a reconciliation of a share, which has no intent", () => {
+    const result = {
+      amountCents: 8_250,
+      fulfillment: "confirmed",
+      intentId: null,
+      orderId: null,
+      outcome: "applied",
+      paymentId: id,
+      refundedCents: 0,
+      status: "approved"
+    };
+    expect(parseReconcileResult(result)).toEqual(result);
+    expect(parseReconcileResult({ ...result, intentId: "x" })).toBeNull();
   });
 });

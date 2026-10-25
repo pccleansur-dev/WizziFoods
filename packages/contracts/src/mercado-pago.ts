@@ -42,7 +42,8 @@ export type BeginOnlinePaymentResult = {
 export type ReconcileResult = {
   amountCents: number;
   fulfillment: OnlinePaymentFulfillment;
-  intentId: string;
+  /** Null when the payment belongs to a share of a split. */
+  intentId: string | null;
   orderId: string | null;
   outcome: ReconcileOutcome;
   paymentId: string;
@@ -335,7 +336,7 @@ export function parseReconcileResult(input: unknown): ReconcileResult | null {
   const fulfillment = oneOf(root.fulfillment, fulfillments);
   const status = oneOf(root.status, statuses);
   const outcome = oneOf(root.outcome, outcomes);
-  const intentId = uuid(root.intentId);
+  const intentId = root.intentId === null ? null : uuid(root.intentId);
   const paymentId = uuid(root.paymentId);
   const orderId = root.orderId === null ? null : uuid(root.orderId);
   return amountCents !== null &&
@@ -343,7 +344,7 @@ export function parseReconcileResult(input: unknown): ReconcileResult | null {
     fulfillment &&
     status &&
     outcome &&
-    intentId &&
+    (root.intentId === null || intentId !== null) &&
     paymentId &&
     orderId !== undefined &&
     (root.orderId === null || orderId !== null)
@@ -610,4 +611,184 @@ export function parseMercadoPagoConnectResult(
   } catch {
     return null;
   }
+}
+
+/** Paying a share this phone reserved (see split-claims). */
+export type ShareTarget = { position: number; secret: string; token: string };
+
+export type PayShareRequest = ShareTarget & {
+  method: OnlinePaymentMethodInput;
+};
+
+export type ShareAttempt = {
+  amountCents: number;
+  externalReference: string;
+  fulfillment: OnlinePaymentFulfillment;
+  paymentId: string;
+  position: number;
+  refundedCents: number;
+  status: OnlinePaymentStatus;
+};
+
+export type ShareCheckout = {
+  mode: "live" | "sandbox";
+  payment: ShareAttempt;
+  publicKey: string | null;
+};
+
+export type SharePaymentView = {
+  payment: {
+    amountCents: number;
+    fulfillment: OnlinePaymentFulfillment;
+    paymentId: string;
+    refundedCents: number;
+    status: OnlinePaymentStatus;
+    statusDetail: string | null;
+  } | null;
+  shareStatus: "cancelled" | "claimed" | "open" | "paid" | null;
+};
+
+const secretPattern = /^[0-9A-Za-z_-]{43}$/u;
+
+export function parseShareTarget(input: unknown): ShareTarget | null {
+  const root = record(input);
+  if (!root || !hasExactKeys(root, ["position", "secret", "token"]))
+    return null;
+  const position = root.position;
+  return typeof position === "number" &&
+    Number.isInteger(position) &&
+    position >= 1 &&
+    position <= 20 &&
+    typeof root.secret === "string" &&
+    secretPattern.test(root.secret) &&
+    isTableToken(root.token)
+    ? { position, secret: root.secret, token: root.token }
+    : null;
+}
+
+export function parsePayShareRequest(input: unknown): PayShareRequest | null {
+  const root = record(input);
+  if (!root || !hasExactKeys(root, ["method", "position", "secret", "token"])) {
+    return null;
+  }
+  const { method, ...rest } = root;
+  const target = parseShareTarget(rest);
+  // The card form and the sandbox choice are validated like the order checkout's.
+  const checked = parsePayOnlinePaymentRequest({
+    intentId: "2e000000-0000-4000-8000-000000000000",
+    method,
+    token: target?.token ?? ""
+  });
+  return target && checked ? { ...target, method: checked.method } : null;
+}
+
+export function parseShareAttempt(input: unknown): ShareAttempt | null {
+  const root = record(input);
+  if (
+    !root ||
+    !hasExactKeys(root, [
+      "amountCents",
+      "externalReference",
+      "fulfillment",
+      "paymentId",
+      "position",
+      "refundedCents",
+      "status"
+    ])
+  ) {
+    return null;
+  }
+  const amountCents = positiveCents(root.amountCents);
+  const refundedCents = cents(root.refundedCents);
+  const fulfillment = oneOf(root.fulfillment, fulfillments);
+  const status = oneOf(root.status, statuses);
+  const paymentId = uuid(root.paymentId);
+  const externalReference = uuid(root.externalReference);
+  const position = root.position;
+  return amountCents !== null &&
+    refundedCents !== null &&
+    fulfillment &&
+    status &&
+    paymentId &&
+    externalReference &&
+    typeof position === "number" &&
+    Number.isInteger(position) &&
+    position >= 1
+    ? {
+        amountCents,
+        externalReference,
+        fulfillment,
+        paymentId,
+        position,
+        refundedCents,
+        status
+      }
+    : null;
+}
+
+export function parseShareCheckout(input: unknown): ShareCheckout | null {
+  const root = record(input);
+  if (!root || !hasExactKeys(root, ["mode", "payment", "publicKey"])) {
+    return null;
+  }
+  const mode = oneOf(root.mode, ["live", "sandbox"] as const);
+  const payment = parseShareAttempt(root.payment);
+  const publicKey = nullableText(root.publicKey, 200);
+  return mode && payment && publicKey !== undefined
+    ? { mode, payment, publicKey }
+    : null;
+}
+
+export function parseSharePaymentView(input: unknown): SharePaymentView | null {
+  const root = record(input);
+  if (!root || !hasExactKeys(root, ["payment", "shareStatus"])) return null;
+  const shareStatus =
+    root.shareStatus === null
+      ? null
+      : oneOf(root.shareStatus, [
+          "cancelled",
+          "claimed",
+          "open",
+          "paid"
+        ] as const);
+  if (root.shareStatus !== null && !shareStatus) return null;
+  if (root.payment === null) return { payment: null, shareStatus };
+  const payment = record(root.payment);
+  if (
+    !payment ||
+    !hasExactKeys(payment, [
+      "amountCents",
+      "fulfillment",
+      "paymentId",
+      "refundedCents",
+      "status",
+      "statusDetail"
+    ])
+  ) {
+    return null;
+  }
+  const amountCents = positiveCents(payment.amountCents);
+  const refundedCents = cents(payment.refundedCents);
+  const fulfillment = oneOf(payment.fulfillment, fulfillments);
+  const status = oneOf(payment.status, statuses);
+  const paymentId = uuid(payment.paymentId);
+  const statusDetail = nullableText(payment.statusDetail, 100);
+  return amountCents !== null &&
+    refundedCents !== null &&
+    fulfillment &&
+    status &&
+    paymentId &&
+    statusDetail !== undefined
+    ? {
+        payment: {
+          amountCents,
+          fulfillment,
+          paymentId,
+          refundedCents,
+          status,
+          statusDetail
+        },
+        shareStatus
+      }
+    : null;
 }
