@@ -43,6 +43,7 @@ describe("runtime configuration", () => {
         "https://app.example.test/auth/callback?next=/acceso/continuar",
       databaseUrl: "postgresql://authenticator:secret@db:5432/postgres",
       logLevel: "info",
+      mercadoPago: { mode: "off" },
       metricsPort: 9464,
       platformBaseDomain: "plataforma.example.test",
       paymentSecretKey: null,
@@ -73,6 +74,80 @@ describe("runtime configuration", () => {
         "PAYMENT_SECRET_KEY must be 32 random bytes in base64"
       );
     }
+  });
+
+  it("keeps online payments off unless asked, and checks every Mercado Pago variable", () => {
+    const env = {
+      ...baseEnvironment,
+      ...apiInvitationEnvironment,
+      API_METRICS_PORT: "9464",
+      API_PORT: "3001",
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+      SUPABASE_URL: "http://supabase.local:8000"
+    };
+    const key = Buffer.alloc(32, 7).toString("base64");
+    const webhook = "webhook-secret-123456";
+    expect(readApiConfig(env).mercadoPago).toEqual({ mode: "off" });
+    expect(
+      readApiConfig({ ...env, MERCADO_PAGO_MODE: "off" }).mercadoPago
+    ).toEqual({ mode: "off" });
+    expect(
+      readApiConfig({
+        ...env,
+        MERCADO_PAGO_MODE: "fake",
+        MERCADO_PAGO_WEBHOOK_SECRET: webhook,
+        PAYMENT_SECRET_KEY: key
+      }).mercadoPago
+    ).toEqual({
+      mode: "fake",
+      returnUrl: "https://app.example.test/panel/pagos",
+      webhookSecret: webhook
+    });
+    const live = {
+      ...env,
+      MERCADO_PAGO_CLIENT_ID: "1234567890",
+      MERCADO_PAGO_CLIENT_SECRET: "client-secret",
+      MERCADO_PAGO_MODE: "live",
+      MERCADO_PAGO_REDIRECT_URI:
+        "https://api.example.test/v1/payments/mercado-pago/callback",
+      MERCADO_PAGO_RETURN_URL: "https://app.example.test/panel/pagos?mp=listo",
+      MERCADO_PAGO_WEBHOOK_SECRET: webhook,
+      PAYMENT_SECRET_KEY: key
+    };
+    expect(readApiConfig(live).mercadoPago).toMatchObject({
+      clientId: "1234567890",
+      mode: "live",
+      returnUrl: "https://app.example.test/panel/pagos?mp=listo"
+    });
+    expect(() =>
+      readApiConfig({ ...live, MERCADO_PAGO_MODE: "sandbox" })
+    ).toThrow("MERCADO_PAGO_MODE must be off, fake or live");
+    expect(() =>
+      readApiConfig({
+        ...live,
+        APP_ENV: "production",
+        MERCADO_PAGO_MODE: "fake"
+      })
+    ).toThrow("not allowed in production");
+    expect(() =>
+      readApiConfig({ ...live, PAYMENT_SECRET_KEY: undefined })
+    ).toThrow("PAYMENT_SECRET_KEY is required for Mercado Pago");
+    expect(() =>
+      readApiConfig({ ...live, MERCADO_PAGO_WEBHOOK_SECRET: "short" })
+    ).toThrow("at least 16 characters");
+    expect(() =>
+      readApiConfig({ ...live, MERCADO_PAGO_WEBHOOK_SECRET: undefined })
+    ).toThrow("MERCADO_PAGO_WEBHOOK_SECRET is required");
+    expect(() =>
+      readApiConfig({
+        ...live,
+        MERCADO_PAGO_REDIRECT_URI: "http://api.example.test/cb"
+      })
+    ).toThrow("MERCADO_PAGO_REDIRECT_URI must be an absolute HTTPS URL");
+    expect(() =>
+      readApiConfig({ ...live, MERCADO_PAGO_CLIENT_SECRET: undefined })
+    ).toThrow("MERCADO_PAGO_CLIENT_SECRET is required");
   });
 
   it("reads an optional translation provider key without exposing malformed ones", () => {

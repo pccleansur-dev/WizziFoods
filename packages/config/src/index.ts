@@ -7,6 +7,7 @@ export {
   type AppEnvironment,
   type BaseRuntimeConfig,
   type LogLevel,
+  type MercadoPagoConfig,
   type WebRuntimeConfig,
   type WebAuthConfig,
   type WorkerRuntimeConfig

@@ -8,11 +8,30 @@ export type BaseRuntimeConfig = {
   logLevel: LogLevel;
 };
 
+/**
+ * How the API talks to Mercado Pago. `off` rejects every online payment, `fake`
+ * is an in-process simulator for development and tests (refused in production),
+ * and `live` uses the real OAuth application and REST API.
+ */
+export type MercadoPagoConfig =
+  | { mode: "off" }
+  | { mode: "fake"; returnUrl: string; webhookSecret: string }
+  | {
+      clientId: string;
+      clientSecret: string;
+      mode: "live";
+      redirectUri: string;
+      returnUrl: string;
+      webhookSecret: string;
+    };
+
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
   adminInviteRedirectUrl: string;
   /** Opcional: sin ella la traducción automática responde 503. */
   anthropicApiKey?: string | null;
   databaseUrl: string;
+  /** Absent (or off) means online payments are not offered. */
+  mercadoPago?: MercadoPagoConfig;
   metricsPort: number;
   platformBaseDomain: string;
   port: number;
@@ -159,6 +178,54 @@ function withServiceContext<T>(service: string, read: () => T): T {
   }
 }
 
+function readMercadoPagoConfig(
+  source: EnvironmentSource,
+  environment: AppEnvironment,
+  paymentSecretKey: Buffer | null,
+  adminInviteRedirectUrl: string
+): MercadoPagoConfig {
+  const mode = source.MERCADO_PAGO_MODE?.trim() || "off";
+  if (!["off", "fake", "live"].includes(mode)) {
+    throw new Error("MERCADO_PAGO_MODE must be off, fake or live");
+  }
+  if (mode === "off") return { mode: "off" };
+  if (mode === "fake" && environment === "production") {
+    throw new Error("MERCADO_PAGO_MODE fake is not allowed in production");
+  }
+  // Tokens are stored sealed: without the key nothing can be connected.
+  if (!paymentSecretKey) {
+    throw new Error("PAYMENT_SECRET_KEY is required for Mercado Pago");
+  }
+  const webhookSecret = required(source, "MERCADO_PAGO_WEBHOOK_SECRET");
+  if (webhookSecret.length < 16) {
+    throw new Error(
+      "MERCADO_PAGO_WEBHOOK_SECRET must have at least 16 characters"
+    );
+  }
+  const returnUrl = source.MERCADO_PAGO_RETURN_URL?.trim()
+    ? readUrl(
+        source,
+        "MERCADO_PAGO_RETURN_URL",
+        ["http:", "https:"],
+        "an absolute HTTP(S) URL"
+      )
+    : new URL("/panel/pagos", adminInviteRedirectUrl).toString();
+  if (mode === "fake") return { mode: "fake", returnUrl, webhookSecret };
+  return {
+    clientId: required(source, "MERCADO_PAGO_CLIENT_ID"),
+    clientSecret: required(source, "MERCADO_PAGO_CLIENT_SECRET"),
+    mode: "live",
+    redirectUri: readUrl(
+      source,
+      "MERCADO_PAGO_REDIRECT_URI",
+      ["https:"],
+      "an absolute HTTPS URL"
+    ),
+    returnUrl,
+    webhookSecret
+  };
+}
+
 export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
   return withServiceContext("api", () => {
     assertRequired(source, [
@@ -233,6 +300,12 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       adminInviteRedirectUrl,
       anthropicApiKey: rawAnthropicKey || null,
       databaseUrl,
+      mercadoPago: readMercadoPagoConfig(
+        source,
+        base.environment,
+        paymentSecretKey,
+        adminInviteRedirectUrl
+      ),
       metricsPort,
       platformBaseDomain,
       port,
