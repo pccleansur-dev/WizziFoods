@@ -78,6 +78,14 @@ const errorMessages: Record<string, string> = {
   ONLINE_REFUND_PENDING:
     "Hay un pago online por devolver. Devolvelo antes de cerrar la cuenta.",
   RECEIPT_NOT_READY: "La cuenta todavía no tiene comprobante.",
+  ANCHOR_TABLE_REQUIRED: "Elegí qué mesa se queda con la cuenta abierta.",
+  DIFFERENT_OPEN_ACCOUNTS:
+    "Esas mesas tienen cuentas abiertas distintas. Cerrá una antes de unirlas.",
+  INVALID_TABLE_REGROUPING_REQUEST: "Revisá las mesas elegidas.",
+  TABLE_GROUP_NOT_FOUND:
+    "No encontramos esas mesas en tu zona. Actualizá el salón.",
+  TABLES_CANNOT_BE_JOINED:
+    "Esas mesas no se pueden unir ahora: tienen que estar en la misma planta, sin limpieza pendiente y en servicio.",
   TABLE_NOT_PENDING_CLEANING: "Esa mesa ya no está pendiente de limpieza.",
   TABLE_STATE_INVALID: "La mesa no puede pasar a ese estado.",
   ADJUSTMENT_ALREADY_DECIDED:

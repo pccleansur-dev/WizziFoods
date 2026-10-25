@@ -52,6 +52,7 @@ import {
   requestCashierAction,
   resolveCashierRequestAction
 } from "../closing-actions";
+import { joinTablesAction, separateTablesAction } from "../regrouping-actions";
 import type { WaiterActionResult } from "../waiter-action-result";
 import { ClosedAccountsPanel } from "./closed-accounts-panel";
 import { ConfirmedOrderPanel } from "./confirmed-order-panel";
@@ -146,24 +147,24 @@ export function WaiterWorkspace({
         closedResponse,
         cashResponse
       ] = await Promise.all([
-          fetch(`/interno/${tenantSlug}/operacion/vista`, {
-            cache: "no-store"
-          }),
-          fetch(`/interno/${tenantSlug}/operacion/pedidos/vista`, {
-            cache: "no-store"
-          }),
-          fetch(`/interno/${tenantSlug}/operacion/cuentas/vista`, {
-            cache: "no-store"
-          }),
-          fetch(`/interno/${tenantSlug}/operacion/cuentas/cerradas`, {
-            cache: "no-store"
-          }),
-          isManager
-            ? fetch(`/interno/${tenantSlug}/operacion/caja/vista`, {
-                cache: "no-store"
-              })
-            : Promise.resolve(null)
-        ]);
+        fetch(`/interno/${tenantSlug}/operacion/vista`, {
+          cache: "no-store"
+        }),
+        fetch(`/interno/${tenantSlug}/operacion/pedidos/vista`, {
+          cache: "no-store"
+        }),
+        fetch(`/interno/${tenantSlug}/operacion/cuentas/vista`, {
+          cache: "no-store"
+        }),
+        fetch(`/interno/${tenantSlug}/operacion/cuentas/cerradas`, {
+          cache: "no-store"
+        }),
+        isManager
+          ? fetch(`/interno/${tenantSlug}/operacion/caja/vista`, {
+              cache: "no-store"
+            })
+          : Promise.resolve(null)
+      ]);
       if (
         response.status === 401 ||
         ordersResponse.status === 401 ||
@@ -458,6 +459,55 @@ export function WaiterWorkspace({
     );
   }
 
+  async function joinTables(
+    tableIds: string[],
+    name: string | null
+  ): Promise<boolean> {
+    const result = await perform(
+      `join:${[...tableIds].sort().join(",")}:${name ?? ""}`,
+      (commandId) => joinTablesAction(tenantSlug, { commandId, name, tableIds })
+    );
+    if (result.status === "error") {
+      setNotice({ kind: "error", text: result.message });
+      return false;
+    }
+    const labels = result.data.tables.map((table) => table.label).join(" + ");
+    setNotice({
+      kind: "ok",
+      text: `Mesas ${labels} unidas. ${
+        result.data.sessionId
+          ? "La cuenta abierta ahora es de todo el grupo."
+          : "Se abre una sola cuenta con el primer pedido."
+      }`
+    });
+    return true;
+  }
+
+  async function separateTables(
+    unit: WaiterSalonUnit,
+    anchorTableId: string | null
+  ): Promise<boolean> {
+    const result = await perform(
+      `separate:${unit.id}:${anchorTableId ?? ""}`,
+      (commandId) =>
+        separateTablesAction(tenantSlug, unit.id, { anchorTableId, commandId })
+    );
+    if (result.status === "error") {
+      setNotice({ kind: "error", text: result.message });
+      return false;
+    }
+    const anchor = result.data.tables.find(
+      (table) => table.tableId === result.data.anchorTableId
+    );
+    setNotice({
+      kind: "ok",
+      text: anchor
+        ? `Separaste ${unit.label}. La cuenta abierta quedó en la mesa ${anchor.label}; los pedidos, los pagos y el saldo no se movieron.`
+        : `Separaste ${unit.label}.`
+    });
+    return true;
+  }
+
   async function notifyCashier(sessionId: string) {
     const result = await perform(`cashier:${sessionId}`, (commandId) =>
       requestCashierAction(tenantSlug, sessionId, { commandId })
@@ -489,7 +539,10 @@ export function WaiterWorkspace({
           persons
         })
     );
-    report(result, "Cuenta dividida por consumo: elegí las partes que se cobran.");
+    report(
+      result,
+      "Cuenta dividida por consumo: elegí las partes que se cobran."
+    );
   }
 
   async function splitAccount(sessionId: string, parts: number) {
@@ -744,36 +797,36 @@ export function WaiterWorkspace({
 
       {tab === "cuentas" ? (
         <>
-        <AccountsPanel
-          accounts={accounts.accounts}
-          busy={busy}
-          cashOpen={accounts.cashRegisterOpen}
-          collectSessionId={collectSession}
-          isManager={isManager}
-          onClose={(sessionId) => void closeAccount(sessionId)}
-          onDiscount={(sessionId, draft) => void discount(sessionId, draft)}
-          onKeepOpen={(sessionId) => void keepOpen(sessionId)}
-          onOnlineRefund={(sessionId, draft) =>
-            void onlineRefund(sessionId, draft)
-          }
-          onPay={(sessionId, draft) => void pay(sessionId, draft)}
-          onPayShares={(sessionId, draft) => void payShares(sessionId, draft)}
-          onItemSplit={(sessionId, persons, assignments) =>
-            void itemSplitAccount(sessionId, persons, assignments)
-          }
-          onSplit={(sessionId, parts) => void splitAccount(sessionId, parts)}
-          onRefund={(sessionId, draft) => void refund(sessionId, draft)}
-        />
-        <ClosedAccountsPanel
-          accounts={closed.accounts}
-          busy={busy}
-          isManager={isManager}
-          onNotifyCashier={(sessionId) => void notifyCashier(sessionId)}
-          onResolveRequest={(requestId) =>
-            void resolveCashierRequest(requestId)
-          }
-          tenantSlug={tenantSlug}
-        />
+          <AccountsPanel
+            accounts={accounts.accounts}
+            busy={busy}
+            cashOpen={accounts.cashRegisterOpen}
+            collectSessionId={collectSession}
+            isManager={isManager}
+            onClose={(sessionId) => void closeAccount(sessionId)}
+            onDiscount={(sessionId, draft) => void discount(sessionId, draft)}
+            onKeepOpen={(sessionId) => void keepOpen(sessionId)}
+            onOnlineRefund={(sessionId, draft) =>
+              void onlineRefund(sessionId, draft)
+            }
+            onPay={(sessionId, draft) => void pay(sessionId, draft)}
+            onPayShares={(sessionId, draft) => void payShares(sessionId, draft)}
+            onItemSplit={(sessionId, persons, assignments) =>
+              void itemSplitAccount(sessionId, persons, assignments)
+            }
+            onSplit={(sessionId, parts) => void splitAccount(sessionId, parts)}
+            onRefund={(sessionId, draft) => void refund(sessionId, draft)}
+          />
+          <ClosedAccountsPanel
+            accounts={closed.accounts}
+            busy={busy}
+            isManager={isManager}
+            onNotifyCashier={(sessionId) => void notifyCashier(sessionId)}
+            onResolveRequest={(requestId) =>
+              void resolveCashierRequest(requestId)
+            }
+            tenantSlug={tenantSlug}
+          />
         </>
       ) : tab === "caja" && cash ? (
         <CashPanel
@@ -821,6 +874,8 @@ export function WaiterWorkspace({
           <WaiterTables
             busy={busy}
             onClean={(unit) => void cleanUnit(unit)}
+            onJoin={joinTables}
+            onSeparate={separateTables}
             view={view}
           />
         </>
