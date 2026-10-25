@@ -1,5 +1,6 @@
 import type {
   ApplyDiscountRequest,
+  CreateItemSplitRequest,
   CreateSplitRequest,
   PaySharesRequest,
   KeepOpenRequest,
@@ -15,6 +16,19 @@ export class TableAccountsService {
   getAccounts(context: StaffRequestContext) {
     return this.accounts.getAccounts({
       scope: context.scope,
+      staffId: context.staffId
+    });
+  }
+
+  createItemSplit(
+    context: StaffRequestContext,
+    sessionId: string,
+    request: CreateItemSplitRequest
+  ) {
+    return this.accounts.createItemSplit({
+      request,
+      scope: context.scope,
+      sessionId,
       staffId: context.staffId
     });
   }

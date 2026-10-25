@@ -17,6 +17,7 @@ import {
 import {
   isWaiterUuid,
   parseApplyDiscountRequest,
+  parseCreateItemSplitRequest,
   parseCreateSplitRequest,
   parsePaySharesRequest,
   parseKeepOpenRequest,
@@ -168,6 +169,27 @@ export class TableAccountsController {
     try {
       return {
         data: await this.service.createSplit(context, session, parsed)
+      };
+    } catch (error) {
+      return mapFailure(error);
+    }
+  }
+
+  /** Splits the pending balance by who consumed what. */
+  @Post(":sessionId/item-splits")
+  @HttpCode(HttpStatus.OK)
+  async itemSplit(
+    @Req() request: AccountRequest,
+    @Param("sessionId") sessionId: string,
+    @Body() body: unknown
+  ) {
+    const context = needs(request, "payments.collect");
+    const parsed = parseCreateItemSplitRequest(body);
+    const session = identifier(sessionId);
+    if (!parsed) throw invalid();
+    try {
+      return {
+        data: await this.service.createItemSplit(context, session, parsed)
       };
     } catch (error) {
       return mapFailure(error);

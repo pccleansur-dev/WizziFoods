@@ -489,6 +489,179 @@ describeWithLocalStack("account splits with local Supabase", () => {
     expect(count!.count).toBe(2);
   });
 
+  async function tokenOf(table: number) {
+    const [row] = await admin<{ token: string }[]>`
+      select token from private.floor_table_qr_codes
+      where tenant_id = ${one.tenantId} and table_id = ${tableId(table)} and status = 'active'`;
+    return row!.token;
+  }
+  const secretA = "A".repeat(43);
+  const secretB = "B".repeat(43);
+  const diner = async (
+    path: string,
+    payload: unknown,
+    host = `${one.slug}.plataforma.test`
+  ) => {
+    const response = await app!
+      .getHttpAdapter()
+      .getInstance()
+      .inject({
+        headers: { host },
+        method: "POST",
+        payload: payload as object,
+        url: `/v1/public/account-splits/${path}`
+      });
+    return { body: response.json(), status: response.statusCode };
+  };
+
+  it("splits by consumption and shows the items each person owns", async () => {
+    await place(4, [milanesa, cerveza, cerveza]);
+    const sessionId = await sessionOf(4);
+    const view = await staff("ana", "GET", "/v1/staff/accounts");
+    const account = view.body.data.accounts.find(
+      (entry: { sessionId: string }) => entry.sessionId === sessionId
+    );
+    expect(account.liveItems).toHaveLength(3);
+    const [dish, beer] = account.liveItems as {
+      lineId: string;
+      title: string;
+    }[];
+    expect(dish!.title).toBe("Milanesa");
+    const made = await staff(
+      "ana",
+      "POST",
+      `/v1/staff/accounts/${sessionId}/item-splits`,
+      {
+        assignments: [
+          { lineId: dish!.lineId, position: 1 },
+          { lineId: beer!.lineId, position: 2 }
+        ],
+        commandId: next(),
+        persons: 2
+      }
+    );
+    expect(made.status).toBe(200);
+    expect(made.body.data.split).toMatchObject({ kind: "items" });
+    expect(
+      made.body.data.split.shares.map(
+        (x: { amountCents: number }) => x.amountCents
+      )
+    ).toEqual([14_500, 6_000]);
+    expect(made.body.data.split.shares[0].items).toEqual(["1 × Milanesa"]);
+    // Bad assignments are refused before anything is stored.
+    const bad = await staff(
+      "ana",
+      "POST",
+      `/v1/staff/accounts/${sessionId}/item-splits`,
+      {
+        assignments: [{ lineId: next(), position: 1 }],
+        commandId: next(),
+        persons: 2
+      }
+    );
+    expect(bad.status).toBe(400);
+  });
+
+  it("lets diners reserve shares from their phones, exactly once, and the waiter collects them", async () => {
+    const token = await tokenOf(4);
+    const sessionId = await sessionOf(4);
+    const shown = await diner("view", { secret: secretA, token });
+    expect(shown.body.data.split.kind).toBe("items");
+    const first = await diner("claim", {
+      label: "Beto",
+      position: 2,
+      secret: secretA,
+      token
+    });
+    expect(first.body.data.split.shares[1]).toMatchObject({
+      claimedBy: "Beto",
+      mine: true,
+      status: "claimed"
+    });
+
+    // Six phones race for the one remaining share: exactly one gets it.
+    const race = await Promise.all(
+      Array.from({ length: 6 }, (_, index) =>
+        diner("claim", {
+          label: `Persona ${index}`,
+          position: 1,
+          secret: String(index).repeat(43),
+          token
+        })
+      )
+    );
+    expect(race.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(race.filter((r) => r.status === 409)).toHaveLength(5);
+    const taken = await diner("claim", {
+      label: "Ana",
+      position: 2,
+      secret: secretB,
+      token
+    });
+    expect(taken.status).toBe(409);
+    expect(taken.body.error.code).toBe("SPLIT_SHARE_UNAVAILABLE");
+    const stranger = await diner("release", {
+      position: 2,
+      secret: secretB,
+      token
+    });
+    expect(stranger.status).toBe(409);
+    const others = await diner("view", { secret: secretB, token });
+    expect(others.body.data.split.shares[1]).toMatchObject({
+      claimedBy: "Beto",
+      mine: false
+    });
+
+    // Another business, an invented token or a forged body reach nothing.
+    expect(
+      (
+        await diner(
+          "claim",
+          { label: "X", position: 1, secret: secretA, token },
+          `${two.slug}.plataforma.test`
+        )
+      ).status
+    ).toBe(404);
+    expect(
+      (await diner("view", { secret: secretA, token: "0".repeat(64) })).body
+        .data.split
+    ).toBeNull();
+    expect(
+      (
+        await diner("claim", {
+          label: "X",
+          position: 1,
+          secret: secretA,
+          token,
+          tenantId: two.tenantId
+        })
+      ).status
+    ).toBe(400);
+
+    // The waiter collects the share Beto reserved; he can no longer release it.
+    const split = (
+      await staff("ana", "GET", "/v1/staff/accounts")
+    ).body.data.accounts.find(
+      (entry: { sessionId: string }) => entry.sessionId === sessionId
+    ).split;
+    const paid = await payShares("ana", sessionId, split.splitId, [2]);
+    expect(paid.status).toBe(200);
+    expect(paid.body.data.amountCents).toBe(6_000);
+    const afterPay = await diner("release", {
+      position: 2,
+      secret: secretA,
+      token
+    });
+    expect(afterPay.status).toBe(409);
+    const winner = race.find((r) => r.status === 200)!;
+    const remaining = winner.body.data.split.shares[0];
+    expect(remaining.status).toBe("claimed");
+    expect((await payShares("ana", sessionId, split.splitId, [1])).status).toBe(
+      200
+    );
+    expect(await pendingOf(sessionId)).toBe(0);
+  });
+
   it("rejects forged bodies", async () => {
     const sessionId = await sessionOf(3);
     expect(

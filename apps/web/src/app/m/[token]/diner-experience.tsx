@@ -29,6 +29,7 @@ import {
 } from "./order-intent";
 import type { PublicCatalog } from "./public-catalog";
 import { newId } from "../../../lib/new-id";
+import { DinerSplit } from "./diner-split";
 import { OnlinePaymentCheckout } from "./online-payment-checkout";
 
 export function DinerExperience({
@@ -48,7 +49,7 @@ export function DinerExperience({
   const [accepted, setAccepted] = useState<OrderIntentResult | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [view, setView] = useState<"menu" | "order" | "checkout">("menu");
+  const [view, setView] = useState<"menu" | "order" | "checkout" | "split">("menu");
   const [added, setAdded] = useState<string | null>(null);
   const addedTimer = useRef<number | undefined>(undefined);
   const lastSubmission = useRef<{
@@ -209,12 +210,19 @@ export function DinerExperience({
           Carta
         </button>
         <button
-          aria-current={view !== "menu" ? "page" : undefined}
+          aria-current={view === "order" || view === "checkout" ? "page" : undefined}
           onClick={() => setView("order")}
           type="button"
         >
           Mi pedido{" "}
           <span aria-label={`${itemCount} unidades`}>{itemCount}</span>
+        </button>
+        <button
+          aria-current={view === "split" ? "page" : undefined}
+          onClick={() => setView("split")}
+          type="button"
+        >
+          Dividir la cuenta
         </button>
       </nav>
       {added ? (
@@ -224,6 +232,8 @@ export function DinerExperience({
       ) : null}
       {view === "menu" ? (
         <DinerMenu catalog={catalog} onAdd={add} />
+      ) : view === "split" ? (
+        <DinerSplit token={token} />
       ) : view === "order" ? (
         <DinerOrder
           error={error}

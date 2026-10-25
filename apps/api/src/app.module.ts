@@ -58,6 +58,10 @@ import {
 } from "./mercado-pago/online-payments.controller.js";
 import { createMercadoPagoRuntime } from "./mercado-pago/mercado-pago.runtime.js";
 import { MercadoPagoService } from "./mercado-pago/mercado-pago.service.js";
+import {
+  SPLIT_CLAIMS,
+  SplitClaimsController
+} from "./split-claims/split-claims.controller.js";
 import { CashRegisterController } from "./cash-register/cash-register.controller.js";
 import { CashRegisterService } from "./cash-register/cash-register.service.js";
 import { TableAccountsController } from "./table-accounts/table-accounts.controller.js";
@@ -134,6 +138,7 @@ export class AppModule {
         TenantSuspensionController,
         OrderAdjustmentsController,
         CashRegisterController,
+        SplitClaimsController,
         MercadoPagoAdminController,
         MercadoPagoCallbackController,
         MercadoPagoWebhookController,
@@ -307,6 +312,12 @@ export class AppModule {
             )
         },
         { provide: FAKE_MERCADO_PAGO, useValue: mercadoPago.fake },
+        {
+          inject: [TENANT_DATABASE],
+          provide: SPLIT_CLAIMS,
+          useFactory: (database: TenantDatabase) =>
+            database.splitClaimsRepository
+        },
         {
           inject: [TENANT_DATABASE],
           provide: MercadoPagoService,

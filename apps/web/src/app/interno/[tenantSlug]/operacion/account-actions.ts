@@ -3,6 +3,7 @@
 import {
   isWaiterUuid,
   parseApplyDiscountRequest,
+  parseCreateItemSplitRequest,
   parseCreateSplitRequest,
   parseCreateSplitResult,
   parsePaySharesRequest,
@@ -15,6 +16,7 @@ import {
   parsePaymentResult,
   parseRecordPaymentRequest,
   type ApplyDiscountRequest,
+  type CreateItemSplitRequest,
   type CreateSplitRequest,
   type CreateSplitResult,
   type PaySharesRequest,
@@ -153,5 +155,21 @@ export async function paySharesAction(
     `/v1/staff/accounts/${sessionId}/split-payments`,
     parsed,
     parsePaySharesResult
+  );
+}
+
+/** Splits the pending balance by who consumed what. */
+export async function createItemSplitAction(
+  tenantSlug: string,
+  sessionId: string,
+  request: CreateItemSplitRequest
+): Promise<WaiterActionResult<CreateSplitResult>> {
+  const parsed = parseCreateItemSplitRequest(request);
+  if (!isWaiterUuid(sessionId) || !parsed) return invalid();
+  return run(
+    tenantSlug,
+    `/v1/staff/accounts/${sessionId}/item-splits`,
+    parsed,
+    parseCreateSplitResult
   );
 }

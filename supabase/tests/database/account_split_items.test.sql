@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(26);
+select plan(27);
 
 insert into auth.users (id) values ('2b100000-0000-4000-8000-000000000001'), ('2b100000-0000-4000-8000-000000000002');
 insert into public.tenants (id, slug, name, status) values
@@ -154,6 +154,7 @@ select pg_temp.manual('2b900000-0000-4000-8000-000000000102', '2b600000-0000-400
     pg_temp.line(3, '2bb00000-0000-4000-8000-000000000002', 1)));
 create temporary table s1 as select pg_temp.session_of('2b600000-0000-4000-8000-000000000001') id;
 -- 20500 owed: 12500 + 4000 + 4000.
+select is((select jsonb_array_length(account -> 'liveItems') from jsonb_array_elements(private.waiter_accounts_view((select t1 from scope), (select l1 from scope), (select ana from staff)) -> 'accounts') account limit 1), 3, 'the accounts view lists the live items');
 select throws_ok($$ select pg_temp.item_split((select kitchen from staff), '2b900000-0000-4000-8000-000000000103', (select id from s1), 2, '[]') $$, 'PT200', null, 'kitchen cannot split');
 select throws_ok($$ select pg_temp.item_split((select ana from staff), '2b900000-0000-4000-8000-000000000104', (select id from s1), 2,
   jsonb_build_array(jsonb_build_object('lineId', '2bc00000-0000-4000-8000-000000000099', 'position', 1))) $$, 'PT212', null, 'an item that is not on the account is refused');

@@ -24,6 +24,7 @@ import {
 } from "../waiter-actions";
 import {
   applyDiscountAction,
+  createItemSplitAction,
   createSplitAction,
   paySharesAction,
   keepAccountOpenAction,
@@ -389,6 +390,23 @@ export function WaiterWorkspace({
     report(result, "La cuenta quedó abierta: cobrás después desde Cuentas.");
   }
 
+  async function itemSplitAccount(
+    sessionId: string,
+    persons: number,
+    assignments: { lineId: string; position: number }[]
+  ) {
+    const result = await perform(
+      `item-split:${sessionId}:${persons}:${JSON.stringify(assignments)}`,
+      (commandId) =>
+        createItemSplitAction(tenantSlug, sessionId, {
+          assignments,
+          commandId,
+          persons
+        })
+    );
+    report(result, "Cuenta dividida por consumo: elegí las partes que se cobran.");
+  }
+
   async function splitAccount(sessionId: string, parts: number) {
     const result = await perform(`split:${sessionId}:${parts}`, (commandId) =>
       createSplitAction(tenantSlug, sessionId, { commandId, parts })
@@ -653,6 +671,9 @@ export function WaiterWorkspace({
           }
           onPay={(sessionId, draft) => void pay(sessionId, draft)}
           onPayShares={(sessionId, draft) => void payShares(sessionId, draft)}
+          onItemSplit={(sessionId, persons, assignments) =>
+            void itemSplitAccount(sessionId, persons, assignments)
+          }
           onSplit={(sessionId, parts) => void splitAccount(sessionId, parts)}
           onRefund={(sessionId, draft) => void refund(sessionId, draft)}
         />

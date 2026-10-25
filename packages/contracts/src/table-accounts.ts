@@ -35,10 +35,23 @@ export type PaymentResult = {
   tipCents: number;
 };
 
-export type SplitShareStatus = "cancelled" | "open" | "paid";
+export type SplitShareStatus = "cancelled" | "claimed" | "open" | "paid";
+
+export type SplitKind = "equal" | "items";
+
+/** An item of the account that still counts, offered to split by consumption. */
+export type LiveItem = {
+  lineId: string;
+  quantity: number;
+  title: string;
+  totalCents: number;
+};
 
 export type SplitShare = {
   amountCents: number;
+  /** Items assigned to this share (split by consumption). */
+  items: string[];
+  /** Who reserved it, or who paid it. */
   payerLabel: string | null;
   position: number;
   status: SplitShareStatus;
@@ -47,7 +60,10 @@ export type SplitShare = {
 /** Equal shares of the balance that was pending when the split was made. */
 export type AccountSplit = {
   baseCents: number;
+  kind: SplitKind;
   parts: number;
+  /** Items nobody owns, divided equally (split by consumption). */
+  sharedItems: string[];
   shares: SplitShare[];
   splitId: string;
 };
@@ -117,6 +133,8 @@ export type WaiterAccount = {
   currency: "ARS";
   entries: AccountEntryView[];
   keptOpen: boolean;
+  /** Items that still count, for a split by consumption. */
+  liveItems: LiveItem[];
   /** The open split of the account, if any. */
   split: AccountSplit | null;
   openedAt: string;
@@ -459,6 +477,7 @@ function account(input: unknown): WaiterAccount | null {
       "currency",
       "entries",
       "keptOpen",
+      "liveItems",
       "openedAt",
       "sessionId",
       "split",
@@ -493,11 +512,13 @@ function account(input: unknown): WaiterAccount | null {
   const parsedSummary = summary(root.summary);
   const tableId = uuid(root.tableId);
   const split = root.split === null ? null : parseAccountSplit(root.split);
+  const liveItems = parseLiveItems(root.liveItems);
   if (
     !openedAt ||
     !sessionId ||
     !parsedSummary ||
     !tableId ||
+    !liveItems ||
     (root.split !== null && !split)
   ) {
     return null;
@@ -506,6 +527,7 @@ function account(input: unknown): WaiterAccount | null {
     currency: "ARS",
     entries,
     keptOpen: root.keptOpen,
+    liveItems,
     openedAt,
     sessionId,
     split,
@@ -541,15 +563,57 @@ export function parseWaiterAccountsView(
 
 const shareStatuses: readonly SplitShareStatus[] = [
   "cancelled",
+  "claimed",
   "open",
   "paid"
 ];
+
+function titles(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > 200) return null;
+  const found: string[] = [];
+  for (const entry of value) {
+    const title = bounded(entry, 200);
+    if (!title) return null;
+    found.push(title);
+  }
+  return found;
+}
+
+function parseLiveItems(value: unknown): LiveItem[] | null {
+  if (!Array.isArray(value) || value.length > 200) return null;
+  const found: LiveItem[] = [];
+  for (const candidate of value) {
+    const item = record(candidate);
+    if (
+      !item ||
+      !hasExactKeys(item, ["lineId", "quantity", "title", "totalCents"])
+    ) {
+      return null;
+    }
+    const lineId = uuid(item.lineId);
+    const quantity = positive(item.quantity);
+    const title = bounded(item.title, 160);
+    const totalCents = positive(item.totalCents);
+    if (!lineId || quantity === null || !title || totalCents === null) {
+      return null;
+    }
+    found.push({ lineId, quantity, title, totalCents });
+  }
+  return found;
+}
 
 export function parseAccountSplit(input: unknown): AccountSplit | null {
   const root = record(input);
   if (
     !root ||
-    !hasExactKeys(root, ["baseCents", "parts", "shares", "splitId"]) ||
+    !hasExactKeys(root, [
+      "baseCents",
+      "kind",
+      "parts",
+      "sharedItems",
+      "shares",
+      "splitId"
+    ]) ||
     !Array.isArray(root.shares)
   ) {
     return null;
@@ -557,7 +621,12 @@ export function parseAccountSplit(input: unknown): AccountSplit | null {
   const baseCents = positive(root.baseCents);
   const parts = integer(root.parts);
   const splitId = uuid(root.splitId);
+  const sharedItems = titles(root.sharedItems);
+  const kind =
+    root.kind === "equal" || root.kind === "items" ? root.kind : null;
   if (
+    !kind ||
+    !sharedItems ||
     baseCents === null ||
     parts === null ||
     parts < 2 ||
@@ -573,16 +642,24 @@ export function parseAccountSplit(input: unknown): AccountSplit | null {
     const share = record(candidate);
     if (
       !share ||
-      !hasExactKeys(share, ["amountCents", "payerLabel", "position", "status"])
+      !hasExactKeys(share, [
+        "amountCents",
+        "items",
+        "payerLabel",
+        "position",
+        "status"
+      ])
     ) {
       return null;
     }
     const amountCents = positive(share.amountCents);
+    const items = titles(share.items);
     const status = shareStatuses.find((entry) => entry === share.status);
     const payerLabel =
       share.payerLabel === null ? null : bounded(share.payerLabel, 40);
     if (
       amountCents === null ||
+      !items ||
       !status ||
       share.position !== index + 1 ||
       (share.payerLabel !== null && !payerLabel)
@@ -590,9 +667,17 @@ export function parseAccountSplit(input: unknown): AccountSplit | null {
       return null;
     }
     total += amountCents;
-    shares.push({ amountCents, payerLabel, position: index + 1, status });
+    shares.push({
+      amountCents,
+      items,
+      payerLabel,
+      position: index + 1,
+      status
+    });
   }
-  return total === baseCents ? { baseCents, parts, shares, splitId } : null;
+  return total === baseCents
+    ? { baseCents, kind, parts, sharedItems, shares, splitId }
+    : null;
 }
 
 export function parseCreateSplitRequest(
@@ -714,4 +799,49 @@ export function parsePaySharesResult(input: unknown): PaySharesResult | null {
     split: parsedSplit,
     splitId: id
   };
+}
+
+export type CreateItemSplitRequest = {
+  assignments: { lineId: string; position: number }[];
+  commandId: string;
+  persons: number;
+};
+
+export function parseCreateItemSplitRequest(
+  input: unknown
+): CreateItemSplitRequest | null {
+  const root = record(input);
+  if (
+    !root ||
+    !hasExactKeys(root, ["assignments", "commandId", "persons"]) ||
+    !Array.isArray(root.assignments) ||
+    root.assignments.length > 200
+  ) {
+    return null;
+  }
+  const commandId = uuid(root.commandId);
+  const persons = integer(root.persons);
+  if (!commandId || persons === null || persons < 2 || persons > 20) {
+    return null;
+  }
+  const assignments: { lineId: string; position: number }[] = [];
+  const seen = new Set<string>();
+  for (const candidate of root.assignments) {
+    const entry = record(candidate);
+    if (!entry || !hasExactKeys(entry, ["lineId", "position"])) return null;
+    const lineId = uuid(entry.lineId);
+    const position = integer(entry.position);
+    if (
+      !lineId ||
+      position === null ||
+      position < 1 ||
+      position > persons ||
+      seen.has(lineId)
+    ) {
+      return null;
+    }
+    seen.add(lineId);
+    assignments.push({ lineId, position });
+  }
+  return { assignments, commandId, persons };
 }

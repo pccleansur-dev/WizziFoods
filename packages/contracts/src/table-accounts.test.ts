@@ -195,6 +195,7 @@ describe("waiter accounts view", () => {
     ],
     keptOpen: false,
     split: null,
+    liveItems: [],
     openedAt: "2026-10-24T11:58:00.000Z",
     sessionId,
     summary: {
@@ -266,11 +267,31 @@ describe("account splits", () => {
   const commandId = "2b000000-0000-4000-8000-000000000002";
   const split = {
     baseCents: 1000,
+    kind: "equal",
     parts: 3,
+    sharedItems: [],
     shares: [
-      { amountCents: 334, payerLabel: null, position: 1, status: "open" },
-      { amountCents: 333, payerLabel: "Ana", position: 2, status: "paid" },
-      { amountCents: 333, payerLabel: null, position: 3, status: "open" }
+      {
+        amountCents: 334,
+        items: [],
+        payerLabel: null,
+        position: 1,
+        status: "open"
+      },
+      {
+        amountCents: 333,
+        items: [],
+        payerLabel: "Ana",
+        position: 2,
+        status: "paid"
+      },
+      {
+        amountCents: 333,
+        items: [],
+        payerLabel: null,
+        position: 3,
+        status: "open"
+      }
     ],
     splitId
   };

@@ -35,6 +35,10 @@ import {
   type CashRegisterRepository
 } from "./cash-register-repository.js";
 import {
+  createSplitClaimsRepository,
+  type SplitClaimsRepository
+} from "./split-claims-repository.js";
+import {
   createMercadoPagoRepository,
   type MercadoPagoRepository
 } from "./mercado-pago-repository.js";
@@ -136,6 +140,7 @@ export type TenantDatabase = {
   orderAdjustmentsRepository: OrderAdjustmentsRepository;
   cashRegisterRepository: CashRegisterRepository;
   mercadoPagoRepository: MercadoPagoRepository;
+  splitClaimsRepository: SplitClaimsRepository;
   tableAccountsRepository: TableAccountsRepository;
   productionRepository: ProductionRepository;
   waiterOperationsRepository: WaiterOperationsRepository;
@@ -220,6 +225,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     orderAdjustmentsRepository: createOrderAdjustmentsRepository(client),
     cashRegisterRepository: createCashRegisterRepository(client),
     mercadoPagoRepository: createMercadoPagoRepository(client),
+    splitClaimsRepository: createSplitClaimsRepository(client),
     tableAccountsRepository: createTableAccountsRepository(client),
     productionRepository: createProductionRepository(client),
     waiterOperationsRepository: createWaiterOperationsRepository(client),

@@ -192,13 +192,16 @@ describe("split server actions", () => {
 
   const share = (position: number) => ({
     amountCents: 500,
+    items: [],
     payerLabel: null,
     position,
     status: "open"
   });
   const split = {
     baseCents: 1000,
+    kind: "equal",
     parts: 2,
+    sharedItems: [],
     shares: [share(1), share(2)],
     splitId: sessionId
   };

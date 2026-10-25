@@ -55,6 +55,11 @@ export type AccountsPanelProps = {
   onPay(sessionId: string, draft: PaymentDraft): void;
   onPayShares(sessionId: string, draft: SharesDraft): void;
   onRefund(sessionId: string, draft: RefundDraft): void;
+  onItemSplit(
+    sessionId: string,
+    persons: number,
+    assignments: { lineId: string; position: number }[]
+  ): void;
   onSplit(sessionId: string, parts: number): void;
 };
 
@@ -77,6 +82,7 @@ function AccountCard({
   onPay,
   onPayShares,
   onRefund,
+  onItemSplit,
   onSplit
 }: Omit<AccountsPanelProps, "accounts"> & { account: WaiterAccount }) {
   const [panel, setPanel] = useState<Panel>(
@@ -93,6 +99,8 @@ function AccountCard({
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
   const [parts, setParts] = useState("3");
+  const [persons, setPersons] = useState("2");
+  const [owners, setOwners] = useState<Record<string, string>>({});
   const [picked, setPicked] = useState<number[]>([]);
   const [shareMethod, setShareMethod] = useState<AccountPaymentMethod>("cash");
   const [payer, setPayer] = useState("");
@@ -106,7 +114,9 @@ function AccountCard({
   const payments = refundablePayments(account);
   const split = account.split;
   const openShares =
-    split?.shares.filter((share) => share.status === "open") ?? [];
+    split?.shares.filter(
+      (share) => share.status === "open" || share.status === "claimed"
+    ) ?? [];
   const pickedShares = openShares.filter((share) =>
     picked.includes(share.position)
   );
@@ -115,6 +125,12 @@ function AccountCard({
     0
   );
   const partsNumber = Number(parts);
+  const personsNumber = Number(persons);
+  const personsValid =
+    Number.isInteger(personsNumber) &&
+    personsNumber >= 2 &&
+    personsNumber <= 20 &&
+    account.liveItems.length > 0;
   const partsValid =
     Number.isInteger(partsNumber) &&
     partsNumber >= 2 &&
@@ -412,12 +428,78 @@ function AccountCard({
               {split ? "Volver a dividir" : "Dividir"}
             </button>
           </form>
+          {account.liveItems.length > 0 ? (
+            <form
+              aria-label="Dividir por consumo"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!personsValid) return;
+                onItemSplit(
+                  account.sessionId,
+                  personsNumber,
+                  account.liveItems.flatMap((item) => {
+                    const owner = Number(owners[item.lineId] ?? "");
+                    return owner >= 1 && owner <= personsNumber
+                      ? [{ lineId: item.lineId, position: owner }]
+                      : [];
+                  })
+                );
+              }}
+            >
+              <label htmlFor={`persons-${account.sessionId}`}>
+                Personas (por consumo)
+              </label>
+              <input
+                id={`persons-${account.sessionId}`}
+                inputMode="numeric"
+                onChange={(event) => setPersons(event.target.value)}
+                value={persons}
+              />
+              <ul className="waiter-lines">
+                {account.liveItems.map((item) => (
+                  <li key={item.lineId}>
+                    <label htmlFor={`owner-${item.lineId}`}>
+                      {item.quantity} × {item.title} ·{" "}
+                      {formatMoney(item.totalCents)}
+                    </label>
+                    <select
+                      id={`owner-${item.lineId}`}
+                      onChange={(event) =>
+                        setOwners({
+                          ...owners,
+                          [item.lineId]: event.target.value
+                        })
+                      }
+                      value={owners[item.lineId] ?? ""}
+                    >
+                      <option value="">Compartido</option>
+                      {Array.from(
+                        { length: personsValid ? personsNumber : 0 },
+                        (_, index) => (
+                          <option key={index + 1} value={String(index + 1)}>
+                            Persona {index + 1}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="button button--secondary"
+                disabled={busy !== null || !personsValid}
+                type="submit"
+              >
+                Dividir por consumo
+              </button>
+            </form>
+          ) : null}
           {split ? (
             <>
               <ul className="waiter-lines" aria-label="Partes de la cuenta">
                 {split.shares.map((share) => (
                   <li key={share.position}>
-                    {share.status === "open" ? (
+                    {share.status === "open" || share.status === "claimed" ? (
                       <label>
                         <input
                           checked={picked.includes(share.position)}
@@ -431,6 +513,9 @@ function AccountCard({
                           type="checkbox"
                         />{" "}
                         Parte {share.position}
+                        {share.status === "claimed"
+                          ? ` · reservada por ${share.payerLabel}`
+                          : ""}
                       </label>
                     ) : (
                       <span>

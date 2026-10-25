@@ -151,3 +151,7 @@ export {
   type WebhookClaim,
   type WebhookOutcome
 } from "./mercado-pago-repository.js";
+export {
+  createSplitClaimsRepository,
+  type SplitClaimsRepository
+} from "./split-claims-repository.js";

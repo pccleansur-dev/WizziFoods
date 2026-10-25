@@ -40,6 +40,7 @@ describe("table accounts repository", () => {
           ],
           keptOpen: false,
           split: null,
+          liveItems: [],
           openedAt: "2026-10-24T11:58:00.123456+00:00",
           sessionId,
           summary: {

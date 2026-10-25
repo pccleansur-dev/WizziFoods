@@ -252,6 +252,10 @@ export {
   type AccountMovementKind,
   type AccountEntryPaymentMethod,
   type AccountSplit,
+  type CreateItemSplitRequest,
+  type LiveItem,
+  type SplitKind,
+  parseCreateItemSplitRequest,
   type CreateSplitRequest,
   type CreateSplitResult,
   type PaySharesRequest,
@@ -314,3 +318,5 @@ export {
   type ProductionTicketItem
 } from "./production.js";
 export * from "./mercado-pago.js";
+
+export * from "./split-claims.js";

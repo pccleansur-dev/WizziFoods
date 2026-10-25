@@ -110,6 +110,8 @@ export type AdjustmentsBusiness = {
     refundedCents: number;
     sessionId: string;
   }>;
+  /** The QR token of table 5 or 6, as a diner scans it. */
+  dinerToken(table: "5" | "6"): Promise<string>;
   /** Cancels the first item of an order, as the manager (leaves a credit when paid). */
   cancelFirstItem(orderId: string): Promise<void>;
   /** Register closures by difference, oldest first. */
@@ -301,6 +303,15 @@ export async function seedAdjustmentsBusiness({
         refundedCents: row!.refunded_cents,
         sessionId: row!.session_id
       };
+    },
+    async dinerToken(table) {
+      const [row] = await owner<{ token: string }[]>`
+        select token from private.floor_table_qr_codes
+        where tenant_id = ${tenantId}
+          and table_id = ${table === "5" ? tableFive : tableSix}
+          and status = 'active'
+      `;
+      return row!.token;
     },
     async cancelFirstItem(orderId) {
       const [item] = await owner<{ line_id: string }[]>`

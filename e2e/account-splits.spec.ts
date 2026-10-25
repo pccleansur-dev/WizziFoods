@@ -152,3 +152,63 @@ test("three people split a table: one pays two shares and later consumption stay
   );
   expect(payments.map((entry) => entry.amount)).toEqual([-11_000, -5_500]);
 });
+
+test("the waiter splits by consumption, a diner reserves a share from the phone and the waiter collects it", async ({
+  browser
+}) => {
+  await business.placeOrder("6", ["milanesa", "cerveza"]);
+  const ana = await signIn(browser, "ana");
+  await openAccounts(ana);
+  const card = account(ana, "6");
+  await expect(card).toContainText("Pendiente $ 165,00");
+
+  const open = card.getByRole("button", { name: /^Dividir la cuenta/u });
+  await hydrated(open);
+  await clickUntil(open, () =>
+    expect(card.getByRole("form", { name: "Dividir por consumo" })).toBeVisible(
+      {
+        timeout: 2_000
+      }
+    )
+  );
+  const byItems = card.getByRole("form", { name: "Dividir por consumo" });
+  await byItems.getByLabel(/Milanesa/u).selectOption("1");
+  await byItems.getByLabel(/Cerveza/u).selectOption("2");
+  await byItems.getByRole("button", { name: "Dividir por consumo" }).click();
+  const shares = card.getByRole("list", { name: "Partes de la cuenta" });
+  await expect(shares.locator("b")).toHaveText(["$ 125,00", "$ 40,00"]);
+
+  // A diner at that table opens the menu on their own phone and takes share 2.
+  const phone = await browser.newContext(
+    contextOptions(test.info().project.use)
+  );
+  contexts.push(phone);
+  const diner = await phone.newPage();
+  await diner.goto(`${origin}/m/${await business.dinerToken("6")}`);
+  const split = diner.getByRole("button", { name: "Dividir la cuenta" });
+  await hydrated(split);
+  await clickUntil(split, () =>
+    expect(
+      diner.getByRole("heading", { name: "Tu parte de la cuenta" })
+    ).toBeVisible({
+      timeout: 2_000
+    })
+  );
+  await diner.getByLabel("Tu nombre").fill("Beto");
+  await diner.getByRole("button", { name: "Tomar la parte 2" }).click();
+  await expect(diner.getByText("La tomaste vos")).toBeVisible({
+    timeout: 15_000
+  });
+  await expect(
+    diner.getByRole("button", { name: "Tomar la parte 1" })
+  ).toBeEnabled();
+  await expect(diner.getByLabel(/número|vencimiento|cvv|cvc/iu)).toHaveCount(0);
+
+  // The waiter sees who holds it (the screen refreshes by itself) and collects it.
+  await expect(shares).toContainText("reservada por Beto", { timeout: 15_000 });
+  await shares.getByLabel("Parte 2").check();
+  await card.getByRole("button", { name: "Cobrar 1 parte · $ 40,00" }).click();
+  await expect(card).toContainText("Pendiente $ 125,00", { timeout: 15_000 });
+  await expect(shares).toContainText("pagada por Beto");
+  await expect(diner.getByText("Pagada")).toBeVisible({ timeout: 15_000 });
+});

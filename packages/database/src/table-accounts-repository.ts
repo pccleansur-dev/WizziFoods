@@ -1,5 +1,6 @@
 import {
   parseApplyDiscountRequest,
+  parseCreateItemSplitRequest,
   parseCreateSplitRequest,
   parseCreateSplitResult,
   parsePaySharesRequest,
@@ -12,6 +13,7 @@ import {
   parseTenantScope,
   parseWaiterAccountsView,
   type ApplyDiscountRequest,
+  type CreateItemSplitRequest,
   type CreateSplitRequest,
   type CreateSplitResult,
   type PaySharesRequest,
@@ -30,6 +32,9 @@ type StaffScope = { scope: TenantScope; staffId: string };
 type SessionTarget = StaffScope & { sessionId: string };
 
 export interface TableAccountsRepository {
+  createItemSplit(
+    input: SessionTarget & { request: CreateItemSplitRequest }
+  ): Promise<CreateSplitResult>;
   createSplit(
     input: SessionTarget & { request: CreateSplitRequest }
   ): Promise<CreateSplitResult>;
@@ -119,6 +124,26 @@ export function createTableAccountsRepository(
       );
       if (!view) throw new Error("accounts view must be canonical");
       return view;
+    },
+
+    async createItemSplit(input) {
+      const scope = assertScope(input.scope);
+      const request = parseCreateItemSplitRequest(input.request);
+      if (!request) throw new Error("item split request must be canonical");
+      const [row] = await client<ResultRow[]>`
+        select private.create_item_split(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.staffId}::uuid,
+          ${request.commandId}::uuid,
+          ${input.sessionId}::uuid,
+          ${request.persons}::integer,
+          ${JSON.stringify(request.assignments)}::jsonb
+        ) as result
+      `;
+      const result = parseCreateSplitResult(row?.result);
+      if (!result) throw new Error("split result must be canonical");
+      return result;
     },
 
     async createSplit(input) {

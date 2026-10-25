@@ -21,7 +21,13 @@ const ticket = {
   confirmedAt: "2026-10-24T11:58:00.123456+00:00",
   dinerName: null,
   items: [
-    { lineId, quantity: 1, status: "queued", title: "Milanesa", variantTitle: null }
+    {
+      lineId,
+      quantity: 1,
+      status: "queued",
+      title: "Milanesa",
+      variantTitle: null
+    }
   ],
   orderId,
   orderStatus: "queued",
@@ -45,7 +51,9 @@ describe("production repository", () => {
     await expect(
       createProductionRepository(
         clientReturning([
-          { result: { sector: "kitchen", tenantId: scope.tenantId, tickets: [] } }
+          {
+            result: { sector: "kitchen", tenantId: scope.tenantId, tickets: [] }
+          }
         ])
       ).getBoard({ scope, staffId })
     ).rejects.toThrow("production board must be canonical");
@@ -65,7 +73,9 @@ describe("production repository", () => {
         }
       ])
     );
-    const result = await createProductionRepository(client as never).advanceItem({
+    const result = await createProductionRepository(
+      client as never
+    ).advanceItem({
       lineId,
       orderId,
       request: { commandId, status: "preparing" },
