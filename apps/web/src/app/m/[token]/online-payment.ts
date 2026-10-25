@@ -33,7 +33,9 @@ export function parseOnlinePaymentResponse(
   return parseOnlinePaymentView(dataOf(body));
 }
 
-export function parseShareCheckoutResponse(body: unknown): ShareCheckout | null {
+export function parseShareCheckoutResponse(
+  body: unknown
+): ShareCheckout | null {
   return parseShareCheckout(dataOf(body));
 }
 

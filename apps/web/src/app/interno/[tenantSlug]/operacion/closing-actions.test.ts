@@ -119,8 +119,11 @@ describe("table closing server actions", () => {
   });
 
   it("cleans a table, asks the cashier and resolves the request on their own routes", async () => {
-    const { cleanTableAction, requestCashierAction, resolveCashierRequestAction } =
-      await import("./closing-actions");
+    const {
+      cleanTableAction,
+      requestCashierAction,
+      resolveCashierRequestAction
+    } = await import("./closing-actions");
     fetchMock.mockResolvedValueOnce(
       json(200, { data: { state: "available", tableId } })
     );

@@ -192,10 +192,10 @@ export default async function WaiterSalonPage({
                 : vista === "caja" && cash
                   ? "caja"
                   : vista === "pedidos"
-                  ? "pedidos"
-                  : vista === "cuentas"
-                    ? "cuentas"
-                    : "salon"
+                    ? "pedidos"
+                    : vista === "cuentas"
+                      ? "cuentas"
+                      : "salon"
             }
             initialView={view}
             isManager={isManager}

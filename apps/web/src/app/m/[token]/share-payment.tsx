@@ -108,17 +108,21 @@ export function SharePayment({
       className="diner-online-payment"
     >
       <p className="diner-help">
-        Tu parte: <strong>{formatMoney(checkout?.payment.amountCents ?? 0)}</strong>.
-        Los datos de la tarjeta se cargan únicamente en el formulario seguro de
+        Tu parte:{" "}
+        <strong>{formatMoney(checkout?.payment.amountCents ?? 0)}</strong>. Los
+        datos de la tarjeta se cargan únicamente en el formulario seguro de
         Mercado Pago.
       </p>
       {payment?.status === "rejected" || payment?.status === "cancelled" ? (
         <p className="diner-warning" role="alert">
-          El pago fue rechazado. Tu parte sigue reservada: podés intentar de nuevo.
+          El pago fue rechazado. Tu parte sigue reservada: podés intentar de
+          nuevo.
         </p>
       ) : null}
       {payment?.status === "pending" ? (
-        <p role="status">Todavía no se acreditó. Consultá el estado en un momento.</p>
+        <p role="status">
+          Todavía no se acreditó. Consultá el estado en un momento.
+        </p>
       ) : null}
       {error ? (
         <p className="diner-warning" role="alert">
