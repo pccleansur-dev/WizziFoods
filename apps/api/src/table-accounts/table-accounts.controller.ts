@@ -17,6 +17,8 @@ import {
 import {
   isWaiterUuid,
   parseApplyDiscountRequest,
+  parseCreateSplitRequest,
+  parsePaySharesRequest,
   parseKeepOpenRequest,
   parseRecordPaymentRequest,
   type StaffCapability
@@ -88,6 +90,11 @@ function mapFailure(error: unknown): never {
         "CASH_REGISTER_CLOSED",
         "La caja está cerrada. El Encargado tiene que abrirla."
       );
+    case "PT260":
+      throw conflict(
+        "SPLIT_SHARE_UNAVAILABLE",
+        "Esa parte ya se cobró o la división cambió. Actualizá la cuenta."
+      );
     case "PT230":
       throw conflict(
         "PAYMENT_EXCEEDS_PENDING",
@@ -141,6 +148,48 @@ export class TableAccountsController {
     const context = needs(request, "tables.serve");
     try {
       return { data: await this.service.getAccounts(context) };
+    } catch (error) {
+      return mapFailure(error);
+    }
+  }
+
+  /** Splits the pending balance into equal shares. */
+  @Post(":sessionId/splits")
+  @HttpCode(HttpStatus.OK)
+  async split(
+    @Req() request: AccountRequest,
+    @Param("sessionId") sessionId: string,
+    @Body() body: unknown
+  ) {
+    const context = needs(request, "payments.collect");
+    const parsed = parseCreateSplitRequest(body);
+    const session = identifier(sessionId);
+    if (!parsed) throw invalid();
+    try {
+      return {
+        data: await this.service.createSplit(context, session, parsed)
+      };
+    } catch (error) {
+      return mapFailure(error);
+    }
+  }
+
+  /** Claims and collects one or more shares as a single payment. */
+  @Post(":sessionId/split-payments")
+  @HttpCode(HttpStatus.OK)
+  async paySplit(
+    @Req() request: AccountRequest,
+    @Param("sessionId") sessionId: string,
+    @Body() body: unknown
+  ) {
+    const context = needs(request, "payments.collect");
+    const parsed = parsePaySharesRequest(body);
+    const session = identifier(sessionId);
+    if (!parsed) throw invalid();
+    try {
+      return {
+        data: await this.service.paySplitShares(context, session, parsed)
+      };
     } catch (error) {
       return mapFailure(error);
     }

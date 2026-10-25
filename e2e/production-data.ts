@@ -89,6 +89,8 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
     await tx`delete from private.cash_movements where tenant_id = ${tenantId}`;
     await tx`delete from private.cash_shift_closures where tenant_id = ${tenantId}`;
     await tx`delete from private.cash_shifts where tenant_id = ${tenantId}`;
+    await tx`delete from private.account_split_shares where split_id in (select id from private.account_splits where tenant_id = ${tenantId})`;
+    await tx`delete from private.account_splits where tenant_id = ${tenantId}`;
     await tx`delete from private.account_entries where tenant_id = ${tenantId}`;
     await tx`delete from private.account_decisions where tenant_id = ${tenantId}`;
     await tx`delete from private.table_sessions where tenant_id = ${tenantId}`;

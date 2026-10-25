@@ -1,5 +1,9 @@
 import {
   parseApplyDiscountRequest,
+  parseCreateSplitRequest,
+  parseCreateSplitResult,
+  parsePaySharesRequest,
+  parsePaySharesResult,
   parseDiscountResult,
   parseKeepOpenRequest,
   parseKeepOpenResult,
@@ -8,6 +12,10 @@ import {
   parseTenantScope,
   parseWaiterAccountsView,
   type ApplyDiscountRequest,
+  type CreateSplitRequest,
+  type CreateSplitResult,
+  type PaySharesRequest,
+  type PaySharesResult,
   type DiscountResult,
   type KeepOpenRequest,
   type KeepOpenResult,
@@ -22,6 +30,12 @@ type StaffScope = { scope: TenantScope; staffId: string };
 type SessionTarget = StaffScope & { sessionId: string };
 
 export interface TableAccountsRepository {
+  createSplit(
+    input: SessionTarget & { request: CreateSplitRequest }
+  ): Promise<CreateSplitResult>;
+  paySplitShares(
+    input: SessionTarget & { request: PaySharesRequest }
+  ): Promise<PaySharesResult>;
   applyDiscount(
     input: SessionTarget & { request: ApplyDiscountRequest }
   ): Promise<DiscountResult>;
@@ -105,6 +119,48 @@ export function createTableAccountsRepository(
       );
       if (!view) throw new Error("accounts view must be canonical");
       return view;
+    },
+
+    async createSplit(input) {
+      const scope = assertScope(input.scope);
+      const request = parseCreateSplitRequest(input.request);
+      if (!request) throw new Error("split request must be canonical");
+      const [row] = await client<ResultRow[]>`
+        select private.create_account_split(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.staffId}::uuid,
+          ${request.commandId}::uuid,
+          ${input.sessionId}::uuid,
+          ${request.parts}::integer
+        ) as result
+      `;
+      const result = parseCreateSplitResult(row?.result);
+      if (!result) throw new Error("split result must be canonical");
+      return result;
+    },
+
+    async paySplitShares(input) {
+      const scope = assertScope(input.scope);
+      const request = parsePaySharesRequest(input.request);
+      if (!request) throw new Error("shares request must be canonical");
+      const [row] = await client<ResultRow[]>`
+        select private.pay_split_shares(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.staffId}::uuid,
+          ${request.commandId}::uuid,
+          ${input.sessionId}::uuid,
+          ${request.splitId}::uuid,
+          ${request.positions}::integer[],
+          ${request.method},
+          ${request.tipCents}::integer,
+          ${request.payerLabel}
+        ) as result
+      `;
+      const result = parsePaySharesResult(row?.result);
+      if (!result) throw new Error("shares result must be canonical");
+      return result;
     },
 
     async recordPayment(input) {

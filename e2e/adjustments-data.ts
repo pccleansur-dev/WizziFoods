@@ -132,6 +132,7 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
       "cash_movements",
       "cash_shift_closures",
       "cash_shifts",
+      "account_splits",
       "account_entries",
       "account_decisions",
       "table_sessions",

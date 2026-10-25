@@ -35,6 +35,47 @@ export type PaymentResult = {
   tipCents: number;
 };
 
+export type SplitShareStatus = "cancelled" | "open" | "paid";
+
+export type SplitShare = {
+  amountCents: number;
+  payerLabel: string | null;
+  position: number;
+  status: SplitShareStatus;
+};
+
+/** Equal shares of the balance that was pending when the split was made. */
+export type AccountSplit = {
+  baseCents: number;
+  parts: number;
+  shares: SplitShare[];
+  splitId: string;
+};
+
+export type CreateSplitRequest = { commandId: string; parts: number };
+
+export type CreateSplitResult = {
+  pendingCents: number;
+  sessionId: string;
+  split: AccountSplit;
+};
+
+export type PaySharesRequest = {
+  commandId: string;
+  /** Who is paying, for the waiter's own reference. */
+  payerLabel: string | null;
+  method: AccountPaymentMethod;
+  positions: number[];
+  splitId: string;
+  tipCents: number;
+};
+
+export type PaySharesResult = PaymentResult & {
+  positions: number[];
+  split: AccountSplit | null;
+  splitId: string;
+};
+
 export type DiscountResult = {
   discountCents: number;
   pendingCents: number;
@@ -76,6 +117,8 @@ export type WaiterAccount = {
   currency: "ARS";
   entries: AccountEntryView[];
   keptOpen: boolean;
+  /** The open split of the account, if any. */
+  split: AccountSplit | null;
   openedAt: string;
   sessionId: string;
   summary: AccountSummary;
@@ -418,6 +461,7 @@ function account(input: unknown): WaiterAccount | null {
       "keptOpen",
       "openedAt",
       "sessionId",
+      "split",
       "summary",
       "tableId",
       "tableLabels"
@@ -448,13 +492,23 @@ function account(input: unknown): WaiterAccount | null {
   const sessionId = uuid(root.sessionId);
   const parsedSummary = summary(root.summary);
   const tableId = uuid(root.tableId);
-  if (!openedAt || !sessionId || !parsedSummary || !tableId) return null;
+  const split = root.split === null ? null : parseAccountSplit(root.split);
+  if (
+    !openedAt ||
+    !sessionId ||
+    !parsedSummary ||
+    !tableId ||
+    (root.split !== null && !split)
+  ) {
+    return null;
+  }
   return {
     currency: "ARS",
     entries,
     keptOpen: root.keptOpen,
     openedAt,
     sessionId,
+    split,
     summary: parsedSummary,
     tableId,
     tableLabels: labels
@@ -483,4 +537,181 @@ export function parseWaiterAccountsView(
     accounts.push(parsed);
   }
   return { accounts, cashRegisterOpen: root.cashRegisterOpen, generatedAt };
+}
+
+const shareStatuses: readonly SplitShareStatus[] = [
+  "cancelled",
+  "open",
+  "paid"
+];
+
+export function parseAccountSplit(input: unknown): AccountSplit | null {
+  const root = record(input);
+  if (
+    !root ||
+    !hasExactKeys(root, ["baseCents", "parts", "shares", "splitId"]) ||
+    !Array.isArray(root.shares)
+  ) {
+    return null;
+  }
+  const baseCents = positive(root.baseCents);
+  const parts = integer(root.parts);
+  const splitId = uuid(root.splitId);
+  if (
+    baseCents === null ||
+    parts === null ||
+    parts < 2 ||
+    parts > 20 ||
+    !splitId ||
+    root.shares.length !== parts
+  ) {
+    return null;
+  }
+  const shares: SplitShare[] = [];
+  let total = 0;
+  for (const [index, candidate] of root.shares.entries()) {
+    const share = record(candidate);
+    if (
+      !share ||
+      !hasExactKeys(share, ["amountCents", "payerLabel", "position", "status"])
+    ) {
+      return null;
+    }
+    const amountCents = positive(share.amountCents);
+    const status = shareStatuses.find((entry) => entry === share.status);
+    const payerLabel =
+      share.payerLabel === null ? null : bounded(share.payerLabel, 40);
+    if (
+      amountCents === null ||
+      !status ||
+      share.position !== index + 1 ||
+      (share.payerLabel !== null && !payerLabel)
+    ) {
+      return null;
+    }
+    total += amountCents;
+    shares.push({ amountCents, payerLabel, position: index + 1, status });
+  }
+  return total === baseCents ? { baseCents, parts, shares, splitId } : null;
+}
+
+export function parseCreateSplitRequest(
+  input: unknown
+): CreateSplitRequest | null {
+  const root = record(input);
+  if (!root || !hasExactKeys(root, ["commandId", "parts"])) return null;
+  const commandId = uuid(root.commandId);
+  const parts = integer(root.parts);
+  return commandId && parts !== null && parts >= 2 && parts <= 20
+    ? { commandId, parts }
+    : null;
+}
+
+export function parseCreateSplitResult(
+  input: unknown
+): CreateSplitResult | null {
+  const root = record(input);
+  if (!root || !hasExactKeys(root, ["pendingCents", "sessionId", "split"])) {
+    return null;
+  }
+  const pendingCents = positive(root.pendingCents);
+  const sessionId = uuid(root.sessionId);
+  const split = parseAccountSplit(root.split);
+  return pendingCents !== null && sessionId && split
+    ? { pendingCents, sessionId, split }
+    : null;
+}
+
+export function parsePaySharesRequest(input: unknown): PaySharesRequest | null {
+  const root = record(input);
+  if (
+    !root ||
+    !hasExactKeys(root, [
+      "commandId",
+      "method",
+      "payerLabel",
+      "positions",
+      "splitId",
+      "tipCents"
+    ]) ||
+    !Array.isArray(root.positions)
+  ) {
+    return null;
+  }
+  const commandId = uuid(root.commandId);
+  const splitId = uuid(root.splitId);
+  const paymentMethod = method(root.method);
+  const tipCents = nonNegative(root.tipCents);
+  const payerLabel =
+    root.payerLabel === null ? null : bounded(root.payerLabel, 40);
+  const positions = root.positions as unknown[];
+  if (
+    !commandId ||
+    !splitId ||
+    !paymentMethod ||
+    tipCents === null ||
+    (root.payerLabel !== null &&
+      (!payerLabel || payerLabel !== payerLabel.trim())) ||
+    positions.length < 1 ||
+    positions.length > 20 ||
+    !positions.every(
+      (value) =>
+        Number.isInteger(value) &&
+        (value as number) >= 1 &&
+        (value as number) <= 20
+    ) ||
+    new Set(positions).size !== positions.length
+  ) {
+    return null;
+  }
+  return {
+    commandId,
+    method: paymentMethod,
+    payerLabel,
+    positions: positions as number[],
+    splitId,
+    tipCents
+  };
+}
+
+export function parsePaySharesResult(input: unknown): PaySharesResult | null {
+  const root = record(input);
+  if (
+    !root ||
+    !hasExactKeys(root, [
+      "amountCents",
+      "paymentCents",
+      "paymentId",
+      "pendingCents",
+      "positions",
+      "sessionId",
+      "shiftId",
+      "split",
+      "splitId",
+      "tipCents"
+    ]) ||
+    !Array.isArray(root.positions)
+  ) {
+    return null;
+  }
+  const { positions, split, splitId, ...rest } = root;
+  const payment = parsePaymentResult(rest);
+  const parsedSplit = split === null ? null : parseAccountSplit(split);
+  const id = uuid(splitId);
+  if (
+    !payment ||
+    !id ||
+    (split !== null && !parsedSplit) ||
+    !(positions as unknown[]).every(
+      (value) => Number.isInteger(value) && (value as number) >= 1
+    )
+  ) {
+    return null;
+  }
+  return {
+    ...payment,
+    positions: positions as number[],
+    split: parsedSplit,
+    splitId: id
+  };
 }

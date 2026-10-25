@@ -28,6 +28,7 @@ function account(labels: string[], pendingCents = 100): WaiterAccount {
     currency: "ARS",
     entries: [],
     keptOpen: false,
+    split: null,
     openedAt: "2026-10-24T11:00:00.000Z",
     sessionId: "22222222-2222-4222-8222-222222222222",
     summary: summary(pendingCents),

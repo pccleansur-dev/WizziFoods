@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  parseAccountSplit,
   parseApplyDiscountRequest,
+  parseCreateSplitRequest,
+  parseCreateSplitResult,
+  parsePaySharesRequest,
+  parsePaySharesResult,
   parseDiscountResult,
   parseKeepOpenRequest,
   parseKeepOpenResult,
@@ -189,6 +194,7 @@ describe("waiter accounts view", () => {
       }
     ],
     keptOpen: false,
+    split: null,
     openedAt: "2026-10-24T11:58:00.000Z",
     sessionId,
     summary: {
@@ -252,5 +258,81 @@ describe("waiter accounts view", () => {
     ]
   ])("rejects %s", (_name, value) => {
     expect(parseWaiterAccountsView(value)).toBeNull();
+  });
+});
+
+describe("account splits", () => {
+  const splitId = "2b000000-0000-4000-8000-000000000001";
+  const commandId = "2b000000-0000-4000-8000-000000000002";
+  const split = {
+    baseCents: 1000,
+    parts: 3,
+    shares: [
+      { amountCents: 334, payerLabel: null, position: 1, status: "open" },
+      { amountCents: 333, payerLabel: "Ana", position: 2, status: "paid" },
+      { amountCents: 333, payerLabel: null, position: 3, status: "open" }
+    ],
+    splitId
+  };
+
+  it("accepts shares that add up to the base and refuses anything else", () => {
+    expect(parseAccountSplit(split)).toEqual(split);
+    expect(parseAccountSplit({ ...split, baseCents: 999 })).toBeNull();
+    expect(parseAccountSplit({ ...split, parts: 2 })).toBeNull();
+    expect(parseAccountSplit({ ...split, extra: 1 })).toBeNull();
+    expect(
+      parseAccountSplit({
+        ...split,
+        shares: split.shares.map((s) => ({ ...s, position: 1 }))
+      })
+    ).toBeNull();
+  });
+
+  it("validates requests", () => {
+    expect(parseCreateSplitRequest({ commandId, parts: 3 })).toEqual({
+      commandId,
+      parts: 3
+    });
+    expect(parseCreateSplitRequest({ commandId, parts: 1 })).toBeNull();
+    expect(parseCreateSplitRequest({ commandId, parts: 21 })).toBeNull();
+    const pay = {
+      commandId,
+      method: "cash",
+      payerLabel: "Ana",
+      positions: [1, 3],
+      splitId,
+      tipCents: 0
+    };
+    expect(parsePaySharesRequest(pay)).toEqual(pay);
+    expect(parsePaySharesRequest({ ...pay, positions: [1, 1] })).toBeNull();
+    expect(parsePaySharesRequest({ ...pay, positions: [] })).toBeNull();
+    expect(
+      parsePaySharesRequest({ ...pay, method: "mercado_pago" })
+    ).toBeNull();
+    expect(parsePaySharesRequest({ ...pay, payerLabel: " " })).toBeNull();
+    expect(parsePaySharesRequest({ ...pay, tenantId: splitId })).toBeNull();
+  });
+
+  it("parses the results", () => {
+    expect(
+      parseCreateSplitResult({ pendingCents: 1000, sessionId: splitId, split })
+    ).toMatchObject({ pendingCents: 1000 });
+    const payment = {
+      amountCents: 667,
+      paymentCents: 667,
+      paymentId: commandId,
+      pendingCents: 333,
+      positions: [1, 3],
+      sessionId: splitId,
+      shiftId: commandId,
+      split,
+      splitId,
+      tipCents: 0
+    };
+    expect(parsePaySharesResult(payment)).toMatchObject({ positions: [1, 3] });
+    expect(parsePaySharesResult({ ...payment, split: null })).toMatchObject({
+      split: null
+    });
+    expect(parsePaySharesResult({ ...payment, extra: 1 })).toBeNull();
   });
 });

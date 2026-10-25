@@ -230,6 +230,7 @@ await owner.begin(async (tx) => {
     "cash_movements",
     "cash_shift_closures",
     "cash_shifts",
+    "account_splits",
     "account_entries",
     "account_decisions",
     "table_sessions",

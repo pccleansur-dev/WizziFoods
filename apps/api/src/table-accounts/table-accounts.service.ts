@@ -1,5 +1,7 @@
 import type {
   ApplyDiscountRequest,
+  CreateSplitRequest,
+  PaySharesRequest,
   KeepOpenRequest,
   RecordPaymentRequest
 } from "@platform/contracts";
@@ -13,6 +15,32 @@ export class TableAccountsService {
   getAccounts(context: StaffRequestContext) {
     return this.accounts.getAccounts({
       scope: context.scope,
+      staffId: context.staffId
+    });
+  }
+
+  createSplit(
+    context: StaffRequestContext,
+    sessionId: string,
+    request: CreateSplitRequest
+  ) {
+    return this.accounts.createSplit({
+      request,
+      scope: context.scope,
+      sessionId,
+      staffId: context.staffId
+    });
+  }
+
+  paySplitShares(
+    context: StaffRequestContext,
+    sessionId: string,
+    request: PaySharesRequest
+  ) {
+    return this.accounts.paySplitShares({
+      request,
+      scope: context.scope,
+      sessionId,
       staffId: context.staffId
     });
   }
