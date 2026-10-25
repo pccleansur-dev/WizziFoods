@@ -101,6 +101,17 @@ export type AdjustmentsBusiness = {
   entries(): Promise<{ amount: number; kind: string }[]>;
   /** Confirms an order of the given products on table 5 or 6, as the manager. */
   placeOrder(table: "5" | "6", items: ProductKey[]): Promise<string>;
+  /** Cancels the first item of an order, as the manager (leaves a credit when paid). */
+  cancelFirstItem(orderId: string): Promise<void>;
+  /** Register closures by difference, oldest first. */
+  closures(): Promise<
+    {
+      counted: number;
+      difference: number;
+      expected: number;
+      reason: string | null;
+    }[]
+  >;
 };
 
 async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
@@ -140,7 +151,9 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
 }
 
 /** A published business with a waiter, a manager, a cook and a bartender. */
-export async function seedAdjustmentsBusiness(): Promise<AdjustmentsBusiness> {
+export async function seedAdjustmentsBusiness({
+  openRegister = true
+}: { openRegister?: boolean } = {}): Promise<AdjustmentsBusiness> {
   const sql = postgres(adminDatabaseUrl(), { prepare: false });
   const owner = postgres(ownerDatabaseUrl(), { prepare: false });
   await cleanup(sql, owner);
@@ -196,13 +209,15 @@ export async function seedAdjustmentsBusiness(): Promise<AdjustmentsBusiness> {
     select id from public.staff_members
     where tenant_id = ${tenantId} and username = 'marta'
   `;
-  // Collecting needs an open register (T23).
-  await sql`
-    select private.open_cash_shift(
-      ${tenantId}::uuid, ${locationId}::uuid, ${manager!.id}::uuid,
-      gen_random_uuid(), 0
-    )
-  `;
+  // Collecting needs an open register (T23); the register journey opens it itself.
+  if (openRegister) {
+    await sql`
+      select private.open_cash_shift(
+        ${tenantId}::uuid, ${locationId}::uuid, ${manager!.id}::uuid,
+        gen_random_uuid(), 0
+      )
+    `;
+  }
 
   return {
     async adjustments() {
@@ -221,6 +236,36 @@ export async function seedAdjustmentsBusiness(): Promise<AdjustmentsBusiness> {
         select kind, amount_cents as amount from private.account_entries
         where tenant_id = ${tenantId}
         order by id
+      `;
+      return [...rows];
+    },
+    async cancelFirstItem(orderId) {
+      const [item] = await owner<{ line_id: string }[]>`
+        select line_id from private.confirmed_order_items
+        where tenant_id = ${tenantId} and order_id = ${orderId}
+        order by position limit 1
+      `;
+      await sql`
+        select private.cancel_order_item(
+          ${tenantId}::uuid, ${locationId}::uuid, ${manager!.id}::uuid,
+          gen_random_uuid(), ${orderId}::uuid, ${item!.line_id}::uuid, 'Se terminó'
+        )
+      `;
+    },
+    async closures() {
+      const rows = await owner<
+        {
+          counted: number;
+          difference: number;
+          expected: number;
+          reason: string | null;
+        }[]
+      >`
+        select counted_cash_cents as counted, difference_cents as difference,
+               expected_cash_cents as expected, reason
+        from private.cash_shift_closures
+        where tenant_id = ${tenantId}
+        order by closed_at
       `;
       return [...rows];
     },
