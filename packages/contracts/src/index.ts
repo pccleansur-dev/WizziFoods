@@ -325,3 +325,4 @@ export * from "./table-closing.js";
 export * from "./table-regrouping.js";
 
 export * from "./diner-identity.js";
+export * from "./loyalty.js";

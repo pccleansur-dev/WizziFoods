@@ -167,3 +167,7 @@ export {
   createDinerIdentityRepository,
   type DinerIdentityRepository
 } from "./diner-identity-repository.js";
+export {
+  createLoyaltyRepository,
+  type LoyaltyRepository
+} from "./loyalty-repository.js";

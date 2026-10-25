@@ -75,6 +75,9 @@ import { CashRegisterController } from "./cash-register/cash-register.controller
 import { CashRegisterService } from "./cash-register/cash-register.service.js";
 import { TableAccountsController } from "./table-accounts/table-accounts.controller.js";
 import { TableAccountsService } from "./table-accounts/table-accounts.service.js";
+import { LoyaltyDinerController } from "./loyalty/loyalty-diner.controller.js";
+import { LoyaltyStaffController } from "./loyalty/loyalty-staff.controller.js";
+import { LoyaltyService } from "./loyalty/loyalty.service.js";
 import { TableClosingController } from "./table-closing/table-closing.controller.js";
 import { TableClosingService } from "./table-closing/table-closing.service.js";
 import { TableRegroupingController } from "./table-regrouping/table-regrouping.controller.js";
@@ -166,6 +169,8 @@ export class AppModule {
         // Google's stand-in exists only with the simulator, which production refuses.
         ...(dinerIdentity.fake ? [FakeGoogleController] : []),
         TableAccountsController,
+        LoyaltyDinerController,
+        LoyaltyStaffController,
         TableClosingController,
         TableRegroupingController,
         ProductionController,
@@ -381,6 +386,12 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: LoyaltyService,
+          useFactory: (database: TenantDatabase) =>
+            new LoyaltyService(database.loyaltyRepository)
         },
         {
           inject: [TENANT_DATABASE],
