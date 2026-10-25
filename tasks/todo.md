@@ -753,14 +753,14 @@ sesión y liberar la mesa (T26).
 
 **Criterios de aceptación:**
 
-- [ ] Caja registra apertura, movimientos, responsable y cierre con diferencia justificada.
-- [ ] Tarjeta física nunca solicita PAN, vencimiento ni CVV.
-- [ ] Devolución presencial queda vinculada al pago/ítem y autorizada según rol.
+- [x] Caja registra apertura, movimientos, responsable y cierre con diferencia justificada.
+- [x] Tarjeta física nunca solicita PAN, vencimiento ni CVV.
+- [x] Devolución presencial queda vinculada al pago/ítem y autorizada según rol.
 
 **Verificación:**
 
-- [ ] Pruebas del arqueo, permisos y caja con pendientes.
-- [ ] E2E apertura → cobros mixtos → devolución → cierre.
+- [x] Pruebas del arqueo, permisos y caja con pendientes.
+- [x] E2E apertura → cobros mixtos → devolución → cierre.
 
 **Dependencias:** T22.
 
@@ -774,14 +774,14 @@ sesión y liberar la mesa (T26).
 
 **Criterios de aceptación:**
 
-- [ ] Credenciales y pagos están aislados por tenant.
-- [ ] Webhooks se autentican, deduplican y consultan el estado autoritativo.
-- [ ] Sólo acreditado confirma el pedido y movimiento; pendiente/fallido no lo hace.
+- [x] Credenciales y pagos están aislados por tenant.
+- [x] Webhooks se autentican, deduplican y consultan el estado autoritativo.
+- [x] Sólo acreditado confirma el pedido y movimiento; pendiente/fallido no lo hace.
 
 **Verificación:**
 
-- [ ] Pruebas de firma, reordenamiento, duplicado y replay de webhooks.
-- [ ] E2E en sandbox de éxito, pendiente, rechazo y devolución parcial.
+- [x] Pruebas de firma, reordenamiento, duplicado y replay de webhooks.
+- [x] E2E en sandbox de éxito, pendiente, rechazo y devolución parcial.
 
 **Dependencias:** T18, T22.
 

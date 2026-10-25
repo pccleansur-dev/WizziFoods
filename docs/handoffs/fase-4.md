@@ -377,8 +377,8 @@ Punto de partida para T21–T22:
   pantalla de producción ni capacidad (`production.*` sólo existe para Cocina y Barra).
 - T22 sigue sin tener cuenta ni ledger; nada de T20 los toca.
 - Los tests de integración que limpian tablas con triggers append-only deben usar una
-  transacción con `set local session_replication_role = replica` (no `ALTER TABLE …
-  DISABLE TRIGGER`): el segundo es global y rompe a otros archivos en paralelo.
+  transacción con `set local session_replication_role = replica`; desactivar triggers
+  con `ALTER TABLE` es global y rompe a otros archivos en paralelo.
 
 ## Estado de T21 — entrega, faltantes y cancelaciones
 
@@ -421,3 +421,27 @@ Punto de partida para T23–T26:
 - Los tests de integración nuevos deben limpiar `account_entries`, `account_decisions` y
   `table_sessions` antes de borrar el negocio (usar `session_replication_role = replica` en
   una transacción, nunca `ALTER TABLE … DISABLE TRIGGER`).
+
+## Estado de T23 — caja y pagos presenciales
+
+Hecho: ver `docs/runbooks/caja-y-arqueo.md`. La caja exige turno abierto para cobrar,
+registra movimientos y devoluciones, y cierra con arqueo ciego y justificación de
+diferencias. La UI está en la pestaña **Caja** del Encargado y en **Cuentas**; ningún
+formulario presencial solicita datos de tarjeta. El E2E cubre el recorrido completo en
+móvil y escritorio.
+
+## Estado de T24 — Mercado Pago
+
+Hecho: ver `docs/runbooks/mercado-pago.md`. Migración
+`20261025020000_create_mercado_pago.sql` con rollback y pgTap. La API vive en
+`apps/api/src/mercado-pago`, los contratos en `packages/contracts/src/mercado-pago.ts`
+y el repositorio en `packages/database/src/mercado-pago-repository.ts`.
+
+La web agrega OAuth en `/panel/pagos`, checkout sandbox/Card Payment Brick en `/m/:token`
+y devolución online separada de caja en **Cuentas**. `e2e/mercado-pago.spec.ts` verifica
+acreditado, pendiente, rechazado y devolución parcial en móvil y escritorio. Los
+cleanups eliminan explícitamente eventos, pagos, estados OAuth y conexiones.
+
+Para activar el proveedor real todavía hacen falta `client_id`, `client_secret`, secreto
+de webhook, callback/return URL HTTPS públicos y una `PAYMENT_SECRET_KEY` de 32 bytes.
+Hasta entonces debe mantenerse `MERCADO_PAGO_MODE=fake` fuera de producción.

@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import postgres from "postgres";
 
+import { PaymentSecretSealer } from "../apps/api/src/payment-methods/payment-secret-sealer.ts";
 import { hashStaffPin } from "../apps/api/src/staff-auth/pin-credential.ts";
 import {
   adminDatabaseUrl,
@@ -300,6 +301,27 @@ await sql`
   values (${tenantId}, ${locationId}, ${userId})
 `;
 await sql`select private.ensure_payment_methods(${tenantId}::uuid, ${locationId}::uuid)`;
+const sealedPaymentCredentials = new PaymentSecretSealer(Buffer.alloc(32)).seal(
+  JSON.stringify({
+    accessToken: "TEST-97531024-aabbccddeeff", // secret-scan: allow -- fake gateway fixture
+    expiresAt: "2099-01-01T00:00:00.000Z",
+    refreshToken: "TESTREFRESH-97531024-aabbccddeeff"
+  }),
+  { locationId, tenantId },
+  "mercado_pago"
+);
+await sql`
+  select private.finish_mp_connection(
+    ${tenantId}::uuid, ${locationId}::uuid, ${userId}::uuid,
+    '97531024', false, 'TEST-public-key-97531024',
+    ${sealedPaymentCredentials.ciphertext}, ${sealedPaymentCredentials.keyVersion}
+  )
+`;
+await sql`
+  update private.payment_methods set enabled = true
+  where tenant_id = ${tenantId} and location_id = ${locationId}
+    and method_key = 'mercado_pago'
+`;
 await owner`
   insert into private.published_catalogs (
     tenant_id, location_id, revision, source_draft_revision, snapshot, published_by
