@@ -6,10 +6,10 @@ consulta de identidad: la barra de cuenta se carga después, desde el navegador.
 
 ## Quién sabe qué
 
-| Quién                | Sabe                                                                                 | No sabe                                          |
-| -------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| La plataforma        | La cuenta global (`private.diner_accounts`): hash con pepper del `sub` de Google y el correo | —                                                |
-| Cada restaurante     | Sólo el **perfil** que ese comensal creó con él (`private.diner_profiles`): nombre, teléfono opcional, consentimientos | El correo, el `account_id`, ni los perfiles de otros restaurantes |
+| Quién            | Sabe                                                                                                                   | No sabe                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| La plataforma    | La cuenta global (`private.diner_accounts`): hash con pepper del `sub` de Google y el correo                           | —                                                                 |
+| Cada restaurante | Sólo el **perfil** que ese comensal creó con él (`private.diner_profiles`): nombre, teléfono opcional, consentimientos | El correo, el `account_id`, ni los perfiles de otros restaurantes |
 
 La única tabla que une cuenta y perfil es `private.diner_profile_links`; ninguna función que
 mira un restaurante la lee. El identificador del perfil (`profile_id`) es aleatorio y distinto en
@@ -50,10 +50,10 @@ carta (host del local) ──POST /api/diner/login──▶ API /v1/public/diner
 
 ### Modos (`DINER_AUTH_MODE`)
 
-| Modo   | Qué hace                                                                                   |
-| ------ | ------------------------------------------------------------------------------------------ |
-| `off`  | (por defecto) No se ofrece el botón; `availability` responde `false`.                      |
-| `fake` | Google simulado dentro de la API (`/v1/dev/fake-google/authorize`); **se rechaza en producción**. |
+| Modo   | Qué hace                                                                                                                       |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `off`  | (por defecto) No se ofrece el botón; `availability` responde `false`.                                                          |
+| `fake` | Google simulado dentro de la API (`/v1/dev/fake-google/authorize`); **se rechaza en producción**.                              |
 | `live` | OpenID Connect de Google. Requiere `GOOGLE_DINER_CLIENT_ID`, `GOOGLE_DINER_CLIENT_SECRET` y `DINER_AUTH_REDIRECT_URI` (HTTPS). |
 
 `fake` y `live` requieren `DINER_AUTH_STATE_SECRET` y `DINER_SUB_PEPPER` (32 caracteres o más cada uno). Cambiar
@@ -65,18 +65,18 @@ La URI autorizada en Google es `DINER_AUTH_REDIRECT_URI` (`https://<api>/v1/dine
 Todas toman el restaurante del `Host` y la cuenta de la sesión; ningún cuerpo puede traer tenant, cuenta ni correo
 (los campos extra devuelven 400). Las escrituras desde el navegador pasan por `/api/diner/*` y exigen origen propio.
 
-| Método   | Ruta (API)                              | Uso                                                                  |
-| -------- | --------------------------------------- | -------------------------------------------------------------------- |
-| `GET`    | `/v1/public/diner-auth/availability`    | ¿Se ofrece el ingreso?                                               |
-| `POST`   | `/v1/public/diner-auth/start`           | `{bindingHash, returnPath}` → `authorizeUrl`                         |
-| `POST`   | `/v1/public/diner-auth/session`         | `{code, binding}` → `sessionToken`                                   |
-| `DELETE` | `/v1/public/diner-auth/session`         | Cerrar sesión (204)                                                  |
-| `GET`    | `/v1/public/diner/me`                   | Perfil de este local, permisos y textos legales vigentes             |
-| `PUT`    | `/v1/public/diner/profile`              | `{displayName, whatsappPhone?}`                                      |
-| `POST`   | `/v1/public/diner/consents`             | `{commandId, kind, action, textVersion, source}`                     |
-| `POST`   | `/v1/public/diner/session-links`        | `{token}` → `{linked}`                                               |
-| `GET`    | `/v1/public/diner/export`               | Exporta los datos propios                                            |
-| `DELETE` | `/v1/public/diner/account`              | Anonimización lógica (204)                                           |
+| Método   | Ruta (API)                           | Uso                                                      |
+| -------- | ------------------------------------ | -------------------------------------------------------- |
+| `GET`    | `/v1/public/diner-auth/availability` | ¿Se ofrece el ingreso?                                   |
+| `POST`   | `/v1/public/diner-auth/start`        | `{bindingHash, returnPath}` → `authorizeUrl`             |
+| `POST`   | `/v1/public/diner-auth/session`      | `{code, binding}` → `sessionToken`                       |
+| `DELETE` | `/v1/public/diner-auth/session`      | Cerrar sesión (204)                                      |
+| `GET`    | `/v1/public/diner/me`                | Perfil de este local, permisos y textos legales vigentes |
+| `PUT`    | `/v1/public/diner/profile`           | `{displayName, whatsappPhone?}`                          |
+| `POST`   | `/v1/public/diner/consents`          | `{commandId, kind, action, textVersion, source}`         |
+| `POST`   | `/v1/public/diner/session-links`     | `{token}` → `{linked}`                                   |
+| `GET`    | `/v1/public/diner/export`            | Exporta los datos propios                                |
+| `DELETE` | `/v1/public/diner/account`           | Anonimización lógica (204)                               |
 
 Errores de negocio: `PT281` sesión/cuenta no disponible (401), `PT282` falta el perfil, `PT283` texto legal
 desactualizado, `PT284` falta el teléfono (o no se puede cambiar con WhatsApp aceptado), `PT285` nada que

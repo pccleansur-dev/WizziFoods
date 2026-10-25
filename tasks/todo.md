@@ -873,20 +873,22 @@ sesión y liberar la mesa (T26).
 
 ## Fase 9 — Retención
 
-### T28. Registrar clientes con Google y consentimientos
+### T28. Registrar clientes con Google y consentimientos — completada
 
 **Descripción:** Agregar cuenta global de comensal separada del personal y perfiles/consentimientos por restaurante.
 
 **Criterios de aceptación:**
 
-- [ ] Login siempre es opcional y conserva `Continuar sin cuenta`.
-- [ ] El restaurante no recibe email de Google ni datos de otro tenant.
-- [ ] WhatsApp verificado y marketing son consentimientos distintos, revocables y versionados.
+- [x] Login siempre es opcional y conserva `Continuar sin cuenta`.
+- [x] El restaurante no recibe email de Google ni datos de otro tenant.
+- [x] WhatsApp verificado y marketing son consentimientos distintos, revocables y versionados.
 
 **Verificación:**
 
-- [ ] Pruebas de vinculación, revocación, exportación y anonimización lógica.
-- [ ] E2E invitado y registrado sin bloqueo de carta.
+- [x] Pruebas de vinculación, revocación, exportación y anonimización lógica.
+- [x] E2E invitado y registrado sin bloqueo de carta.
+
+**Resultado:** el comensal puede ingresar con Google (`DINER_AUTH_MODE` off | fake | live) sin que la carta lo espere ni lo exija; la cuenta global (`private.diner_accounts`, con el correo y un hash con pepper del `sub`) está separada de `staff_members` y de `tenant_memberships` y tiene sesión propia. Cada restaurante sólo conoce el perfil que el comensal creó con él (`profile_id` aleatorio por tenant; el puente cuenta–perfil no lo lee ninguna función de tenant). Los consentimientos `whatsapp_verified` y `marketing` son tablas append-only con versión del texto, origen y fecha: revocar agrega una fila. Vincular al comensal enlaza con la sesión de mesa (no con la mesa) mediante `diner_session_links`, bajo el candado compartido por ubicación, sin tocar `table_sessions` ni el libro. Incluye exportación de los datos propios y anonimización lógica que conserva las referencias del historial. Verificado con 58 aserciones pgTap (dos tenants), 4 pruebas de integración con carreras reales (vincular ×8, revocar mientras se acepta, anonimizar mientras se vincula, canje simultáneo de un código), contratos, repositorio, servicio, controladores, pasarela de Google, proxy web y 6 recorridos Playwright (móvil 375 px y escritorio, 3100/3101). Runbook: `docs/runbooks/cuenta-de-comensal.md`. Pendientes: verificación real del número de WhatsApp, pantalla del restaurante para sus clientes y texto legal propio por restaurante desde el panel.
 
 **Dependencias:** T16, T22.
 
