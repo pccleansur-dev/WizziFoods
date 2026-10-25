@@ -65,7 +65,9 @@ export function DinerSplit({ token }: { token: string }) {
         error?: { message?: string };
       } | null;
       if (!response.ok) {
-        throw new Error(body?.error?.message ?? "No pudimos completar la acción.");
+        throw new Error(
+          body?.error?.message ?? "No pudimos completar la acción."
+        );
       }
       const parsed = parseDinerSplitView(body?.data);
       if (!parsed) throw new Error("Respuesta inválida.");
@@ -137,7 +139,8 @@ export function DinerSplit({ token }: { token: string }) {
         {split.shares.map((share) => (
           <li key={share.position}>
             <div>
-              <strong>Parte {share.position}</strong> · {formatMoney(share.amountCents)}
+              <strong>Parte {share.position}</strong> ·{" "}
+              {formatMoney(share.amountCents)}
               <br />
               <small>
                 {describe(share)}
@@ -162,7 +165,9 @@ export function DinerSplit({ token }: { token: string }) {
                   disabled={busy}
                   onClick={() => {
                     secret.current ??= deviceSecret(token);
-                    setPaying(paying === share.position ? null : share.position);
+                    setPaying(
+                      paying === share.position ? null : share.position
+                    );
                   }}
                   type="button"
                 >
@@ -193,7 +198,9 @@ export function DinerSplit({ token }: { token: string }) {
         ))}
       </ul>
       <p className="diner-note">
-        Podés pagar tu parte acá con Mercado Pago, o avisarle al mozo para que la cobre en la mesa. Nunca te pedimos datos de tarjeta fuera del formulario seguro.
+        Podés pagar tu parte acá con Mercado Pago, o avisarle al mozo para que
+        la cobre en la mesa. Nunca te pedimos datos de tarjeta fuera del
+        formulario seguro.
       </p>
     </section>
   );

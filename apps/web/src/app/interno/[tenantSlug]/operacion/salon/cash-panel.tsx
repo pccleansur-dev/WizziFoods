@@ -25,11 +25,7 @@ export type CashPanelProps = {
     countedCashCents: number,
     reason: string | null
   ): Promise<CloseShiftResult | null>;
-  onMovement(
-    kind: CashMovementKind,
-    amountCents: number,
-    reason: string
-  ): void;
+  onMovement(kind: CashMovementKind, amountCents: number, reason: string): void;
   onOpen(openingCashCents: number): void;
   view: CashRegisterView;
 };
@@ -41,11 +37,17 @@ function time(iso: string): string {
   });
 }
 
-function ClosedSummary({ result }: { result: CloseShiftResult & { closed: true } }) {
+function ClosedSummary({
+  result
+}: {
+  result: CloseShiftResult & { closed: true };
+}) {
   return (
     <section aria-label="Caja cerrada" className="waiter-card cash-closed">
       <h3>Caja cerrada</h3>
-      <p className="account-balance">{cashDifferenceLabel(result.differenceCents)}</p>
+      <p className="account-balance">
+        {cashDifferenceLabel(result.differenceCents)}
+      </p>
       <dl className="account-summary">
         <div>
           <dt>Efectivo esperado</dt>
@@ -62,7 +64,9 @@ function ClosedSummary({ result }: { result: CloseShiftResult & { closed: true }
           </div>
         ))}
       </dl>
-      {result.reason ? <p className="waiter-note">Motivo: {result.reason}</p> : null}
+      {result.reason ? (
+        <p className="waiter-note">Motivo: {result.reason}</p>
+      ) : null}
       {result.pendingAccounts > 0 ? (
         <p className="waiter-note">
           Quedan {result.pendingAccounts} cuenta
@@ -91,9 +95,9 @@ export function CashPanel({
   const [counted, setCounted] = useState("");
   const [difference, setDifference] = useState<number | null>(null);
   const [reason, setReason] = useState("");
-  const [closed, setClosed] = useState<(CloseShiftResult & { closed: true }) | null>(
-    null
-  );
+  const [closed, setClosed] = useState<
+    (CloseShiftResult & { closed: true }) | null
+  >(null);
 
   const openingCents = opening.trim() === "" ? 0 : parseMoneyInput(opening);
   const movementCents = parseMoneyInput(amount);
@@ -139,7 +143,9 @@ export function CashPanel({
           }}
         >
           <h3>Abrir caja</h3>
-          <label htmlFor="cash-opening">Efectivo inicial en el cajón (fondo)</label>
+          <label htmlFor="cash-opening">
+            Efectivo inicial en el cajón (fondo)
+          </label>
           <input
             id="cash-opening"
             inputMode="decimal"
@@ -232,7 +238,9 @@ export function CashPanel({
                   onChange={(event) => setAmount(event.target.value)}
                   value={amount}
                 />
-                <label htmlFor="cash-movement-reason">Motivo (obligatorio)</label>
+                <label htmlFor="cash-movement-reason">
+                  Motivo (obligatorio)
+                </label>
                 <input
                   id="cash-movement-reason"
                   maxLength={200}
@@ -304,7 +312,9 @@ export function CashPanel({
                   }
                   type="submit"
                 >
-                  {difference === null ? "Contar y cerrar" : "Cerrar con diferencia"}
+                  {difference === null
+                    ? "Contar y cerrar"
+                    : "Cerrar con diferencia"}
                 </button>
               </form>
             </>

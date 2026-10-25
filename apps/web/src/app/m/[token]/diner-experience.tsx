@@ -49,7 +49,9 @@ export function DinerExperience({
   const [accepted, setAccepted] = useState<OrderIntentResult | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [view, setView] = useState<"menu" | "order" | "checkout" | "split">("menu");
+  const [view, setView] = useState<"menu" | "order" | "checkout" | "split">(
+    "menu"
+  );
   const [added, setAdded] = useState<string | null>(null);
   const addedTimer = useRef<number | undefined>(undefined);
   const lastSubmission = useRef<{
@@ -210,7 +212,9 @@ export function DinerExperience({
           Carta
         </button>
         <button
-          aria-current={view === "order" || view === "checkout" ? "page" : undefined}
+          aria-current={
+            view === "order" || view === "checkout" ? "page" : undefined
+          }
           onClick={() => setView("order")}
           type="button"
         >
