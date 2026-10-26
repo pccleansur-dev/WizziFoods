@@ -250,6 +250,14 @@ describeWithLocalStack("messaging worker against local Supabase", () => {
   });
 
   beforeEach(async () => {
+    // The queue is shared by the whole local database: whatever another suite left due
+    // is put behind a lease for a few minutes so this one only sees its own messages.
+    await admin`
+      update private.messaging_outbox
+      set locked_until = now() + interval '10 minutes'
+      where tenant_id <> ${tenantId} and status = 'queued'
+        and next_attempt_at <= now()
+        and (locked_until is null or locked_until < now())`;
     provider = new SimulatedWhatsappProvider();
     push = new SimulatedWebPushProvider();
     await setLocalHour(15);

@@ -34,9 +34,11 @@ const assetId = "3d000000-0000-4000-8000-0000000000a1";
 
 describeWithLocalStack("public brand with local Supabase", () => {
   const admin = postgres(databaseAdminUrl ?? "", { prepare: false });
-  const storage = createClient(supabaseUrl ?? "", supabaseSecretKey ?? "", {
-    auth: { autoRefreshToken: false, persistSession: false }
-  }).storage;
+  // Built on first use: the file is also read when the local stack is absent.
+  const storage = () =>
+    createClient(supabaseUrl ?? "", supabaseSecretKey ?? "", {
+      auth: { autoRefreshToken: false, persistSession: false }
+    }).storage;
   let app: NestFastifyApplication | undefined;
   let objectPath = "";
 
@@ -47,7 +49,7 @@ describeWithLocalStack("public brand with local Supabase", () => {
       await admin`delete from auth.users where id = ${fixture.userId}`;
     }
     if (objectPath) {
-      await storage.from("business-media").remove([objectPath]);
+      await storage().from("business-media").remove([objectPath]);
     }
   }
 
@@ -92,7 +94,7 @@ describeWithLocalStack("public brand with local Supabase", () => {
     })
       .png()
       .toBuffer();
-    const upload = await storage
+    const upload = await storage()
       .from("business-media")
       .upload(objectPath, logo, { contentType: "image/png", upsert: true });
     expect(upload.error).toBeNull();
