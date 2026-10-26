@@ -1,12 +1,10 @@
 import type { TenantScope } from "@platform/contracts";
 import type { MessagingRepository } from "@platform/database";
-import type {
-  PaymentSecretSealer,
-  WhatsappProvider
+import {
+  WHATSAPP_SECRET_METHOD,
+  type PaymentSecretSealer,
+  type WhatsappProvider
 } from "@platform/integrations";
-
-/** The method name the access token is sealed under; the API uses the same one. */
-export const WHATSAPP_SECRET_METHOD = "whatsapp";
 
 export type MessagingIterationSummary = {
   blocked: number;

@@ -3,15 +3,13 @@ import { createHash } from "node:crypto";
 import { createTenantDatabase, type TenantDatabase } from "@platform/database";
 import {
   PaymentSecretSealer,
-  SimulatedWhatsappProvider
+  SimulatedWhatsappProvider,
+  WHATSAPP_SECRET_METHOD
 } from "@platform/integrations";
 import postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  WHATSAPP_SECRET_METHOD,
-  runMessagingIteration
-} from "./messaging-worker.js";
+import { runMessagingIteration } from "./messaging-worker.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 const databaseAdminUrl = process.env.DATABASE_ADMIN_URL ?? databaseUrl;

@@ -34,6 +34,11 @@ import { TableEntryController } from "./table-entry/table-entry.controller.js";
 import { TableEntryService } from "./table-entry/table-entry.service.js";
 import { PaymentMethodsAdminController } from "./payment-methods/payment-methods.controller.js";
 import { PaymentMethodsService } from "./payment-methods/payment-methods.service.js";
+import {
+  MetaWhatsappProvider,
+  SimulatedWhatsappProvider
+} from "@platform/integrations";
+
 import { PaymentSecretSealer } from "./payment-methods/payment-secret-sealer.js";
 import { ReadinessAdminController } from "./readiness/readiness.controller.js";
 import { ReadinessService } from "./readiness/readiness.service.js";
@@ -78,6 +83,9 @@ import { TableAccountsService } from "./table-accounts/table-accounts.service.js
 import { LoyaltyDinerController } from "./loyalty/loyalty-diner.controller.js";
 import { LoyaltyStaffController } from "./loyalty/loyalty-staff.controller.js";
 import { LoyaltyService } from "./loyalty/loyalty.service.js";
+import { MessagingStaffController } from "./messaging/messaging-staff.controller.js";
+import { MessagingService } from "./messaging/messaging.service.js";
+import { WhatsappWebhookController } from "./messaging/whatsapp-webhook.controller.js";
 import { TableClosingController } from "./table-closing/table-closing.controller.js";
 import { TableClosingService } from "./table-closing/table-closing.service.js";
 import { TableRegroupingController } from "./table-regrouping/table-regrouping.controller.js";
@@ -171,6 +179,8 @@ export class AppModule {
         TableAccountsController,
         LoyaltyDinerController,
         LoyaltyStaffController,
+        MessagingStaffController,
+        WhatsappWebhookController,
         TableClosingController,
         TableRegroupingController,
         ProductionController,
@@ -386,6 +396,37 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: MessagingService,
+          useFactory: (database: TenantDatabase) => {
+            const whatsapp = config.whatsapp ?? { mode: "off" as const };
+            if (whatsapp.mode === "off") {
+              return new MessagingService(
+                database.messagingRepository,
+                null,
+                null,
+                null
+              );
+            }
+            return new MessagingService(
+              database.messagingRepository,
+              config.paymentSecretKey
+                ? new PaymentSecretSealer(config.paymentSecretKey)
+                : null,
+              // The simulator refuses to exist in production.
+              whatsapp.mode === "simulated"
+                ? new SimulatedWhatsappProvider(config.environment)
+                : new MetaWhatsappProvider({
+                    graphVersion: whatsapp.graphVersion
+                  }),
+              {
+                appSecret: whatsapp.appSecret,
+                verifyToken: whatsapp.verifyToken
+              }
+            );
+          }
         },
         {
           inject: [TENANT_DATABASE],

@@ -7,6 +7,9 @@ const tagLength = 16;
 
 export const PAYMENT_SECRET_KEY_VERSION = 1;
 
+/** The method name a WhatsApp access token is sealed under (API seals, worker opens). */
+export const WHATSAPP_SECRET_METHOD = "whatsapp";
+
 /**
  * Seals provider credentials with AES-256-GCM before they reach the database.
  * The key lives only in the server environment. The tenant, location and method

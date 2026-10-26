@@ -41,7 +41,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.register(config),
     adapter,
-    { logger: false }
+    { logger: false, rawBody: true }
   );
   app.enableShutdownHooks();
   const server = adapter.getInstance();

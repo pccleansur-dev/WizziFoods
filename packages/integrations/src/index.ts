@@ -1,6 +1,7 @@
 export {
   PAYMENT_SECRET_KEY_VERSION,
-  PaymentSecretSealer
+  PaymentSecretSealer,
+  WHATSAPP_SECRET_METHOD
 } from "./secret-sealer.js";
 export {
   MetaWhatsappProvider,
