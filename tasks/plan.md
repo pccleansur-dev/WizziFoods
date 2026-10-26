@@ -141,14 +141,14 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 6 — Operación y producción
 
 - [x] T19. Operar salón, llamados y pedidos manuales.
-- [ ] T20. Producir por sector y actualizar estados por ítem.
-- [ ] T21. Resolver entrega, faltantes, cambios y cancelaciones auditadas.
+- [x] T20. Producir por sector y actualizar estados por ítem.
+- [x] T21. Resolver entrega, faltantes, cambios y cancelaciones auditadas.
 
 ### Fase 7 — Cuenta y pagos
 
-- [ ] T22. Mantener cuenta abierta con libro mayor append-only.
-- [ ] T23. Abrir/cerrar caja y registrar pagos o devoluciones presenciales.
-- [ ] T24. Cobrar online con Mercado Pago de forma idempotente.
+- [x] T22. Mantener cuenta abierta con libro mayor append-only.
+- [x] T23. Abrir/cerrar caja y registrar pagos o devoluciones presenciales.
+- [x] T24. Cobrar online con Mercado Pago de forma idempotente.
 
 ### Fase 8 — Mesa y cobros avanzados
 
@@ -159,7 +159,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 9 — Retención
 
 - [x] T28. Registrar clientes con Google y consentimientos separados.
-- [ ] T29. Acreditar visitas y administrar premios de fidelización.
+- [x] T29. Acreditar visitas y administrar premios de fidelización.
 - [ ] T30. Conectar WhatsApp por tenant y ejecutar automatizaciones básicas.
 
 ### Fase 10 — Preparación para lanzamiento

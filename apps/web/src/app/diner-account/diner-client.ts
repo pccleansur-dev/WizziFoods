@@ -1,6 +1,10 @@
 import {
+  parseDinerBirthday,
   parseDinerExport,
+  parseDinerLoyaltyView,
   parseDinerProfileView,
+  parseReleaseRewardResult,
+  parseReserveRewardResult,
   type DinerConsentKind,
   type DinerExport,
   type DinerProfileView
@@ -155,4 +159,61 @@ export async function logout(): Promise<void> {
 /** A path on this same host to come back to; anything else becomes the root. */
 export function backPath(value: string | null | undefined): string {
   return value && /^\/(?![/\\])[\x21-\x7e]{0,199}$/u.test(value) ? value : "/";
+}
+
+async function loyaltyCall<T>(
+  request: Promise<Response>,
+  parse: (data: unknown) => T | null
+): Promise<DinerOutcome<T>> {
+  try {
+    const response = await request;
+    if (!response.ok) return await failure(response);
+    const parsed = parse(((await response.json()) as { data?: unknown }).data);
+    return parsed === null
+      ? { ...unreachable, code: "DINER_RESPONSE_INVALID" }
+      : { ok: true, value: parsed };
+  } catch {
+    return unreachable;
+  }
+}
+
+/** Progress, birthday and rewards of this restaurant. Never needed to load the menu. */
+export function loadLoyalty() {
+  return loyaltyCall(
+    fetch("/api/diner/loyalty", { cache: "no-store" }),
+    parseDinerLoyaltyView
+  );
+}
+
+export function saveBirthday(input: { day: number; month: number }) {
+  return loyaltyCall(
+    fetch("/api/diner/loyalty/birthday", {
+      body: JSON.stringify(input),
+      headers: jsonHeaders,
+      method: "PUT"
+    }),
+    parseDinerBirthday
+  );
+}
+
+export function reserveReward(input: { rewardId: string; sessionId: string }) {
+  return loyaltyCall(
+    fetch("/api/diner/loyalty/rewards/reserve", {
+      body: JSON.stringify(input),
+      headers: jsonHeaders,
+      method: "POST"
+    }),
+    parseReserveRewardResult
+  );
+}
+
+export function releaseReward(input: { rewardId: string }) {
+  return loyaltyCall(
+    fetch("/api/diner/loyalty/rewards/release", {
+      body: JSON.stringify(input),
+      headers: jsonHeaders,
+      method: "POST"
+    }),
+    parseReleaseRewardResult
+  );
 }

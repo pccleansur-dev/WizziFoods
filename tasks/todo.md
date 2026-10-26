@@ -896,20 +896,22 @@ sesión y liberar la mesa (T26).
 
 **Tamaño:** M.
 
-### T29. Acreditar visitas y administrar premios
+### T29. Acreditar visitas y administrar premios — completada
 
 **Descripción:** Implementar visitas diarias verificadas, cumpleaños y premios personales con canje atómico.
 
 **Criterios de aceptación:**
 
-- [ ] Máximo una visita diaria por persona/tenant con mínimo configurable y atribución válida.
-- [ ] Devolución total revoca visita; cumpleaños cumple antigüedad y límite de cambios.
-- [ ] Reserva, pago y canje son atómicos; un pago fallido libera el premio.
+- [x] Máximo una visita diaria por persona/tenant con mínimo configurable y atribución válida.
+- [x] Devolución total revoca visita; cumpleaños cumple antigüedad y límite de cambios.
+- [x] Reserva, pago y canje son atómicos; un pago fallido libera el premio.
 
 **Verificación:**
 
-- [ ] Pruebas de zona horaria, mesa grupal, fraude básico y concurrencia.
-- [ ] E2E completar objetivo y usar premio en la misma compra.
+- [x] Pruebas de zona horaria, mesa grupal, fraude básico y concurrencia.
+- [x] E2E completar objetivo y usar premio en la misma compra.
+
+**Resultado:** las visitas se acreditan solas al cerrar una cuenta (sin demorar ni hacer fallar el cierre): una por persona y día local de la ubicación, con consumo neto mínimo configurable, permanencia mínima, sin descuento total ni devolución y con reparto en partes iguales entre los perfiles vinculados a la sesión (mesa grupal). Una devolución total revoca la visita y el premio sin usar que había desbloqueado. El cumpleaños (sólo mes y día) exige antigüedad del perfil y un límite de cambios. Reservar un premio no toca el libro; canjear con cobro escribe el descuento, cobra el resto y marca el premio usado en **una** transacción, y si el cobro falla el premio vuelve al comensal. Verificado con 61 aserciones pgTap (dos tenants, Buenos Aires y Tokio), rollback aplicar → revertir → reaplicar, 3 pruebas de integración con carreras reales (dos cierres del mismo día, seis canjes simultáneos, cobro fallido contra liberación), contratos, controladores y un Playwright (móvil y escritorio, 3100/3101) que completa la meta y usa el premio en la misma compra. Runbook: `docs/runbooks/fidelizacion.md`. Pendientes: canje con Mercado Pago, premio de cumpleaños, atribución real por asiento y lista de visitas por cliente para el restaurante.
 
 **Dependencias:** T25, T28.
 

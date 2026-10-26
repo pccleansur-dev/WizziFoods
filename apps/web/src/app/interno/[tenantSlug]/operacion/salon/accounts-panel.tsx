@@ -16,6 +16,7 @@ import {
 } from "../../../../../staff/cash-view";
 import { closeBlockedReason } from "../../../../../staff/closing-view";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
+import { LoyaltyRewards } from "./loyalty-rewards";
 
 export type PaymentDraft = {
   amountCents: number | null;
@@ -311,6 +312,14 @@ function AccountCard({
 
       {blockedClose !== null && summary.pendingCents < 0 ? (
         <p className="waiter-note">{blockedClose}</p>
+      ) : null}
+
+      {panel === "collect" && owes && cashOpen ? (
+        <LoyaltyRewards
+          busy={busy !== null}
+          onSettled={() => setPanel(null)}
+          sessionId={account.sessionId}
+        />
       ) : null}
 
       {panel === "collect" && owes && cashOpen ? (

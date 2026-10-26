@@ -529,3 +529,25 @@ Punto de partida para T29: visitas, premios y cumpleaños cuelgan de `diner_prof
 agregues columnas de cliente a `table_sessions` ni a `account_entries`. Pendientes conscientes: verificación real del número de
 WhatsApp (hoy sólo se registra el consentimiento y el teléfono), pantalla del restaurante para sus clientes
 (`private.list_tenant_diner_profiles` ya existe), texto legal propio por restaurante desde el panel, y limpiar sesiones y códigos vencidos.
+
+## Estado de T29 — visitas, cumpleaños y premios
+
+Hecho: ver `docs/runbooks/fidelizacion.md`. Migración `20261029010000_create_loyalty.sql` (rollback probado aplicar → revertir →
+reaplicar, pgTap `loyalty.test.sql` con 61 aserciones y dos tenants). API en `apps/api/src/loyalty`, repositorio
+`packages/database/src/loyalty-repository.ts`, contratos `packages/contracts/src/loyalty.ts` y web en `app/api/diner/loyalty`,
+`app/cuenta/loyalty-panel.tsx`, `operacion/loyalty-actions.ts`, `salon/loyalty-rewards.tsx` y `salon/loyalty-settings-panel.tsx`.
+
+- Todo cuelga de `diner_profiles` y `diner_session_links`; `table_sessions` y `account_entries` no cambiaron. Sin fila en
+  `loyalty_settings` el programa está apagado. Códigos nuevos `PT287`–`PT292`; **seguí desde `PT293`**.
+- Las visitas se acreditan con un disparador sobre `table_sessions` (open → closed) que se traga sus errores: nunca demora ni
+  hace fallar el cierre. Una devolución total (`refund` en el libro) las revoca con otro disparador sobre `account_entries`.
+- Canjear un premio con cobro (`redeem_loyalty_reward_with_payment`) es una sola transacción: el orden de candados es siempre
+  la cuenta y después el premio. Si el cobro falla, el premio vuelve a `available` y la respuesta queda guardada para el `commandId`.
+- Los limpiadores que borran un tenant deben borrar además `loyalty_visits`, `loyalty_rewards`, `diner_birthdays` y
+  `loyalty_settings` (con `session_replication_role = replica`).
+- Los E2E del comensal siguen usando `DINER_AUTH_MODE=fake`; `e2e/loyalty.spec.ts` reutiliza el negocio de ajustes (Ana, PIN 246810).
+
+Punto de partida para T30 (WhatsApp): las automatizaciones deben leer consentimientos (`diner_consent_state`) y no el teléfono
+directo; `loyalty_rewards` y `diner_birthdays` ya dan los eventos (premio ganado, premio por vencer, cumpleaños). Pendientes
+conscientes: canje con Mercado Pago, premio de cumpleaños, atribución por asiento en mesas grupales (hoy partes iguales), devolución
+parcial y la lista de visitas por cliente para el restaurante.
