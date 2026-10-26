@@ -10,7 +10,7 @@ import {
 } from "./index.js";
 
 const input = {
-  accessToken: "EAAG-token-that-must-not-leak",
+  accessToken: "EAAG-token-that-must-not-leak", // secret-scan: allow
   language: "es_AR",
   phoneNumberId: "10000000001",
   templateName: "premio_ganado",

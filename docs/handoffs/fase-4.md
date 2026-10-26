@@ -551,3 +551,26 @@ Punto de partida para T30 (WhatsApp): las automatizaciones deben leer consentimi
 directo; `loyalty_rewards` y `diner_birthdays` ya dan los eventos (premio ganado, premio por vencer, cumpleaños). Pendientes
 conscientes: canje con Mercado Pago, premio de cumpleaños, atribución por asiento en mesas grupales (hoy partes iguales), devolución
 parcial y la lista de visitas por cliente para el restaurante.
+
+## Estado de T30 — WhatsApp y automatizaciones básicas
+
+Hecho: ver `docs/runbooks/whatsapp.md`. Migración `20261030010000_create_messaging.sql` (rollback probado aplicar → revertir →
+reaplicar, pgTap `messaging.test.sql` con 114 aserciones y dos tenants). Contratos `packages/contracts/src/messaging.ts`,
+repositorio `packages/database/src/messaging-repository.ts`, **paquete nuevo `@platform/integrations`** (`PaymentSecretSealer`, que ahora
+vive ahí y la API reexporta, adaptador simulado y de Meta, firma y lectura del webhook), cola de envío en `apps/worker/src/messaging-worker.ts`,
+API en `apps/api/src/messaging` y panel en `operacion/mensajeria`. Códigos nuevos `PT293`–`PT298`; **seguí desde `PT299`**.
+
+- La política de envío es **una** función (`private.messaging_send_decision`) y ante cualquier duda bloquea. `begin_messaging_send` toma un
+  candado por persona y marca `sending` en la misma transacción: ahí se respetan topes y la unicidad del envío.
+- Los envíos reales están **apagados por defecto** en tres niveles (`WHATSAPP_MODE`, `sending_enabled` por conexión, aprobación/confirmación).
+  El Checkpoint 9 sigue abierto: falta la revisión legal y comercial antes de activarlos.
+- Un mensaje `sending` con el lease vencido se cierra como `failed` y **no se reenvía**.
+- El BAJA tiene origen propio en los consentimientos (`whatsapp_optout`, se agregó al `check` de `diner_consent_events.source`).
+- `rawBody: true` en `apps/api/src/main.ts` es necesario para la firma del webhook.
+- Los limpiadores que borran un tenant deben borrar además `messaging_events`, `messaging_outbox`, `messaging_automations`,
+  `whatsapp_templates` y `whatsapp_connections` (el historial y la cola rechazan `delete`; usar `session_replication_role = replica`).
+- `pnpm install` necesita el workspace nuevo: tras actualizar, `corepack pnpm install --frozen-lockfile` y construir
+  `contracts`, `integrations`, `database`, `config` y `observability`. Playwright pone `WHATSAPP_MODE=simulated` (`e2e/stack-env.ts`).
+
+Fuera de alcance, a propósito: verificación del número del comensal, integración con el sandbox real de Meta (se probó con el simulador y con
+el adaptador de Meta sobre un `fetch` falso), costos facturables (el costo por mensaje es una estimación cargada a mano) y OAuth/Embedded Signup.

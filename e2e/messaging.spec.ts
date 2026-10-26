@@ -22,7 +22,7 @@ import { apiPort, contextOptions, stackEnv, webPort } from "./stack-env";
 
 const origin = `http://${adjustmentsHostname}:${webPort}`;
 const base = `${origin}/interno/${adjustmentsSlug}/operacion`;
-const accessToken = "EAAG-e2e-whatsapp-token-0123456789";
+const accessToken = "EAAG-e2e-whatsapp-token-0123456789"; // secret-scan: allow
 
 let business: MessagingBusiness;
 const contexts: BrowserContext[] = [];
@@ -145,8 +145,12 @@ test("the manager connects, approves, confirms and sees BAJA stop a promotion", 
 
   // 3. Templates came from the (simulated) provider.
   const templates = manager.getByRole("region", { name: "Plantillas" });
-  await expect(templates.getByText("premio_ganado", { exact: true })).toBeVisible();
-  await expect(templates.getByText("novedad_en_revision", { exact: true })).toBeVisible();
+  await expect(
+    templates.getByText("premio_ganado", { exact: true })
+  ).toBeVisible();
+  await expect(
+    templates.getByText("novedad_en_revision", { exact: true })
+  ).toBeVisible();
 
   // 4. A permanent automation waits for one approval.
   const automations = manager.getByRole("region", { name: "Automatizaciones" });

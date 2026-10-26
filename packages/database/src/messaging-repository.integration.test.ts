@@ -197,10 +197,10 @@ describeWithLocalStack("messaging races against local Supabase", () => {
         })
       )
     );
-    const [{ total }] = await admin<{ total: number }[]>`
+    const [counted] = await admin<{ total: number }[]>`
       select count(*)::int as total from private.messaging_outbox
       where tenant_id = ${tenantId} and batch_id = ${commandId}`;
-    expect(total).toBe(3);
+    expect(counted!.total).toBe(3);
 
     const results = await Promise.all(
       Array.from({ length: 8 }, () =>
@@ -213,11 +213,11 @@ describeWithLocalStack("messaging races against local Supabase", () => {
       )
     );
     expect(results.reduce((sum, result) => sum + result.changed, 0)).toBe(3);
-    const [{ queued }] = await admin<{ queued: number }[]>`
+    const [queuedRow] = await admin<{ queued: number }[]>`
       select count(*)::int as queued from private.messaging_events
       where tenant_id = ${tenantId} and kind = 'queued'
         and outbox_id in (select id from private.messaging_outbox where batch_id = ${commandId})`;
-    expect(queued).toBe(3);
+    expect(queuedRow!.queued).toBe(3);
   });
 
   it("queues the same automatic event for the same person only once", async () => {
@@ -246,11 +246,11 @@ describeWithLocalStack("messaging races against local Supabase", () => {
       )
     );
     expect(attempts.filter(([row]) => row?.queued).length).toBe(1);
-    const [{ total }] = await admin<{ total: number }[]>`
+    const [onlyOne] = await admin<{ total: number }[]>`
       select count(*)::int as total from private.messaging_outbox
       where tenant_id = ${tenantId} and profile_id = ${profile}
         and event_key = 'reward_earned:same-reward'`;
-    expect(total).toBe(1);
+    expect(onlyOne!.total).toBe(1);
   });
 
   it("lets only one of two workers send the same message", async () => {

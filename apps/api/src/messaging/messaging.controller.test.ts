@@ -157,7 +157,7 @@ describe("MessagingService", () => {
     const provider = new SimulatedWhatsappProvider();
     const { repository, service } = serviceWith({ provider });
     const request = {
-      accessToken: "EAAG-the-token-0123456789",
+      accessToken: "EAAG-the-token-0123456789", // secret-scan: allow
       displayPhone: null,
       phoneNumberId: "10000000001",
       wabaId: "20000000001"

@@ -26,7 +26,7 @@ const pepper = "test-pepper-with-at-least-32-characters";
 const pin = "135790";
 const appSecret = "it-whatsapp-app-secret-16+";
 const verifyToken = "it-whatsapp-verify-token-16+";
-const accessToken = "EAAG-integration-token-9876543210-ABC";
+const accessToken = "EAAG-integration-token-9876543210-ABC"; // secret-scan: allow
 
 type Fixture = { slug: string; tenantId: string; userId: string };
 const one: Fixture = {
@@ -131,6 +131,7 @@ describeWithLocalStack("messaging API with local Supabase", () => {
     if (payload !== undefined) options.payload = payload as object;
     const response = await app!.getHttpAdapter().getInstance().inject(options);
     return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       body: response.json() as Record<string, any>,
       status: response.statusCode,
       text: response.body
@@ -152,6 +153,7 @@ describeWithLocalStack("messaging API with local Supabase", () => {
         url: "/v1/webhooks/whatsapp"
       });
     return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       body: response.json() as Record<string, any>,
       status: response.statusCode
     };
