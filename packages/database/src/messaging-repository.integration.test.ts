@@ -72,9 +72,13 @@ describeWithLocalStack("messaging races against local Supabase", () => {
         scope: scope(),
         staffId
       });
+      // The clock of the local database container steps back by over a second now and
+      // then; a message due "now" could look like it is due in a moment.
       const [row] = await admin<{ id: string }[]>`
-        select id from private.messaging_outbox
-        where tenant_id = ${tenantId} and batch_id = ${commandId}`;
+        update private.messaging_outbox
+        set next_attempt_at = now() - interval '10 seconds'
+        where tenant_id = ${tenantId} and batch_id = ${commandId}
+        returning id`;
       ids.push(row!.id);
     }
     return ids;

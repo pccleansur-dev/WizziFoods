@@ -165,6 +165,10 @@ confirmar/cancelar) y registro de envíos con el motivo de cada bloqueo.
 docker exec -i supabase-db psql -U supabase_admin -d postgres -q -t -A < supabase/tests/database/messaging.test.sql
 ```
 
+> En Windows con Docker Desktop el reloj del contenedor de la base se desfasa y retrocede más de un segundo de
+> tanto en tanto. Un mensaje «debido ahora» puede parecer debido en un instante, así que las pruebas de integración
+> de la cola lo marcan como vencido 10 segundos antes de reclamarlo. No es un defecto de la cola: sólo demora un poco.
+
 Los limpiadores que borran un tenant deben borrar antes, con `session_replication_role = replica`,
 `messaging_events`, `messaging_outbox`, `messaging_automations`, `whatsapp_templates` y
 `whatsapp_connections` (el historial y la cola rechazan `delete`), además de la lista de T28 y T29.
