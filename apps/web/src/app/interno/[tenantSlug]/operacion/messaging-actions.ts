@@ -12,6 +12,7 @@ import {
   parseProposeOneOffRequest,
   parseProposedOneOff,
   parseSaveAutomationRequest,
+  parseSavePushTemplateRequest,
   parseSetTemplateCostRequest,
   type ConnectWhatsappRequest,
   type DecideAutomationRequest,
@@ -22,7 +23,8 @@ import {
   type MessagingOverview,
   type ProposeOneOffRequest,
   type ProposedOneOff,
-  type SaveAutomationRequest
+  type SaveAutomationRequest,
+  type SavePushTemplateRequest
 } from "@platform/contracts";
 
 import { callStaffApi } from "../../../../staff/waiter-api";
@@ -127,6 +129,35 @@ export async function setSendingAction(
     "PUT",
     `${base}/sending`,
     { enabled: enabled === true },
+    parseMessagingOverview
+  );
+}
+
+export async function setPushSendingAction(
+  tenantSlug: string,
+  enabled: boolean
+): Promise<WaiterActionResult<MessagingOverview>> {
+  return run(
+    tenantSlug,
+    "PUT",
+    `${base}/push/sending`,
+    { enabled: enabled === true },
+    parseMessagingOverview
+  );
+}
+
+/** The restaurant's own push message: no Meta approval, 240 characters at most. */
+export async function savePushTemplateAction(
+  tenantSlug: string,
+  request: SavePushTemplateRequest
+): Promise<WaiterActionResult<MessagingOverview>> {
+  const parsed = parseSavePushTemplateRequest(request);
+  if (!parsed) return invalid();
+  return run(
+    tenantSlug,
+    "PUT",
+    `${base}/push/templates`,
+    parsed,
     parseMessagingOverview
   );
 }

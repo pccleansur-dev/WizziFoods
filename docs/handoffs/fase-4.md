@@ -555,7 +555,7 @@ parcial y la lista de visitas por cliente para el restaurante.
 ## Estado de T30 — WhatsApp y automatizaciones básicas
 
 Hecho: ver `docs/runbooks/whatsapp.md`. Migración `20261030010000_create_messaging.sql` (rollback probado aplicar → revertir →
-reaplicar, pgTap `messaging.test.sql` con 127 aserciones y dos tenants). Contratos `packages/contracts/src/messaging.ts`,
+reaplicar, pgTap `messaging.test.sql` con 173 aserciones y dos tenants). Contratos `packages/contracts/src/messaging.ts`,
 repositorio `packages/database/src/messaging-repository.ts`, **paquete nuevo `@platform/integrations`** (`PaymentSecretSealer`, que ahora
 vive ahí y la API reexporta, adaptador simulado y de Meta, firma y lectura del webhook), cola de envío en `apps/worker/src/messaging-worker.ts`,
 API en `apps/api/src/messaging` y panel en `operacion/mensajeria`. Códigos nuevos `PT293`–`PT298`; **seguí desde `PT299`**.
@@ -571,6 +571,15 @@ API en `apps/api/src/messaging` y panel en `operacion/mensajeria`. Códigos nuev
   `whatsapp_templates` y `whatsapp_connections` (el historial y la cola rechazan `delete`; usar `session_replication_role = replica`).
 - `pnpm install` necesita el workspace nuevo: tras actualizar, `corepack pnpm install --frozen-lockfile` y construir
   `contracts`, `integrations`, `database`, `config` y `observability`. Playwright pone `WHATSAPP_MODE=simulated` (`e2e/stack-env.ts`).
+
+**Segundo canal: avisos de la PWA (Web Push).** Ver `docs/runbooks/avisos-pwa.md`. Migración
+`20261030020000_add_web_push_channel.sql` (rollback probado): columna `channel` en plantillas, automatizaciones y cola,
+`push_subscriptions` y `push_settings`. Misma política, cola, historial y panel; la entrega la hace
+`packages/integrations/src/web-push.ts` (RFC 8291 y VAPID sin dependencias, verificado con el vector del RFC). Variables
+`WEB_PUSH_MODE`, `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY` (sólo el worker) y `WEB_PUSH_SUBJECT`. En la web:
+`public/sw.js`, `app/manifest.ts`, `cuenta/push-panel.tsx`. La suscripción cubre los avisos operativos; una promoción por push
+exige además `marketing`. Los cupos se comparten con WhatsApp. `claim_messaging_outbox` recibe ahora los canales que entrega
+el worker. Las pruebas de WhatsApp asumen 8 automatizaciones (4 tipos por 2 canales).
 
 Fuera de alcance, a propósito: verificación del número del comensal, integración con el sandbox real de Meta (se probó con el simulador y con
 el adaptador de Meta sobre un `fetch` falso), costos facturables (el costo por mensaje es una estimación cargada a mano) y OAuth/Embedded Signup.

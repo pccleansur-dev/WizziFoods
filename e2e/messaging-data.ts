@@ -18,6 +18,14 @@ export type MessagingBusiness = AdjustmentsBusiness & {
   connections(): Promise<number>;
   /** The credential bytes, to prove the token is not stored in clear. */
   storedCredential(): Promise<Buffer | null>;
+  /** Active browsers of a person. */
+  pushSubscriptions(displayName: string): Promise<number>;
+  /** Messages of a person by channel and status, oldest first. */
+  channelOutbox(
+    displayName: string
+  ): Promise<{ channel: string; status: string }[]>;
+  /** Adds an active browser to a person, as if they had turned notifications on. */
+  subscribePush(displayName: string, endpoint: string): Promise<void>;
   /** A diner with a profile, a phone and both consents. */
   newDiner(displayName: string, phone: string): Promise<void>;
 };
@@ -33,6 +41,8 @@ async function cleanupMessaging(owner: postgres.Sql) {
     >`select account_id from private.diner_profile_links where tenant_id = ${tenant.id}`;
     for (const table of [
       "messaging_events",
+      "push_subscriptions",
+      "push_settings",
       "messaging_outbox",
       "messaging_automations",
       "whatsapp_templates",
@@ -118,6 +128,28 @@ export async function seedMessagingBusiness(): Promise<MessagingBusiness> {
         lastError: row.last_error,
         status: row.status
       }));
+    },
+    async pushSubscriptions(displayName) {
+      const [row] = await owner<{ total: number }[]>`
+        select count(*)::int as total from private.push_subscriptions s
+        join private.diner_profiles p on p.tenant_id = s.tenant_id and p.id = s.profile_id
+        where s.tenant_id = ${tenantId} and p.display_name = ${displayName}
+          and s.revoked_at is null`;
+      return row!.total;
+    },
+    async channelOutbox(displayName) {
+      return owner<{ channel: string; status: string }[]>`
+        select o.channel, o.status from private.messaging_outbox o
+        join private.diner_profiles p on p.tenant_id = o.tenant_id and p.id = o.profile_id
+        where o.tenant_id = ${tenantId} and p.display_name = ${displayName}
+        order by o.created_at, o.id`;
+    },
+    async subscribePush(displayName, endpoint) {
+      await owner`
+        insert into private.push_subscriptions (tenant_id, profile_id, endpoint, p256dh, auth)
+        select p.tenant_id, p.id, ${endpoint}, ${"A".repeat(87)}, ${"B".repeat(22)}
+        from private.diner_profiles p
+        where p.tenant_id = ${tenantId} and p.display_name = ${displayName}`;
     },
     async storedCredential() {
       const [row] = await owner<{ ciphertext: Buffer }[]>`

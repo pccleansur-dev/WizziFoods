@@ -1,5 +1,6 @@
 import type {
   MessagingAutomationKind,
+  MessagingChannel,
   MessagingAutomationStatus,
   MessagingCategory,
   MessagingEventKind,
@@ -9,6 +10,11 @@ import type {
 export const categoryLabels: Record<MessagingCategory, string> = {
   operational: "Operativa",
   promotional: "Promocional"
+};
+
+export const channelLabels: Record<MessagingChannel, string> = {
+  web_push: "App (push)",
+  whatsapp: "WhatsApp"
 };
 
 export const approvalLabels: Record<MessagingTemplateStatus, string> = {
@@ -55,6 +61,7 @@ const reasonLabels: Record<string, string> = {
   marketing_consent_missing: "Sin consentimiento de promociones",
   monthly_cap: "Tope mensual (8)",
   no_phone: "Sin teléfono",
+  no_subscription: "Sin dispositivos con avisos activados",
   not_confirmed: "Evento sin confirmar",
   not_connected: "Número no conectado",
   opt_out: "La persona respondió BAJA",

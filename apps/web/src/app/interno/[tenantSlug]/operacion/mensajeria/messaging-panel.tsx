@@ -14,6 +14,7 @@ import {
   automationLabels,
   automationStatusLabels,
   categoryLabels,
+  channelLabels,
   costLabel,
   eventLabels,
   reasonLabel,
@@ -29,6 +30,8 @@ import {
   getMessagingEventsAction,
   proposeOneOffAction,
   saveAutomationAction,
+  savePushTemplateAction,
+  setPushSendingAction,
   setSendingAction,
   setTemplateCostAction,
   syncTemplatesAction
@@ -71,6 +74,11 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
   const [oneOffTemplate, setOneOffTemplate] = useState("");
   const [oneOffPeople, setOneOffPeople] = useState<string[]>([]);
   const [oneOffText, setOneOffText] = useState("");
+  const [pushName, setPushName] = useState("");
+  const [pushCategory, setPushCategory] = useState<
+    "operational" | "promotional"
+  >("operational");
+  const [pushBody, setPushBody] = useState("");
 
   const refreshLog = useCallback(async () => {
     const result = await getMessagingEventsAction(tenantSlug);
@@ -118,6 +126,12 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
 
   const connection = overview.connection;
   const approved = approvedTemplates(overview.templates);
+  const whatsappTemplates = overview.templates.filter(
+    (template) => template.channel === "whatsapp"
+  );
+  const pushTemplates = overview.templates.filter(
+    (template) => template.channel === "web_push"
+  );
 
   async function connect() {
     const request = {
@@ -196,7 +210,8 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
             }
             type="button"
           >
-            Aprobar {automationLabels[automation.kind]}
+            Aprobar {automationLabels[automation.kind]} (
+            {channelLabels[automation.channel]})
           </button>
         ) : null}
         {automation.status === "approved" ? (
@@ -206,7 +221,8 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
             onClick={() => void decide("pause", "Pausaste la automatización.")}
             type="button"
           >
-            Pausar {automationLabels[automation.kind]}
+            Pausar {automationLabels[automation.kind]} (
+            {channelLabels[automation.channel]})
           </button>
         ) : null}
         {automation.status === "paused" ? (
@@ -218,7 +234,8 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
             }
             type="button"
           >
-            Reanudar {automationLabels[automation.kind]}
+            Reanudar {automationLabels[automation.kind]} (
+            {channelLabels[automation.channel]})
           </button>
         ) : null}
       </>
@@ -228,6 +245,11 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
   const oneOffTemplates = approved;
   const people = audience.filter((person) => {
     const template = approved.find((entry) => entry.id === oneOffTemplate);
+    if (template?.channel === "web_push") {
+      return template.category === "operational"
+        ? person.pushConsent
+        : person.pushMarketingConsent;
+    }
     return template?.category === "operational"
       ? person.whatsappConsent
       : person.marketingConsent;
@@ -236,9 +258,10 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
   return (
     <div className="messaging-panel">
       <p className="waiter-note">
-        Los mensajes salen solo con el consentimiento vigente de cada persona,
-        de 10 a 20 h para promociones, con un máximo de 2 por semana y 8 por
-        mes, y se frenan si la persona responde BAJA.
+        Los mensajes (WhatsApp o avisos en la app) salen solo con el
+        consentimiento vigente de cada persona, de 10 a 20 h para promociones,
+        con un máximo de 2 por semana y 8 por mes, y se frenan si la persona
+        responde BAJA.
       </p>
       {message !== null ? (
         <p aria-live="polite" className="waiter-note" role="status">
@@ -392,7 +415,7 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
               estimado {costLabel(overview.usage.estimatedCostCents)}.
             </p>
             <ul>
-              {overview.templates.map((template) => (
+              {whatsappTemplates.map((template) => (
                 <li key={template.id}>
                   <strong>{template.name}</strong> ·{" "}
                   {categoryLabels[template.category]} ·{" "}
@@ -437,7 +460,104 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
               ))}
             </ul>
           </section>
+        </>
+      ) : null}
 
+      <section aria-label="Avisos en la app" className="waiter-reject">
+        <h2>Avisos en la app (PWA)</h2>
+        <p>
+          Notificaciones del navegador o de la app instalada: sin costo por
+          mensaje y sin cuenta de Meta. Hoy las tienen activadas{" "}
+          <strong>{overview.push.subscribers}</strong>{" "}
+          {overview.push.subscribers === 1 ? "persona" : "personas"}.
+        </p>
+        <label>
+          <input
+            checked={overview.push.sendingEnabled}
+            disabled={busy}
+            onChange={(event) =>
+              void apply(
+                () => setPushSendingAction(tenantSlug, event.target.checked),
+                event.target.checked
+                  ? "Activaste los avisos en la app."
+                  : "Apagaste los avisos en la app."
+              )
+            }
+            type="checkbox"
+          />{" "}
+          Avisos en la app activados
+        </label>
+        {!overview.push.sendingEnabled ? (
+          <p className="waiter-note">
+            Los avisos están apagados: nada sale hasta que los actives, algo que
+            conviene hacer recién después de la revisión legal y comercial.
+          </p>
+        ) : null}
+        <ul>
+          {pushTemplates.map((template) => (
+            <li key={template.id}>
+              <strong>{template.name}</strong> ·{" "}
+              {categoryLabels[template.category]}
+              <br />
+              <small>{template.body}</small>
+            </li>
+          ))}
+        </ul>
+        <label htmlFor="push-name">
+          Nombre del aviso (minúsculas y guiones bajos)
+        </label>
+        <input
+          id="push-name"
+          onChange={(event) => setPushName(event.target.value)}
+          value={pushName}
+        />
+        <label htmlFor="push-category">Tipo de aviso</label>
+        <select
+          id="push-category"
+          onChange={(event) =>
+            setPushCategory(event.target.value as "operational" | "promotional")
+          }
+          value={pushCategory}
+        >
+          <option value="operational">
+            Operativo (sobre su visita o premio)
+          </option>
+          <option value="promotional">Promocional</option>
+        </select>
+        <label htmlFor="push-body">
+          Texto del aviso (hasta 240 caracteres; {"{{1}}"} es el nombre)
+        </label>
+        <textarea
+          id="push-body"
+          maxLength={240}
+          onChange={(event) => setPushBody(event.target.value)}
+          value={pushBody}
+        />
+        <button
+          className="button button--primary"
+          disabled={busy || pushName.trim() === "" || pushBody.trim() === ""}
+          onClick={() =>
+            void apply(
+              () =>
+                savePushTemplateAction(tenantSlug, {
+                  body: pushBody.trim(),
+                  category: pushCategory,
+                  name: pushName.trim()
+                }),
+              "Guardamos el aviso."
+            ).then(() => {
+              setPushName("");
+              setPushBody("");
+            })
+          }
+          type="button"
+        >
+          Guardar aviso
+        </button>
+      </section>
+
+      {
+        <>
           <section aria-label="Automatizaciones" className="waiter-reject">
             <h2>Automatizaciones</h2>
             <p>
@@ -445,60 +565,74 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
               la plantilla, hay que aprobarla de nuevo.
             </p>
             <ul>
-              {overview.automations.map((automation) => (
-                <li key={automation.kind}>
-                  <strong>{automationLabels[automation.kind]}</strong> ·{" "}
-                  {automationStatusLabels[automation.status]}
-                  {automation.templateName
-                    ? ` · ${automation.templateName}`
-                    : ""}
-                  <br />
-                  <label htmlFor={`auto-${automation.kind}`}>
-                    Plantilla de {automationLabels[automation.kind]}
-                  </label>{" "}
-                  <select
-                    id={`auto-${automation.kind}`}
-                    onChange={(event) =>
-                      setChosen({
-                        ...chosen,
-                        [automation.kind]: event.target.value
-                      })
-                    }
-                    value={
-                      chosen[automation.kind] ?? automation.templateId ?? ""
-                    }
-                  >
-                    <option value="">Elegí una plantilla aprobada</option>
-                    {approved.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name} ({categoryLabels[template.category]})
-                      </option>
-                    ))}
-                  </select>{" "}
-                  <button
-                    className="button button--secondary"
-                    disabled={
-                      busy ||
-                      !(chosen[automation.kind] ?? automation.templateId)
-                    }
-                    onClick={() =>
-                      void apply(
-                        () =>
-                          saveAutomationAction(tenantSlug, {
-                            kind: automation.kind,
-                            templateId: (chosen[automation.kind] ??
-                              automation.templateId)!
-                          }),
-                        "Guardamos la plantilla. Falta aprobarla."
-                      )
-                    }
-                    type="button"
-                  >
-                    Guardar plantilla de {automationLabels[automation.kind]}
-                  </button>{" "}
-                  {automationActions(automation)}
-                </li>
-              ))}
+              {overview.automations
+                .filter(
+                  (automation) =>
+                    automation.channel === "web_push" || connection !== null
+                )
+                .map((automation) => {
+                  const slot = `${automation.kind}:${automation.channel}`;
+                  return (
+                    <li key={slot}>
+                      <strong>{automationLabels[automation.kind]}</strong> ·{" "}
+                      {channelLabels[automation.channel]} ·{" "}
+                      {automationStatusLabels[automation.status]}
+                      {automation.templateName
+                        ? ` · ${automation.templateName}`
+                        : ""}
+                      <br />
+                      <label htmlFor={`auto-${slot}`}>
+                        Plantilla de {automationLabels[automation.kind]} (
+                        {channelLabels[automation.channel]})
+                      </label>{" "}
+                      <select
+                        id={`auto-${slot}`}
+                        onChange={(event) =>
+                          setChosen({
+                            ...chosen,
+                            [slot]: event.target.value
+                          })
+                        }
+                        value={chosen[slot] ?? automation.templateId ?? ""}
+                      >
+                        <option value="">Elegí una plantilla aprobada</option>
+                        {approved
+                          .filter(
+                            (template) =>
+                              template.channel === automation.channel
+                          )
+                          .map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.name} (
+                              {categoryLabels[template.category]})
+                            </option>
+                          ))}
+                      </select>{" "}
+                      <button
+                        className="button button--secondary"
+                        disabled={
+                          busy || !(chosen[slot] ?? automation.templateId)
+                        }
+                        onClick={() =>
+                          void apply(
+                            () =>
+                              saveAutomationAction(tenantSlug, {
+                                kind: automation.kind,
+                                templateId: (chosen[slot] ??
+                                  automation.templateId)!
+                              }),
+                            "Guardamos la plantilla. Falta aprobarla."
+                          )
+                        }
+                        type="button"
+                      >
+                        Guardar plantilla de {automationLabels[automation.kind]}{" "}
+                        ({channelLabels[automation.channel]})
+                      </button>{" "}
+                      {automationActions(automation)}
+                    </li>
+                  );
+                })}
             </ul>
           </section>
 
@@ -520,7 +654,8 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
               <option value="">Elegí una plantilla aprobada</option>
               {oneOffTemplates.map((template) => (
                 <option key={template.id} value={template.id}>
-                  {template.name} ({categoryLabels[template.category]})
+                  {template.name} ({channelLabels[template.channel]},{" "}
+                  {categoryLabels[template.category]})
                 </option>
               ))}
             </select>
@@ -595,7 +730,7 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
             ))}
           </section>
         </>
-      ) : null}
+      }
 
       <section aria-label="Registro de envíos" className="waiter-reject">
         <h2>Registro de envíos</h2>

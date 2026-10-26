@@ -155,24 +155,26 @@ test("the manager connects, approves, confirms and sees BAJA stop a promotion", 
   // 4. A permanent automation waits for one approval.
   const automations = manager.getByRole("region", { name: "Automatizaciones" });
   await automations
-    .getByLabel("Plantilla de Premio ganado")
+    .getByLabel("Plantilla de Premio ganado (WhatsApp)")
     .selectOption({ label: "premio_ganado (Operativa)" });
   await automations
-    .getByRole("button", { name: "Guardar plantilla de Premio ganado" })
+    .getByRole("button", {
+      name: "Guardar plantilla de Premio ganado (WhatsApp)"
+    })
     .click();
   await expect(automations.getByText("Pendiente de aprobación")).toBeVisible();
   await automations
-    .getByRole("button", { name: "Aprobar Premio ganado" })
+    .getByRole("button", { name: "Aprobar Premio ganado (WhatsApp)" })
     .click();
   await expect(
-    automations.getByRole("button", { name: "Pausar Premio ganado" })
+    automations.getByRole("button", { name: "Pausar Premio ganado (WhatsApp)" })
   ).toBeVisible();
 
   // 5. A one-off promotion is prepared first and sent only once confirmed.
   const oneOff = manager.getByRole("region", { name: "Evento puntual" });
   await oneOff
     .getByLabel("Plantilla del evento")
-    .selectOption({ label: "feliz_cumple (Promocional)" });
+    .selectOption({ label: "feliz_cumple (WhatsApp, Promocional)" });
   await oneOff.getByLabel("Lucía").check();
   await oneOff.getByRole("button", { name: "Preparar envío" }).click();
   await expect(oneOff.getByText(/Falta tu confirmación/u)).toBeVisible();
@@ -249,4 +251,164 @@ test("the manager connects, approves, confirms and sees BAJA stop a promotion", 
     manager.getByRole("button", { name: "Conectar WhatsApp" })
   ).toBeVisible();
   expect(await business.connections()).toBe(0);
+});
+
+test("a diner turns the notifications of this device on and off", async ({
+  browser
+}) => {
+  const diner = await newPage(browser);
+  await diner.context().grantPermissions(["notifications"], { origin });
+  // Chromium cannot reach a real push service from here: the subscription is stood in
+  // for, while the service worker, the permission and the API are the real ones.
+  await diner.addInitScript(() => {
+    const key = "__e2e_push";
+    const endpoint = "https://push.example.com/send/e2e-browser";
+    const make = () => ({
+      endpoint,
+      expirationTime: null,
+      toJSON: () => ({
+        endpoint,
+        keys: { auth: "B".repeat(22), p256dh: "A".repeat(87) }
+      }),
+      unsubscribe: () => {
+        localStorage.removeItem(key);
+        return Promise.resolve(true);
+      }
+    });
+    // The permission prompt cannot be answered here either.
+    Object.defineProperty(Notification, "permission", { get: () => "granted" });
+    Notification.requestPermission = () => Promise.resolve("granted");
+    if (window.PushManager) {
+      PushManager.prototype.subscribe = () => {
+        localStorage.setItem(key, "1");
+        return Promise.resolve(make() as unknown as PushSubscription);
+      };
+      PushManager.prototype.getSubscription = () =>
+        Promise.resolve(
+          localStorage.getItem(key)
+            ? (make() as unknown as PushSubscription)
+            : null
+        );
+    }
+  });
+  const token = await business.dinerToken("5");
+  await diner.goto(`/m/${token}`);
+  await expect(
+    diner.getByText("Hacer el pedido", { exact: true })
+  ).toBeVisible();
+  await diner
+    .getByRole("button", { name: /Ingresar con Google/u })
+    .first()
+    .click();
+  await diner.getByLabel("Correo").fill("fake:dina@push.example");
+  await diner.getByRole("button", { name: "Continuar" }).click();
+  await diner.getByLabel("Tu nombre en este local").fill("Dina");
+  await diner.getByRole("button", { name: "Crear mi perfil" }).click();
+  await expect(diner.getByText("Hola, Dina")).toBeVisible();
+
+  await diner.goto(`/cuenta?volver=/m/${token}`);
+  const turnOn = diner.getByRole("button", {
+    name: "Activar avisos",
+    exact: true
+  });
+  await expect(turnOn).toBeVisible({ timeout: 30_000 });
+  await hydrated(turnOn);
+  await clickUntil(turnOn, () =>
+    expect(
+      diner.getByRole("button", { name: "Desactivar avisos", exact: true })
+    ).toBeVisible({ timeout: 2_000 })
+  );
+  expect(await business.pushSubscriptions("Dina")).toBe(1);
+
+  // Coming back, the screen knows this browser is already subscribed.
+  await diner.reload();
+  const turnOff = diner.getByRole("button", {
+    name: "Desactivar avisos",
+    exact: true
+  });
+  await expect(turnOff).toBeVisible({ timeout: 30_000 });
+  await hydrated(turnOff);
+  await clickUntil(turnOff, () =>
+    expect(
+      diner.getByRole("button", { name: "Activar avisos", exact: true })
+    ).toBeVisible({
+      timeout: 2_000
+    })
+  );
+  expect(await business.pushSubscriptions("Dina")).toBe(0);
+});
+
+test("the manager writes a push message and sends it only to who has notifications on", async ({
+  browser
+}) => {
+  await business.subscribePush(
+    "Lucía",
+    "https://push.example.com/send/e2e-lucia"
+  );
+  const manager = await signInStaff(browser, "marta");
+  await manager.goto(`${base}/mensajeria`);
+  await expect(
+    manager.getByRole("heading", { name: "Mensajería", level: 1 })
+  ).toBeVisible();
+
+  // 1. Notifications are a switch of their own, off by default.
+  const push = manager.getByRole("region", { name: "Avisos en la app" });
+  const sending = push.getByLabel("Avisos en la app activados");
+  await expect(sending).not.toBeChecked();
+  await expect(push.getByText(/Los avisos están apagados/u)).toBeVisible();
+  await hydrated(sending);
+  await clickUntil(sending, () =>
+    expect(push.getByText(/Los avisos están apagados/u)).toHaveCount(0, {
+      timeout: 2_000
+    })
+  );
+
+  // 2. The restaurant writes its own message: nothing to wait for from Meta.
+  await push.getByLabel(/^Nombre del aviso/u).fill("aviso_premio");
+  await push
+    .getByLabel("Texto del aviso", { exact: false })
+    .fill("Hola {{1}}, ya tenés un premio.");
+  await push.getByRole("button", { name: "Guardar aviso" }).click();
+  await expect(push.getByText("Hola {{1}}, ya tenés un premio.")).toBeVisible();
+
+  // 3. Its automation is approved once, apart from WhatsApp's.
+  const automations = manager.getByRole("region", { name: "Automatizaciones" });
+  await automations
+    .getByLabel("Plantilla de Premio ganado (App (push))")
+    .selectOption({ label: "aviso_premio (Operativa)" });
+  await automations
+    .getByRole("button", {
+      name: "Guardar plantilla de Premio ganado (App (push))"
+    })
+    .click();
+  await automations
+    .getByRole("button", { name: "Aprobar Premio ganado (App (push))" })
+    .click();
+  await expect(
+    automations.getByRole("button", {
+      name: "Pausar Premio ganado (App (push))"
+    })
+  ).toBeVisible();
+
+  // 4. A one-off push: prepared, then confirmed; only who has it on can be chosen.
+  const oneOff = manager.getByRole("region", { name: "Evento puntual" });
+  await oneOff
+    .getByLabel("Plantilla del evento")
+    .selectOption({ label: "aviso_premio (App (push), Operativa)" });
+  await expect(oneOff.getByLabel("Dina")).toHaveCount(0);
+  await oneOff.getByLabel("Lucía").check();
+  await oneOff.getByRole("button", { name: "Preparar envío" }).click();
+  await expect(oneOff.getByText(/Falta tu confirmación/u)).toBeVisible();
+  await oneOff.getByRole("button", { name: "Confirmar envío" }).click();
+  await expect(oneOff.getByText(/Falta tu confirmación/u)).toHaveCount(0);
+  const mine = (await business.channelOutbox("Lucía")).filter(
+    (row) => row.channel === "web_push"
+  );
+  expect(mine).toEqual([{ channel: "web_push", status: "queued" }]);
+
+  const log = manager.getByRole("region", { name: "Registro de envíos" });
+  await log.getByRole("button", { name: "Actualizar registro" }).click();
+  await expect(
+    log.getByRole("row", { name: /Lucía.*aviso_premio.*En cola/u }).first()
+  ).toBeVisible();
 });

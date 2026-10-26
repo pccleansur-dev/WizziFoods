@@ -5,6 +5,10 @@ envía avisos de fidelización respetando consentimiento, horario, topes y bajas
 la carta, el login y los pedidos no consultan este módulo y la falta de configuración no los
 bloquea ni los demora.
 
+> Existe un segundo canal sobre la misma política, cola y panel: los **avisos en la app (Web Push de
+> la PWA)**, descritos en `docs/runbooks/avisos-pwa.md`. Los cupos (2 por semana y 8 por mes) son por
+> persona y valen para ambos canales.
+
 > **Los envíos reales están apagados por defecto.** Hay tres llaves independientes y las tres
 > deben abrirse a propósito: `WHATSAPP_MODE` (servidor), «Envíos activados» (por conexión) y la
 > aprobación de cada automatización o la confirmación de cada evento puntual. El Checkpoint 9
@@ -140,7 +144,7 @@ confirmar/cancelar) y registro de envíos con el motivo de cada bloqueo.
 
 ## Pruebas
 
-- pgTap `supabase/tests/database/messaging.test.sql` (127 aserciones, dos tenants): permisos,
+- pgTap `supabase/tests/database/messaging.test.sql` (173 aserciones, con el canal de push; dos tenants): permisos,
   aislamiento, credenciales, plantillas, aprobación, cada regla de la política (consentimientos,
   horario en 09/10/20/23 h, topes semanal y mensual, 12 meses, anonimizado), BAJA, cola, reintentos,
   lease perdido, deduplicación del webhook, historial append-only y desconexión.
