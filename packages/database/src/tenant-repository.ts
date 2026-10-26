@@ -59,6 +59,10 @@ import {
   type LoyaltyRepository
 } from "./loyalty-repository.js";
 import {
+  createMessagingRepository,
+  type MessagingRepository
+} from "./messaging-repository.js";
+import {
   createTableRegroupingRepository,
   type TableRegroupingRepository
 } from "./table-regrouping-repository.js";
@@ -162,6 +166,7 @@ export type TenantDatabase = {
   tableRegroupingRepository: TableRegroupingRepository;
   dinerIdentityRepository: DinerIdentityRepository;
   loyaltyRepository: LoyaltyRepository;
+  messagingRepository: MessagingRepository;
   productionRepository: ProductionRepository;
   waiterOperationsRepository: WaiterOperationsRepository;
   paymentMethodsRepository: PaymentMethodsRepository;
@@ -251,6 +256,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     tableRegroupingRepository: createTableRegroupingRepository(client),
     dinerIdentityRepository: createDinerIdentityRepository(client),
     loyaltyRepository: createLoyaltyRepository(client),
+    messagingRepository: createMessagingRepository(client),
     productionRepository: createProductionRepository(client),
     waiterOperationsRepository: createWaiterOperationsRepository(client),
     paymentMethodsRepository: createPaymentMethodsRepository(client),
