@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { createTenantDatabase, type TenantDatabase } from "@platform/database";
 import {
   PaymentSecretSealer,
+  SimulatedWebPushProvider,
   SimulatedWhatsappProvider,
   WHATSAPP_SECRET_METHOD
 } from "@platform/integrations";
@@ -26,6 +27,9 @@ describeWithLocalStack("messaging worker against local Supabase", () => {
   const sealer = new PaymentSecretSealer(Buffer.alloc(32, 5));
   let database: TenantDatabase;
   let provider: SimulatedWhatsappProvider;
+  let push: SimulatedWebPushProvider;
+  let pushTemplate = "";
+  let pushPromoTemplate = "";
   let locationId = "";
   let staffId = "";
   let promoTemplate = "";
@@ -36,13 +40,13 @@ describeWithLocalStack("messaging worker against local Supabase", () => {
     `3a700000-0000-4000-8000-${String(++counter).padStart(12, "0")}`;
   const scope = () => ({ locationId, tenantId });
   const repository = () => database.messagingRepository;
-  const run = () =>
+  const run = (only: "all" | "push" | "whatsapp" = "all") =>
     runMessagingIteration({
       leaseSeconds: 60,
       limit: 100,
-      provider,
       repository: repository(),
-      sealer
+      webPush: only === "whatsapp" ? null : push,
+      whatsapp: only === "push" ? null : { provider, sealer }
     });
 
   async function newDiner(name: string, phone: string, marketing = true) {
@@ -67,6 +71,27 @@ describeWithLocalStack("messaging worker against local Supabase", () => {
     const [row] = await admin<{ id: string }[]>`
       select private.diner_profile_id_of(${tenantId}::uuid, ${accountId}::uuid) as id`;
     return row!.id;
+  }
+
+  const keys = (n: number) => ({
+    auth: "B".repeat(22),
+    endpoint: `https://push.example.com/send/worker-${n}`,
+    p256dh: "A".repeat(87)
+  });
+  let browsers = 0;
+
+  /** A diner with a profile and no phone, reachable only through its browsers. */
+  async function pushDiner(name: string, count: number, marketing = true) {
+    const profile = await newDiner(name, "+5491144449999", marketing);
+    const accountId = accounts[accounts.length - 1]!;
+    const endpoints: string[] = [];
+    for (let n = 0; n < count; n += 1) {
+      browsers += 1;
+      const request = keys(browsers);
+      endpoints.push(request.endpoint);
+      await repository().registerPush({ accountId, request, scope: scope() });
+    }
+    return { endpoints, profile };
   }
 
   async function queue(profileId: string, template: string, count: number) {
@@ -116,6 +141,8 @@ describeWithLocalStack("messaging worker against local Supabase", () => {
     await admin.begin(async (tx) => {
       await tx`set local session_replication_role = replica`;
       await tx`delete from private.messaging_events where tenant_id = ${tenantId}`;
+      await tx`delete from private.push_subscriptions where tenant_id = ${tenantId}`;
+      await tx`delete from private.push_settings where tenant_id = ${tenantId}`;
       await tx`delete from private.messaging_outbox where tenant_id = ${tenantId}`;
       await tx`delete from private.messaging_automations where tenant_id = ${tenantId}`;
       await tx`delete from private.whatsapp_templates where tenant_id = ${tenantId}`;
@@ -193,10 +220,38 @@ describeWithLocalStack("messaging worker against local Supabase", () => {
       (t) => t.name === "premio"
     )!.id;
     await repository().setSending({ enabled: true, scope: scope(), staffId });
+    await repository().setPushSending({
+      enabled: true,
+      scope: scope(),
+      staffId
+    });
+    await repository().savePushTemplate({
+      request: {
+        body: "Hola {{1}}, ya tenés un premio.",
+        category: "operational",
+        name: "aviso"
+      },
+      scope: scope(),
+      staffId
+    });
+    const withPush = await repository().savePushTemplate({
+      request: {
+        body: "Hola {{1}}, novedades.",
+        category: "promotional",
+        name: "novedad"
+      },
+      scope: scope(),
+      staffId
+    });
+    pushTemplate = withPush.templates.find((t) => t.name === "aviso")!.id;
+    pushPromoTemplate = withPush.templates.find(
+      (t) => t.name === "novedad"
+    )!.id;
   });
 
   beforeEach(async () => {
     provider = new SimulatedWhatsappProvider();
+    push = new SimulatedWebPushProvider();
     await setLocalHour(15);
   });
 
@@ -335,5 +390,89 @@ describeWithLocalStack("messaging worker against local Supabase", () => {
     expect(
       statuses.every((row) => row.status === "sent" && row.attempts === 1)
     ).toBe(true);
+  });
+
+  it("delivers a push to every browser of the person, with the text filled in", async () => {
+    const { endpoints, profile } = await pushDiner("navegantes", 2);
+    const [id] = await queue(profile, pushTemplate, 1);
+    expect(await run()).toMatchObject({ sent: 1 });
+    expect(push.sent.map((entry) => entry.subscription.endpoint)).toEqual(
+      endpoints
+    );
+    const payload = JSON.parse(push.sent[0]!.payload);
+    expect(payload).toMatchObject({
+      body: "Hola Hola, ya tenés un premio.",
+      url: "/cuenta"
+    });
+    expect(push.sent[0]!.urgency).toBe("high");
+    expect(await rowOf(id!)).toMatchObject({ attempts: 1, status: "sent" });
+  });
+
+  it("drops a browser the push service no longer knows and stops when none is left", async () => {
+    const { endpoints, profile } = await pushDiner("fantasmas", 2);
+    push.goneEndpoints.add(endpoints[0]!);
+    const [first] = await queue(profile, pushTemplate, 1);
+    expect(await run()).toMatchObject({ sent: 1 });
+    expect(push.sent).toHaveLength(1);
+    expect((await rowOf(first!)).status).toBe("sent");
+    const [revoked] = await admin<{ revoked_reason: string | null }[]>`
+      select revoked_reason from private.push_subscriptions where endpoint = ${endpoints[0]!}`;
+    expect(revoked?.revoked_reason).toBe("gone");
+
+    push.goneEndpoints.add(endpoints[1]!);
+    const [second] = await queue(profile, pushTemplate, 1);
+    expect(await run()).toMatchObject({ failed: 1 });
+    expect((await rowOf(second!)).status).toBe("failed");
+    // The next message finds no browser left and is blocked, never sent.
+    const [third] = await queue(profile, pushTemplate, 1);
+    expect(await run()).toMatchObject({ blocked: 1 });
+    expect((await rowOf(third!)).last_error).toBe("no_subscription");
+  });
+
+  it("retries a push that could not be delivered", async () => {
+    const { profile } = await pushDiner("reintentos", 1);
+    const [id] = await queue(profile, pushTemplate, 1);
+    push.failNext("transient_failure");
+    expect(await run()).toMatchObject({ retried: 1, sent: 0 });
+    await dueNow(id!);
+    expect(await run()).toMatchObject({ sent: 1 });
+    expect(await rowOf(id!)).toMatchObject({ attempts: 2, status: "sent" });
+  });
+
+  it("leaves the messages of a channel it does not deliver for another worker", async () => {
+    const { profile } = await pushDiner("canal", 1);
+    const [id] = await queue(profile, pushTemplate, 1);
+    expect(await run("whatsapp")).toMatchObject({ sent: 0 });
+    expect(await rowOf(id!)).toMatchObject({ attempts: 0, status: "queued" });
+    expect(await run("push")).toMatchObject({ sent: 1 });
+    expect((await rowOf(id!)).status).toBe("sent");
+  });
+
+  it("keeps one promotional allowance for both channels", async () => {
+    const profile = await newDiner("ambos", "+5491144440077");
+    const accountId = accounts[accounts.length - 1]!;
+    browsers += 1;
+    await repository().registerPush({
+      accountId,
+      request: keys(browsers),
+      scope: scope()
+    });
+    const wa = await queue(profile, promoTemplate, 2);
+    const viaPush = await queue(profile, pushPromoTemplate, 2);
+    const summary = await run();
+    expect(summary).toMatchObject({ blocked: 2, sent: 2 });
+    expect(provider.sent.length + push.sent.length).toBe(2);
+    const states = await Promise.all([...wa, ...viaPush].map(rowOf));
+    expect(
+      states.filter((row) => row.last_error === "weekly_cap")
+    ).toHaveLength(2);
+  });
+
+  it("does not deliver a promotion by push without the marketing consent", async () => {
+    const { profile } = await pushDiner("sinpromo", 1, false);
+    const [id] = await queue(profile, pushPromoTemplate, 1);
+    expect(await run()).toMatchObject({ blocked: 1 });
+    expect((await rowOf(id!)).last_error).toBe("marketing_consent_missing");
+    expect(push.sent).toHaveLength(0);
   });
 });

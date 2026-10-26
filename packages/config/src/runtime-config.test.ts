@@ -1,3 +1,5 @@
+import { createECDH } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -52,6 +54,7 @@ describe("runtime configuration", () => {
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000",
+      webPush: { mode: "off" },
       whatsapp: { mode: "off" }
     });
   });
@@ -301,8 +304,56 @@ describe("runtime configuration", () => {
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000",
       visibilityTimeoutSeconds: 120,
+      webPush: { mode: "off" },
       whatsapp: { mode: "off" }
     });
+  });
+
+  it("keeps Web Push off unless asked and checks the VAPID keys", () => {
+    const keys = createECDH("prime256v1");
+    keys.generateKeys();
+    const push = {
+      WEB_PUSH_MODE: "live",
+      WEB_PUSH_PRIVATE_KEY: keys.getPrivateKey().toString("base64url"),
+      WEB_PUSH_PUBLIC_KEY: keys.getPublicKey().toString("base64url"),
+      WEB_PUSH_SUBJECT: "mailto:soporte@plataforma.test"
+    };
+    const worker = {
+      ...baseEnvironment,
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+      SUPABASE_URL: "http://supabase.local:8000",
+      WORKER_METRICS_PORT: "9465",
+      WORKER_HEARTBEAT_MS: "60000",
+      WORKER_POLL_MS: "1000",
+      WORKER_VISIBILITY_TIMEOUT_SECONDS: "120"
+    };
+    expect(readWorkerConfig({ ...worker, ...push }).webPush).toEqual({
+      mode: "live",
+      privateKey: push.WEB_PUSH_PRIVATE_KEY,
+      publicKey: push.WEB_PUSH_PUBLIC_KEY,
+      subject: push.WEB_PUSH_SUBJECT
+    });
+    expect(() =>
+      readWorkerConfig({
+        ...worker,
+        ...push,
+        APP_ENV: "production",
+        WEB_PUSH_MODE: "simulated"
+      })
+    ).toThrow("WEB_PUSH_MODE simulated is not allowed in production");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_PUBLIC_KEY: "AAAA" })
+    ).toThrow("WEB_PUSH_PUBLIC_KEY must be an uncompressed P-256 key");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_PRIVATE_KEY: "AAAA" })
+    ).toThrow("WEB_PUSH_PRIVATE_KEY must be 32 bytes");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_SUBJECT: "soporte" })
+    ).toThrow("WEB_PUSH_SUBJECT must be a mailto: or https: contact");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_MODE: "maybe" })
+    ).toThrow("WEB_PUSH_MODE must be off, simulated or live");
   });
 
   it("keeps WhatsApp off unless asked and refuses the simulator in production", () => {

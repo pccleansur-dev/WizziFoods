@@ -7,7 +7,10 @@ import { createTenantDatabase } from "@platform/database";
 import {
   MetaWhatsappProvider,
   PaymentSecretSealer,
+  SimulatedWebPushProvider,
   SimulatedWhatsappProvider,
+  VapidWebPushProvider,
+  type WebPushProvider,
   type WhatsappProvider
 } from "@platform/integrations";
 import { initializeTelemetry, startOperation } from "@platform/observability";
@@ -109,25 +112,40 @@ function startWorker(): void {
     pollMs: config.pollMs
   });
 
-  // Messaging is optional: with WHATSAPP_MODE=off (the default) nothing is polled.
+  // Messaging is optional: with WHATSAPP_MODE and WEB_PUSH_MODE off (the default)
+  // nothing is polled. Each channel is delivered only if its own mode is on.
   const loops = [mediaPolling, importPolling];
-  if (config.whatsapp.mode !== "off" && config.paymentSecretKey) {
-    const sealer = new PaymentSecretSealer(config.paymentSecretKey);
-    const provider: WhatsappProvider =
-      config.whatsapp.mode === "simulated"
-        ? new SimulatedWhatsappProvider(config.environment)
-        : new MetaWhatsappProvider({
-            graphVersion: config.whatsapp.graphVersion
+  const whatsapp =
+    config.whatsapp.mode !== "off" && config.paymentSecretKey
+      ? {
+          provider: (config.whatsapp.mode === "simulated"
+            ? new SimulatedWhatsappProvider(config.environment)
+            : new MetaWhatsappProvider({
+                graphVersion: config.whatsapp.graphVersion
+              })) as WhatsappProvider,
+          sealer: new PaymentSecretSealer(config.paymentSecretKey)
+        }
+      : null;
+  const webPush: WebPushProvider | null =
+    config.webPush.mode === "off" || !config.webPush.privateKey
+      ? null
+      : config.webPush.mode === "simulated"
+        ? new SimulatedWebPushProvider(config.environment)
+        : new VapidWebPushProvider({
+            privateKey: config.webPush.privateKey,
+            publicKey: config.webPush.publicKey,
+            subject: config.webPush.subject
           });
+  if (whatsapp || webPush) {
     loops.push(
       startPollingLoop({
         iteration: async () => {
           const summary = await runMessagingIteration({
             leaseSeconds: config.visibilityTimeoutSeconds,
             limit: 20,
-            provider,
             repository: database.messagingRepository,
-            sealer
+            webPush,
+            whatsapp
           });
           if (
             summary.sent + summary.blocked + summary.failed + summary.retried >

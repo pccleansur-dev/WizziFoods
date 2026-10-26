@@ -67,6 +67,20 @@ export type WhatsappConfig =
       verifyToken: string;
     };
 
+/**
+ * Notifications of the installed PWA (Web Push), signed with VAPID. "simulated" sends
+ * nothing and is refused in production. The private key only exists where messages are
+ * sent (the worker); the API only needs the public one, which the browser subscribes with.
+ */
+export type WebPushConfig =
+  | { mode: "off" }
+  | {
+      mode: "live" | "simulated";
+      privateKey: string | null;
+      publicKey: string;
+      subject: string;
+    };
+
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
   adminInviteRedirectUrl: string;
   /** Absent (or off) means diners can only continue without an account. */
@@ -85,6 +99,8 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   supabaseUrl: string;
   /** Absent (or off) means no message is ever sent. */
   whatsapp?: WhatsappConfig;
+  /** Absent (or off) means the PWA does not offer notifications. */
+  webPush?: WebPushConfig;
 };
 
 export type WebRuntimeConfig = BaseRuntimeConfig & {
@@ -104,6 +120,7 @@ export type WorkerRuntimeConfig = BaseRuntimeConfig & {
   metricsPort: number;
   paymentSecretKey: Buffer | null;
   pollMs: number;
+  webPush: WebPushConfig;
   whatsapp: WhatsappConfig;
   supabaseSecretKey: string;
   supabaseUrl: string;
@@ -234,6 +251,48 @@ function readPaymentSecretKey(source: EnvironmentSource): Buffer | null {
     throw new Error("PAYMENT_SECRET_KEY must be 32 random bytes in base64");
   }
   return key;
+}
+
+function readWebPushConfig(
+  source: EnvironmentSource,
+  environment: AppEnvironment,
+  includePrivateKey: boolean
+): WebPushConfig {
+  const mode = source.WEB_PUSH_MODE?.trim() || "off";
+  if (!["off", "simulated", "live"].includes(mode)) {
+    throw new Error("WEB_PUSH_MODE must be off, simulated or live");
+  }
+  if (mode === "off") return { mode: "off" };
+  if (mode === "simulated" && environment === "production") {
+    throw new Error("WEB_PUSH_MODE simulated is not allowed in production");
+  }
+  const publicKey = required(source, "WEB_PUSH_PUBLIC_KEY");
+  const publicBytes = Buffer.from(publicKey, "base64url");
+  if (
+    publicBytes.length !== 65 ||
+    publicBytes[0] !== 4 ||
+    publicBytes.toString("base64url") !== publicKey
+  ) {
+    throw new Error(
+      "WEB_PUSH_PUBLIC_KEY must be an uncompressed P-256 key in base64url"
+    );
+  }
+  let privateKey: string | null = null;
+  if (includePrivateKey) {
+    privateKey = required(source, "WEB_PUSH_PRIVATE_KEY");
+    const privateBytes = Buffer.from(privateKey, "base64url");
+    if (
+      privateBytes.length !== 32 ||
+      privateBytes.toString("base64url") !== privateKey
+    ) {
+      throw new Error("WEB_PUSH_PRIVATE_KEY must be 32 bytes in base64url");
+    }
+  }
+  const subject = required(source, "WEB_PUSH_SUBJECT");
+  if (!/^(mailto:[^\s@]+@[^\s@]+|https:\/\/[^\s]+)$/u.test(subject)) {
+    throw new Error("WEB_PUSH_SUBJECT must be a mailto: or https: contact");
+  }
+  return { mode: mode as "live" | "simulated", privateKey, publicKey, subject };
 }
 
 function readWhatsappConfig(
@@ -464,6 +523,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       staffPinPepper,
       supabaseSecretKey,
       supabaseUrl,
+      webPush: readWebPushConfig(source, base.environment, false),
       whatsapp: readWhatsappConfig(source, base.environment, paymentSecretKey)
     };
   });
@@ -594,6 +654,7 @@ export function readWorkerConfig(
       metricsPort,
       paymentSecretKey,
       pollMs,
+      webPush: readWebPushConfig(source, base.environment, true),
       whatsapp: readWhatsappConfig(source, base.environment, paymentSecretKey),
       supabaseSecretKey,
       supabaseUrl,

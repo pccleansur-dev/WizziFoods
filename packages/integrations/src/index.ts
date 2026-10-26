@@ -25,3 +25,15 @@ export {
   verifyWebhookBody,
   type WhatsappWebhookEvent
 } from "./whatsapp-webhook.js";
+export {
+  SimulatedWebPushProvider,
+  VapidWebPushProvider,
+  encryptWebPushPayload,
+  vapidAuthorization,
+  type SendWebPushInput,
+  type VapidKeys,
+  type VapidWebPushOptions,
+  type WebPushProvider,
+  type WebPushResult,
+  type WebPushSubscription
+} from "./web-push.js";

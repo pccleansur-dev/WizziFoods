@@ -10,6 +10,7 @@ export {
   type MercadoPagoConfig,
   type WebRuntimeConfig,
   type WebAuthConfig,
+  type WebPushConfig,
   type WhatsappConfig,
   type WorkerRuntimeConfig
 } from "./runtime-config.js";

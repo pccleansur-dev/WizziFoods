@@ -259,8 +259,16 @@ describeWithLocalStack("messaging races against local Supabase", () => {
     const profile = await newDiner("carrera", "+5491133330020");
     const [outboxId] = await queueFor(profile, operationalTemplate, 1);
     const claims = await Promise.all([
-      repository().claimOutbox({ leaseSeconds: 60, limit: 100 }),
-      repository().claimOutbox({ leaseSeconds: 60, limit: 100 })
+      repository().claimOutbox({
+        channels: ["whatsapp", "web_push"],
+        leaseSeconds: 60,
+        limit: 100
+      }),
+      repository().claimOutbox({
+        channels: ["whatsapp", "web_push"],
+        leaseSeconds: 60,
+        limit: 100
+      })
     ]);
     const claimed = claims.flat().filter((claim) => claim.id === outboxId);
     expect(claimed).toHaveLength(1);

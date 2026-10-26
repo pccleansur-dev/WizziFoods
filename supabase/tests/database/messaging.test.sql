@@ -363,8 +363,8 @@ do $$ begin perform pg_temp.at_hour(15); end $$;
 
 create temporary table q as select pg_temp.one_off('tope', 'premio_ganado') op;
 update private.messaging_outbox set next_attempt_at = now() - interval '1 second';
-select ok(jsonb_array_length(private.claim_messaging_outbox(100, 60)) >= 1, 'due messages are claimed');
-select is(jsonb_array_length(private.claim_messaging_outbox(100, 60)), 0, 'a claimed message is invisible to other workers');
+select ok(jsonb_array_length(private.claim_messaging_outbox(100, 60, array['whatsapp', 'web_push'])) >= 1, 'due messages are claimed');
+select is(jsonb_array_length(private.claim_messaging_outbox(100, 60, array['whatsapp', 'web_push'])), 0, 'a claimed message is invisible to other workers');
 select is(private.begin_messaging_send((select t1 from scope), (select l1 from scope), (select op from q)) ->> 'action',
   'send', 'the first worker starts the send');
 select is(private.begin_messaging_send((select t1 from scope), (select l1 from scope), (select op from q)) ->> 'action',
@@ -410,7 +410,7 @@ select is(private.claim_messaging_webhook_event('evt-1', 'status'), 'duplicate',
 create temporary table s as select pg_temp.one_off('wally', 'premio_ganado') op;
 update private.messaging_outbox set status = 'sending', attempts = 1, sent_at = now() - interval '1 hour',
   locked_until = now() - interval '1 minute' where id = (select op from s);
-do $$ begin perform private.claim_messaging_outbox(10, 60); end $$;
+do $$ begin perform private.claim_messaging_outbox(10, 60, array['whatsapp', 'web_push']); end $$;
 select is(pg_temp.status_of((select op from s)), 'failed', 'a lost lease closes the message as failed');
 select is((select last_error from private.messaging_outbox where id = (select op from s)), 'lost_lease', 'with its reason');
 

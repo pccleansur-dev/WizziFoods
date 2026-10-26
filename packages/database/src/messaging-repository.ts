@@ -11,6 +11,7 @@ import {
   type DecidedOneOff,
   type DinerPushState,
   type MessagingAudienceMember,
+  type MessagingChannel,
   type MessagingEvent,
   type MessagingOverview,
   type ProposedOneOff,
@@ -137,7 +138,9 @@ export interface MessagingRepository {
     outboxId: string;
     scope: TenantScope;
   }): Promise<BeginSendResult>;
+  /** Only the channels this worker can deliver; the rest stay queued for another. */
   claimOutbox(input: {
+    channels: MessagingChannel[];
     leaseSeconds: number;
     limit: number;
   }): Promise<ClaimedMessage[]>;
@@ -459,7 +462,8 @@ export function createMessagingRepository(client: Sql): MessagingRepository {
     async claimOutbox(input) {
       const [row] = await client<ResultRow[]>`
         select private.claim_messaging_outbox(
-          ${input.limit}::integer, ${input.leaseSeconds}::integer
+          ${input.limit}::integer, ${input.leaseSeconds}::integer,
+          ${input.channels}::text[]
         ) as result
       `;
       const items = Array.isArray(row?.result) ? row.result : [];

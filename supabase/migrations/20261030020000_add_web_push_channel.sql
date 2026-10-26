@@ -349,6 +349,64 @@ begin
 end;
 $$;
 
+-- 5b. The worker only claims the channels it can deliver -------------------------------------
+
+drop function private.claim_messaging_outbox(integer, integer);
+
+create function private.claim_messaging_outbox(
+  target_limit integer,
+  target_lease_seconds integer,
+  target_channels text[]
+)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = ''
+set row_security = off
+as $$
+declare
+  lost private.messaging_outbox%rowtype;
+  claimed jsonb;
+begin
+  if target_limit not between 1 and 100 or target_lease_seconds not between 5 and 3600 then
+    raise exception 'invalid claim' using errcode = 'PT297';
+  end if;
+  for lost in
+    select * from private.messaging_outbox stale
+    where stale.status = 'sending' and stale.locked_until < now()
+    order by stale.locked_until
+    limit 100
+    for update skip locked
+  loop
+    update private.messaging_outbox set status = 'failed', last_error = 'lost_lease',
+      locked_until = null, updated_at = now()
+    where tenant_id = lost.tenant_id and id = lost.id;
+    perform private.log_messaging_event(lost, 'failed', 'lost_lease');
+  end loop;
+  with due as (
+    select candidate.tenant_id, candidate.id
+    from private.messaging_outbox candidate
+    where candidate.status = 'queued' and candidate.next_attempt_at <= now()
+      and candidate.channel = any (target_channels)
+      and (candidate.locked_until is null or candidate.locked_until < now())
+    order by candidate.next_attempt_at, candidate.id
+    limit target_limit
+    for update skip locked
+  ), taken as (
+    update private.messaging_outbox item
+    set locked_until = now() + make_interval(secs => target_lease_seconds)
+    from due
+    where item.tenant_id = due.tenant_id and item.id = due.id
+    returning item.tenant_id, item.location_id, item.id
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', taken.id, 'tenantId', taken.tenant_id, 'locationId', taken.location_id)), '[]')
+  into claimed from taken;
+  return claimed;
+end;
+$$;
+
 -- 6. Events: one message per channel the restaurant has an approved automation for ----------
 
 create or replace function private.enqueue_messaging_event(
@@ -1115,6 +1173,9 @@ revoke all on function
   private.save_push_template(uuid, uuid, uuid, text, text, text),
   private.on_profile_anonymized_revoke_push()
 from public, anon, authenticated, authenticator;
+revoke all on function private.claim_messaging_outbox(integer, integer, text[])
+from public, anon, authenticated, authenticator;
+grant execute on function private.claim_messaging_outbox(integer, integer, text[]) to authenticator;
 grant execute on function
   private.register_push_subscription(uuid, uuid, text, text, text),
   private.revoke_push_subscription(uuid, uuid, text),
