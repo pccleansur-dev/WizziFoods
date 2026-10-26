@@ -140,7 +140,7 @@ confirmar/cancelar) y registro de envíos con el motivo de cada bloqueo.
 
 ## Pruebas
 
-- pgTap `supabase/tests/database/messaging.test.sql` (114 aserciones, dos tenants): permisos,
+- pgTap `supabase/tests/database/messaging.test.sql` (127 aserciones, dos tenants): permisos,
   aislamiento, credenciales, plantillas, aprobación, cada regla de la política (consentimientos,
   horario en 09/10/20/23 h, topes semanal y mensual, 12 meses, anonimizado), BAJA, cola, reintentos,
   lease perdido, deduplicación del webhook, historial append-only y desconexión.
@@ -168,6 +168,29 @@ Los limpiadores que borran un tenant deben borrar antes, con `session_replicatio
 Códigos nuevos: `PT293` sin conexión, `PT294` número conectado en otro negocio, `PT295` plantilla
 inexistente o sin aprobar, `PT296` automatización inválida, `PT297` datos inválidos, `PT298` evento
 puntual inexistente. **Códigos usados hasta ahora: `PT201`–`PT298`.**
+
+## Argentina y Chile
+
+El módulo no tiene reglas por país: sirve para ambos con estos puntos.
+
+- **Zona horaria:** el horario de 10 a 20 h usa `locations.timezone` de cada local
+  (`America/Argentina/Buenos_Aires`, `America/Santiago`). Chile cambia de hora en verano e
+  invierno y la política lo respeta (probado en pgTap con fechas de noviembre y julio).
+- **Teléfonos:** formato internacional (`+54 9 11…`, `+56 9…`). Meta informa un móvil argentino
+  a veces con el 9 (`+549…`) y a veces sin él (`+54…`); para asociar un BAJA a su perfil se ignora
+  ese 9 (`private.messaging_phone_key`), de modo que el opt-out no falla por la grafía. El envío usa
+  el número tal como lo guardó la persona; **hay que confirmar en el sandbox real de Meta que
+  acepta `+549…` como destino**.
+- **Idioma de las plantillas:** `es_AR` y `es_CL` son válidos. El simulador sólo trae `es_AR`, y los
+  textos del panel están en voseo argentino.
+- **Moneda:** el costo estimado por mensaje se muestra en pesos argentinos (`ARS`); para Chile
+  (CLP, sin centavos) hay que parametrizar la moneda por local. Pendiente.
+- **Revisión legal (Checkpoint 9):** hay que hacerla por país. Argentina: Ley 25.326 de protección
+  de datos personales y el Registro «No llame» (Ley 26.951). Chile: Ley 19.628, la reforma de la
+  Ley 21.719 (entra en vigencia a fines de 2026, verificar la fecha) y la Ley 19.496 del
+  consumidor. Esto es una lista de lo que debería mirar un abogado, no una opinión legal.
+- Un restaurante, un país: si algún día un mismo tenant opera en ambos, cada local ya tiene su
+  propia zona, su propio número y sus propias plantillas.
 
 ## Fuera de alcance / pendientes
 

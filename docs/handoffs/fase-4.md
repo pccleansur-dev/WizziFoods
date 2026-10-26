@@ -555,7 +555,7 @@ parcial y la lista de visitas por cliente para el restaurante.
 ## Estado de T30 — WhatsApp y automatizaciones básicas
 
 Hecho: ver `docs/runbooks/whatsapp.md`. Migración `20261030010000_create_messaging.sql` (rollback probado aplicar → revertir →
-reaplicar, pgTap `messaging.test.sql` con 114 aserciones y dos tenants). Contratos `packages/contracts/src/messaging.ts`,
+reaplicar, pgTap `messaging.test.sql` con 127 aserciones y dos tenants). Contratos `packages/contracts/src/messaging.ts`,
 repositorio `packages/database/src/messaging-repository.ts`, **paquete nuevo `@platform/integrations`** (`PaymentSecretSealer`, que ahora
 vive ahí y la API reexporta, adaptador simulado y de Meta, firma y lectura del webhook), cola de envío en `apps/worker/src/messaging-worker.ts`,
 API en `apps/api/src/messaging` y panel en `operacion/mensajeria`. Códigos nuevos `PT293`–`PT298`; **seguí desde `PT299`**.

@@ -22,6 +22,7 @@ drop function private.require_messaging_manager(uuid, uuid, uuid);
 drop function private.messaging_overview_json(uuid, uuid);
 drop function private.messaging_template_json(private.whatsapp_templates);
 drop function private.record_whatsapp_opt_out(text, text);
+drop function private.messaging_phone_key(text);
 drop function private.record_messaging_delivery(text, text, text, text);
 drop function private.finish_messaging_webhook_event(text, text);
 drop function private.claim_messaging_webhook_event(text, text);

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(114);
+select plan(127);
 
 insert into auth.users (id) values ('3d100000-0000-4000-8000-000000000001'), ('3d100000-0000-4000-8000-000000000002');
 insert into public.tenants (id, slug, name, status) values
@@ -324,6 +324,40 @@ select is(private.record_whatsapp_opt_out('99999999999', '+5491122220001'), 'unk
 select is(private.record_whatsapp_opt_out('10000000001', 'not-a-phone'), 'ignored', 'a malformed sender is ignored');
 select throws_ok($$update private.diner_consent_events set action = 'granted' where profile_id = pg_temp.pid('paula')$$,
   'PT209', null, 'consents stay append-only');
+
+-- Argentina and Chile: phone spellings, time zones (Chile has daylight saving time).
+do $$ begin
+  perform pg_temp.diner((select t1 from scope), 'argentina', '+5491166660001', true, true);
+  perform pg_temp.diner((select t1 from scope), 'chilena', '+56911110001', true, true);
+  perform pg_temp.diner((select t1 from scope), 'chilena2', '+56922220002', true, true);
+end $$;
+select is(private.messaging_phone_key('+5491166660001'), '+541166660001', 'an Argentine mobile ignores the 9');
+select is(private.messaging_phone_key('+541166660001'), '+541166660001', 'with or without it is the same subscriber');
+select is(private.messaging_phone_key('+56911110001'), '+56911110001', 'a Chilean mobile is compared as it is');
+select is(private.record_whatsapp_opt_out('10000000001', '+541166660001'), 'applied',
+  'BAJA from an Argentine number without the 9 still finds the profile saved with it');
+select is(private.diner_consent_state((select t1 from scope), pg_temp.pid('argentina'), 'marketing') ->> 'granted', 'false',
+  'and the marketing consent is revoked');
+select is(private.record_whatsapp_opt_out('10000000001', '+56911110001'), 'applied', 'BAJA from a Chilean number');
+select is(private.diner_consent_state((select t1 from scope), pg_temp.pid('chilena2'), 'marketing') ->> 'granted', 'true',
+  'another Chilean number is untouched');
+
+create temporary table cl as select pg_temp.one_off('chilena2', 'promo_semana') promo;
+update public.locations set timezone = 'America/Santiago' where id = (select l1 from scope);
+select is(pg_temp.decision((select promo from cl), timestamptz '2026-11-10 14:00:00 America/Santiago'), 'send:ok',
+  'Santiago, 14:00 local, is inside the hours');
+select is(pg_temp.decision((select promo from cl), timestamptz '2026-11-10 21:00:00 America/Santiago'), 'defer:outside_hours',
+  'Santiago, 21:00 local (summer time), is outside');
+select is(pg_temp.decision((select promo from cl), timestamptz '2026-07-10 19:59:00 America/Santiago'), 'send:ok',
+  'Santiago in winter time: 19:59 is still inside');
+select is(pg_temp.decision((select promo from cl), timestamptz '2026-07-10 20:00:00 America/Santiago'), 'defer:outside_hours',
+  'and 20:00 is already outside');
+update public.locations set timezone = 'America/Argentina/Buenos_Aires' where id = (select l1 from scope);
+select is(pg_temp.decision((select promo from cl), timestamptz '2026-11-10 09:59:00 America/Argentina/Buenos_Aires'), 'defer:outside_hours',
+  'Buenos Aires, 09:59 local, is outside');
+select is(pg_temp.decision((select promo from cl), timestamptz '2026-11-10 10:00:00 America/Argentina/Buenos_Aires'), 'send:ok',
+  'and 10:00 is inside');
+do $$ begin perform pg_temp.at_hour(15); end $$;
 
 -- 7. Queue: claim, begin, finish, retries --------------------------------------------------
 

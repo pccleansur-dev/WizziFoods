@@ -873,6 +873,20 @@ begin
 end;
 $$;
 
+-- Meta reports an Argentine mobile as +54 9 <area> <number> in some places and as
+-- +54 <area> <number> in others. For matching a BAJA to a profile both spellings are the
+-- same subscriber, so the "9" after 54 is ignored. Other countries (Chile: +56 9 ...)
+-- are compared as they are.
+create function private.messaging_phone_key(target_phone text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select case when target_phone ~ '^\+549[0-9]{8,11}$'
+    then '+54' || substr(target_phone, 5) else target_phone end;
+$$;
+
 -- "BAJA": revokes the marketing consent of every profile of THAT business with that
 -- phone, with an origin of its own, and stops what was waiting. The same per-person
 -- lock as sending, so a message cannot slip through after the revocation.
@@ -900,7 +914,8 @@ begin
   if not found then return 'unknown_number'; end if;
   for person in
     select profile.id from private.diner_profiles profile
-    where profile.tenant_id = connection.tenant_id and profile.whatsapp_phone = target_phone
+    where profile.tenant_id = connection.tenant_id
+      and private.messaging_phone_key(profile.whatsapp_phone) = private.messaging_phone_key(target_phone)
       and profile.anonymized_at is null
     order by profile.id
   loop
@@ -1622,6 +1637,7 @@ revoke all on function
   private.finish_messaging_webhook_event(text, text),
   private.record_messaging_delivery(text, text, text, text),
   private.record_whatsapp_opt_out(text, text),
+  private.messaging_phone_key(text),
   private.messaging_template_json(private.whatsapp_templates),
   private.messaging_overview_json(uuid, uuid),
   private.require_messaging_manager(uuid, uuid, uuid),
