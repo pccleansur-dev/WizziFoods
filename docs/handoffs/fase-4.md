@@ -504,3 +504,28 @@ aplicar → revertir → reaplicar, pgTap `table_regrouping.test.sql` con 85 ase
 Punto de partida para el Checkpoint 8 / T28+: el salón ya cubre mesa → pedido → cobro → cierre → limpieza y
 unir/separar. Pendientes conscientes: sacar una sola mesa de un grupo grande, que el comensal confirme que se une a
 la cuenta del grupo, envío del comprobante y PDF en servidor (T26), y la regla de tasa de tokens (T33).
+
+## Estado de T28 — cuenta de comensal y consentimientos
+
+Hecho: ver `docs/runbooks/cuenta-de-comensal.md`. Migración `20261028010000_create_diner_identity.sql` (rollback probado
+aplicar → revertir → reaplicar, pgTap `diner_identity.test.sql` con 58 aserciones y dos tenants). API en
+`apps/api/src/diner-identity`, repositorio `packages/database/src/diner-identity-repository.ts`, contratos
+`packages/contracts/src/diner-identity.ts`, configuración `DINER_AUTH_*` en `packages/config` y web en `app/api/diner`,
+`app/diner-account` y `app/cuenta`.
+
+- La cuenta global del comensal (`private.diner_accounts`) **no** reutiliza `staff_members` ni `tenant_memberships`. Cada restaurante
+  ve sólo `private.diner_profiles` (id opaco por tenant); el único puente es `diner_profile_links`, que ninguna función de tenant lee.
+- Consentimientos (`whatsapp_verified`, `marketing`): append-only, versionados por texto. Códigos nuevos `PT281`–`PT286`; **seguí desde `PT287`**.
+- El comensal se vincula a la **sesión** (`private.diner_session_links`), nunca a la mesa; `table_sessions` y `account_entries` no cambiaron.
+  `link_diner_to_session` toma el candado compartido `private.table_groups_lock_key`. La resolución del QR no consulta la cuenta.
+- Los limpiadores que borran un tenant deben borrar antes (con `session_replication_role = replica` en una transacción)
+  `diner_session_links`, `diner_consent_events`, `diner_profile_links`, `diner_profiles`, `diner_sessions`, `diner_login_exchanges` y las cuentas
+  creadas, además de `cashier_requests`, `account_receipts`, `receipt_counters`, `table_group_events` y `table_sessions`.
+- Las páginas del comensal declaran `referrer: no-referrer`: sus POST llevan `Origin: null`. Los chequeos de mismo sitio usan
+  `Sec-Fetch-Site` (`isOwnSite`) y recién después `Origin`. Una llamada sin cuerpo no debe declarar `content-type: application/json` (Fastify la rechaza).
+- Playwright usa `DINER_AUTH_MODE=fake` (`e2e/stack-env.ts`); la API se prueba en serie con `DATABASE_ADMIN_URL` del dueño de las tablas.
+
+Punto de partida para T29: visitas, premios y cumpleaños cuelgan de `diner_profiles` (por tenant) y de `diner_session_links`; no
+agregues columnas de cliente a `table_sessions` ni a `account_entries`. Pendientes conscientes: verificación real del número de
+WhatsApp (hoy sólo se registra el consentimiento y el teléfono), pantalla del restaurante para sus clientes
+(`private.list_tenant_diner_profiles` ya existe), texto legal propio por restaurante desde el panel, y limpiar sesiones y códigos vencidos.

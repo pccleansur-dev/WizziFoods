@@ -158,7 +158,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 ### Fase 9 — Retención
 
-- [ ] T28. Registrar clientes con Google y consentimientos separados.
+- [x] T28. Registrar clientes con Google y consentimientos separados.
 - [ ] T29. Acreditar visitas y administrar premios de fidelización.
 - [ ] T30. Conectar WhatsApp por tenant y ejecutar automatizaciones básicas.
 

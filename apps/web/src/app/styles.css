@@ -4320,3 +4320,89 @@ main:has(.diner-experience) .diner-entry {
 .waiter-pick__why {
   color: #6b260a;
 }
+
+.diner-account {
+  display: grid;
+  width: min(100%, 42rem);
+  gap: 0.75rem;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.75rem;
+  background: #fffdf8;
+  font-size: 0.9375rem;
+}
+
+.diner-account--quiet {
+  grid-auto-flow: column;
+  justify-content: space-between;
+  align-items: center;
+  border-style: dashed;
+  background: transparent;
+}
+
+.diner-account__text {
+  margin: 0;
+}
+
+.diner-account__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.diner-account__actions .button {
+  width: auto;
+}
+
+.diner-account__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #345b4b;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.diner-account-panel {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.diner-account-panel label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9375rem;
+}
+
+.diner-account-panel input:not([type="checkbox"]) {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #bcb5a9;
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+.diner-account-panel__consents {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.75rem;
+}
+
+.diner-account-panel__consent {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.diner-account-panel__consent small {
+  display: block;
+  color: #746d62;
+}
+
+.diner-account-panel__data {
+  display: grid;
+  gap: 0.5rem;
+}

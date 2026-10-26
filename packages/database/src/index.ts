@@ -163,3 +163,7 @@ export {
   createSplitClaimsRepository,
   type SplitClaimsRepository
 } from "./split-claims-repository.js";
+export {
+  createDinerIdentityRepository,
+  type DinerIdentityRepository
+} from "./diner-identity-repository.js";

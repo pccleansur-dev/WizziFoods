@@ -51,6 +51,10 @@ import {
   type TableClosingRepository
 } from "./table-closing-repository.js";
 import {
+  createDinerIdentityRepository,
+  type DinerIdentityRepository
+} from "./diner-identity-repository.js";
+import {
   createTableRegroupingRepository,
   type TableRegroupingRepository
 } from "./table-regrouping-repository.js";
@@ -152,6 +156,7 @@ export type TenantDatabase = {
   tableAccountsRepository: TableAccountsRepository;
   tableClosingRepository: TableClosingRepository;
   tableRegroupingRepository: TableRegroupingRepository;
+  dinerIdentityRepository: DinerIdentityRepository;
   productionRepository: ProductionRepository;
   waiterOperationsRepository: WaiterOperationsRepository;
   paymentMethodsRepository: PaymentMethodsRepository;
@@ -239,6 +244,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     tableAccountsRepository: createTableAccountsRepository(client),
     tableClosingRepository: createTableClosingRepository(client),
     tableRegroupingRepository: createTableRegroupingRepository(client),
+    dinerIdentityRepository: createDinerIdentityRepository(client),
     productionRepository: createProductionRepository(client),
     waiterOperationsRepository: createWaiterOperationsRepository(client),
     paymentMethodsRepository: createPaymentMethodsRepository(client),

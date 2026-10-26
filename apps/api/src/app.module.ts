@@ -56,6 +56,15 @@ import {
   MercadoPagoCallbackController,
   OnlinePaymentsController
 } from "./mercado-pago/online-payments.controller.js";
+import { DinerAccountController } from "./diner-identity/diner-account.controller.js";
+import {
+  DINER_AUTH_AVAILABLE,
+  DinerAuthCallbackController,
+  DinerAuthController,
+  FakeGoogleController
+} from "./diner-identity/diner-auth.controller.js";
+import { DinerIdentityService } from "./diner-identity/diner-identity.service.js";
+import { createDinerIdentityRuntime } from "./diner-identity/diner-identity.runtime.js";
 import { createMercadoPagoRuntime } from "./mercado-pago/mercado-pago.runtime.js";
 import { MercadoPagoService } from "./mercado-pago/mercado-pago.service.js";
 import {
@@ -115,6 +124,7 @@ class TenantDatabaseLifecycle implements OnApplicationShutdown {
 export class AppModule {
   static register(config: ApiRuntimeConfig): DynamicModule {
     const mercadoPago = createMercadoPagoRuntime(config);
+    const dinerIdentity = createDinerIdentityRuntime(config);
     return {
       controllers: [
         AppController,
@@ -150,6 +160,11 @@ export class AppModule {
         OnlineRefundsController,
         // The sandbox exists only with the simulator, which production refuses.
         ...(mercadoPago.fake ? [FakeMercadoPagoController] : []),
+        DinerAuthController,
+        DinerAuthCallbackController,
+        DinerAccountController,
+        // Google's stand-in exists only with the simulator, which production refuses.
+        ...(dinerIdentity.fake ? [FakeGoogleController] : []),
         TableAccountsController,
         TableClosingController,
         TableRegroupingController,
@@ -318,6 +333,21 @@ export class AppModule {
             )
         },
         { provide: FAKE_MERCADO_PAGO, useValue: mercadoPago.fake },
+        { provide: DINER_AUTH_AVAILABLE, useValue: dinerIdentity.available },
+        {
+          inject: [TENANT_DATABASE],
+          provide: DinerIdentityService,
+          useFactory: (database: TenantDatabase) =>
+            new DinerIdentityService(
+              database.dinerIdentityRepository,
+              dinerIdentity.google,
+              {
+                scheme: dinerIdentity.scheme,
+                stateSecret: dinerIdentity.stateSecret,
+                subPepper: dinerIdentity.subPepper
+              }
+            )
+        },
         {
           inject: [TENANT_DATABASE],
           provide: SPLIT_CLAIMS,

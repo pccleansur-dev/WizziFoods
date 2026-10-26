@@ -43,6 +43,7 @@ describe("runtime configuration", () => {
         "https://app.example.test/auth/callback?next=/acceso/continuar",
       databaseUrl: "postgresql://authenticator:secret@db:5432/postgres",
       logLevel: "info",
+      dinerAuth: { mode: "off" },
       mercadoPago: { mode: "off" },
       metricsPort: 9464,
       platformBaseDomain: "plataforma.example.test",
@@ -329,5 +330,72 @@ describe("runtime configuration", () => {
         WORKER_VISIBILITY_TIMEOUT_SECONDS: "3601"
       })
     ).toThrow("WORKER_POLL_MS must be an integer between 100 and 60000");
+  });
+});
+
+describe("diner auth configuration", () => {
+  const env = {
+    ...baseEnvironment,
+    ...apiInvitationEnvironment,
+    API_METRICS_PORT: "9464",
+    API_PORT: "3001",
+    DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+    STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+    SUPABASE_URL: "http://supabase.local:8000"
+  };
+  const secrets = {
+    DINER_AUTH_STATE_SECRET: "s".repeat(32),
+    DINER_SUB_PEPPER: "p".repeat(32)
+  };
+
+  it("is off by default and when asked", () => {
+    expect(readApiConfig(env).dinerAuth).toEqual({ mode: "off" });
+    expect(readApiConfig({ ...env, DINER_AUTH_MODE: "off" }).dinerAuth).toEqual(
+      { mode: "off" }
+    );
+  });
+
+  it("accepts the in-process Google outside production only", () => {
+    expect(
+      readApiConfig({ ...env, ...secrets, DINER_AUTH_MODE: "fake" }).dinerAuth
+    ).toEqual({
+      mode: "fake",
+      redirectUri: "http://localhost:3001/v1/diner-auth/google/callback",
+      stateSecret: secrets.DINER_AUTH_STATE_SECRET,
+      subPepper: secrets.DINER_SUB_PEPPER
+    });
+    expect(() =>
+      readApiConfig({
+        ...env,
+        ...secrets,
+        APP_ENV: "production",
+        DINER_AUTH_MODE: "fake"
+      })
+    ).toThrow("DINER_AUTH_MODE fake is not allowed in production");
+  });
+
+  it("needs Google credentials, an HTTPS callback and long secrets for live", () => {
+    const live = {
+      ...env,
+      ...secrets,
+      DINER_AUTH_MODE: "live",
+      DINER_AUTH_REDIRECT_URI:
+        "https://api.example.test/v1/diner-auth/google/callback",
+      GOOGLE_DINER_CLIENT_ID: "client-id",
+      GOOGLE_DINER_CLIENT_SECRET: "client-secret"
+    };
+    expect(readApiConfig(live).dinerAuth).toMatchObject({ mode: "live" });
+    expect(() =>
+      readApiConfig({ ...live, GOOGLE_DINER_CLIENT_ID: undefined })
+    ).toThrow("GOOGLE_DINER_CLIENT_ID is required");
+    expect(() =>
+      readApiConfig({ ...live, DINER_AUTH_REDIRECT_URI: "http://api.test/cb" })
+    ).toThrow("DINER_AUTH_REDIRECT_URI must be an absolute HTTPS URL");
+    expect(() => readApiConfig({ ...live, DINER_SUB_PEPPER: "short" })).toThrow(
+      "at least 32 characters"
+    );
+    expect(() => readApiConfig({ ...env, DINER_AUTH_MODE: "oauth" })).toThrow(
+      "DINER_AUTH_MODE must be off, fake or live"
+    );
   });
 });

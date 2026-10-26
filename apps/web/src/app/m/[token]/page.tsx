@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 
+import { DinerAccountBar } from "../../diner-account/diner-account-bar";
 import { EntryRefresh } from "./entry-refresh";
 import { EntryView } from "./entry-view";
 import { DinerExperience } from "./diner-experience";
@@ -30,6 +31,7 @@ export default async function TableEntryPage({
   return (
     <main>
       <EntryView result={result} />
+      {result.status === "ok" ? <DinerAccountBar token={token} /> : null}
       {result.status === "ok" ? (
         <>
           <DinerExperience

@@ -323,3 +323,5 @@ export * from "./split-claims.js";
 
 export * from "./table-closing.js";
 export * from "./table-regrouping.js";
+
+export * from "./diner-identity.js";
