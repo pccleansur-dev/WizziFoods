@@ -33,6 +33,8 @@ self.addEventListener("push", (event) => {
       : "Aviso";
   const options = {
     body: typeof data.body === "string" ? data.body.slice(0, 240) : "",
+    // The restaurant's own logo: the same address on every host, answered per host.
+    icon: "/api/brand/icon?size=192",
     data: { url: safePath(data.url) },
     // One notification per kind: a new one replaces the previous instead of piling up.
     tag: typeof data.category === "string" ? data.category : "aviso"

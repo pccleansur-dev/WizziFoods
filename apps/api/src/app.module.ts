@@ -12,6 +12,9 @@ import { AppController } from "./app.controller.js";
 import { AdminAuthGuard } from "./auth/admin-auth.guard.js";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { SupabaseJwtVerifier } from "./auth/supabase-jwt.verifier.js";
+import { BrandController } from "./brand/brand.controller.js";
+import { createBrandLogoStorage } from "./brand/brand-logo-storage.js";
+import { BrandService } from "./brand/brand.service.js";
 import { BusinessMediaController } from "./business-media/business-media.controller.js";
 import { createBusinessMediaStorageGateway } from "./business-media/business-media-storage.gateway.js";
 import { BusinessMediaService } from "./business-media/business-media.service.js";
@@ -181,6 +184,7 @@ export class AppModule {
         LoyaltyDinerController,
         LoyaltyStaffController,
         MessagingStaffController,
+        BrandController,
         WhatsappWebhookController,
         PushDinerController,
         TableClosingController,
@@ -398,6 +402,18 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: BrandService,
+          useFactory: (database: TenantDatabase) =>
+            new BrandService(
+              database.brandRepository,
+              createBrandLogoStorage(
+                config.supabaseUrl,
+                config.supabaseSecretKey
+              )
+            )
         },
         {
           inject: [TENANT_DATABASE],

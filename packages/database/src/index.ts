@@ -168,6 +168,10 @@ export {
   type DinerIdentityRepository
 } from "./diner-identity-repository.js";
 export {
+  createBrandRepository,
+  type BrandRepository
+} from "./brand-repository.js";
+export {
   createLoyaltyRepository,
   type LoyaltyRepository
 } from "./loyalty-repository.js";

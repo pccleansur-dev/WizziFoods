@@ -26,6 +26,7 @@
     "jose": "6.2.13",
     "qrcode-generator": "2.0.4",
     "reflect-metadata": "0.2.2",
+    "sharp": "0.35.5",
     "rxjs": "7.8.2"
   },
   "devDependencies": {

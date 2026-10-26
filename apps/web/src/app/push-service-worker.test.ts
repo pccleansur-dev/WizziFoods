@@ -73,6 +73,7 @@ describe("push service worker", () => {
         options: {
           body: "Tu premio vence pronto",
           data: { url: "/cuenta" },
+          icon: "/api/brand/icon?size=192",
           tag: "operational"
         },
         title: "La Parrilla"
