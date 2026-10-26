@@ -89,6 +89,30 @@ a suscribirse). `simulated` no envía nada y está prohibido en producción.
   activo, sus mensajes (nombre, tipo, texto con `{{1}}` = nombre) y las automatizaciones y eventos
   puntuales con la plantilla de cada canal. El registro de envíos muestra ambos canales.
 
+## Ícono y nombre: el logo del restaurante
+
+La app instalada y sus notificaciones usan **el nombre, los colores y el logo que el Encargado ya cargó en el perfil del
+negocio**; nada se configura aparte. Cada restaurante tiene su propio host, así que las mismas direcciones responden con la
+marca del que corresponde.
+
+- `GET /v1/public/brand` (API, por host) devuelve nombre, colores y una **versión** del logo (nunca la ruta del archivo);
+  `GET /v1/public/brand/icon?size=180|192|512[&maskable=1]` devuelve un PNG cuadrado. Función de base:
+  `private.get_public_brand` (migración `20261030030000_public_brand.sql`, rollback probado, pgTap `public_brand.test.sql`).
+  Sólo cuenta un logo del mismo local en estado `ready` y de tipo `logo`.
+- El logo vive en un bucket **privado**; el API lo lee con la clave de servicio y lo dibuja con `sharp` centrado sobre el
+  color de fondo del restaurante (80 % del lado; 56 % en la versión `maskable`, para que Android pueda recortarlo en círculo).
+  Sin logo, o si no se puede leer, se genera un cuadro del color principal con la inicial del nombre: un ícono nunca falla.
+  Los íconos se guardan en memoria (64 como máximo) y se sirven con `cache-control: public, max-age=86400`.
+- En la web: `app/manifest.ts` (dinámico, por host: nombre, `theme_color`, `background_color` y tres íconos con `?v=<versión>`
+  para que un logo nuevo cambie la dirección), `app/api/brand/icon/route.ts` (reenvía al API con el host),
+  `apple-touch-icon` en el layout (los iPhone ignoran los íconos del manifest) y `icon` en la notificación del service worker.
+  El manifest y el ícono los pide el navegador por su cuenta: **ninguna página espera por la marca**.
+- Si el API no responde, el manifest sale igual con un nombre neutro y el ícono pide el cuadro de respaldo.
+- Cambiar el logo en el panel cambia la versión y, con ella, la dirección de los íconos. La app ya instalada refresca su
+  ícono según las reglas del navegador (puede tardar).
+- La marca es pública (es lo que ya muestra la página del local): no lleva correo, cuenta ni datos de otro restaurante.
+  Un tamaño fuera de 180/192/512 es 400 y un host desconocido es 404.
+
 ## Rutas
 
 | Método | Ruta                                                        | Quién                            |
@@ -103,8 +127,8 @@ la web: `app/api/diner/push/*` (proxy), `public/sw.js` (service worker), `app/ma
 `diner-account/push-client.ts` y `cuenta/push-panel.tsx`.
 
 El service worker **sólo** muestra la notificación y abre la página al tocarla (siempre una ruta del
-mismo sitio): no cachea nada ni intercepta pedidos. Íconos, instalación completa y modo sin conexión
-son de T31.
+mismo sitio): no cachea nada ni intercepta pedidos. La instalación completa con caché y el modo sin
+conexión son de T31.
 
 ## Pruebas
 
@@ -126,6 +150,7 @@ son de T31.
 ## Fuera de alcance / pendientes
 
 - Probar contra un servicio de push real (FCM, Mozilla, Apple) con un navegador de verdad.
-- Íconos, instalación completa y sin conexión (T31); sonido, imágenes y botones en la notificación.
+- Instalación completa con caché y modo sin conexión (T31); sonido, imágenes y botones en la notificación.
+- Un ícono pensado para fondo oscuro, o un logo con mucho margen propio: hoy se centra sobre el color de fondo del perfil.
 - Rotar las claves VAPID sin perder suscripciones.
 - Revisión legal y comercial por país (Checkpoint 9), también para este canal.

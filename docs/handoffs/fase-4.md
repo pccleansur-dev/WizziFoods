@@ -581,5 +581,10 @@ API en `apps/api/src/messaging` y panel en `operacion/mensajeria`. Códigos nuev
 exige además `marketing`. Los cupos se comparten con WhatsApp. `claim_messaging_outbox` recibe ahora los canales que entrega
 el worker. Las pruebas de WhatsApp asumen 8 automatizaciones (4 tipos por 2 canales).
 
+**Ícono con el logo del restaurante.** Ver la sección «Ícono y nombre» de `docs/runbooks/avisos-pwa.md`. Migración
+`20261030030000_public_brand.sql` (`private.get_public_brand`, pgTap `public_brand.test.sql`), módulo `apps/api/src/brand`
+(usa `sharp`, ahora dependencia de la API) y en la web `lib/brand.ts`, `app/manifest.ts` y `app/api/brand/icon`.
+El logo se lee del perfil del negocio; el bucket sigue privado.
+
 Fuera de alcance, a propósito: verificación del número del comensal, integración con el sandbox real de Meta (se probó con el simulador y con
 el adaptador de Meta sobre un `fetch` falso), costos facturables (el costo por mensaje es una estimación cargada a mano) y OAuth/Embedded Signup.

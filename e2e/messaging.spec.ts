@@ -412,3 +412,66 @@ test("the manager writes a push message and sends it only to who has notificatio
     log.getByRole("row", { name: /Lucía.*aviso_premio.*En cola/u }).first()
   ).toBeVisible();
 });
+
+test("the installed app and its notifications wear the restaurant's logo", async ({
+  browser
+}) => {
+  await business.setLogo();
+  const page = await newPage(browser);
+  await page.goto(`${origin}/acceso`);
+
+  // The manifest speaks in the restaurant's name, colors and logo.
+  const manifest = await page.evaluate(async () =>
+    (await fetch("/manifest.webmanifest", { cache: "no-store" })).json()
+  );
+  expect(manifest).toMatchObject({
+    background_color: "#EEEEEE",
+    name: "Parrilla E2E",
+    theme_color: "#112233"
+  });
+  const sources = (manifest.icons as Array<{ src: string }>).map(
+    (icon) => icon.src
+  );
+  expect(sources).toHaveLength(3);
+  expect(sources.every((src) => src.includes("v=efefefefefefefef"))).toBe(true);
+
+  // Each icon is a real PNG of the asked size, with the red logo in the middle.
+  const icon = await page.evaluate(async (src) => {
+    const response = await fetch(src);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const view = new DataView(bytes.buffer);
+    return {
+      cache: response.headers.get("cache-control"),
+      height: view.getUint32(20),
+      signature: Array.from(bytes.slice(1, 4)),
+      type: response.headers.get("content-type"),
+      width: view.getUint32(16)
+    };
+  }, sources[1]!);
+  expect(icon).toMatchObject({ height: 512, type: "image/png", width: 512 });
+  expect(icon.signature).toEqual([0x50, 0x4e, 0x47]);
+  expect(icon.cache).toContain("max-age");
+
+  // The home-screen icon of iPhones and the notification icon use the same address.
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
+    "href",
+    "/api/brand/icon?size=180"
+  );
+  const sizes = await page.evaluate(async () => {
+    const read = async (src: string) => {
+      const bytes = new Uint8Array(await (await fetch(src)).arrayBuffer());
+      return new DataView(bytes.buffer).getUint32(16);
+    };
+    return [
+      await read("/api/brand/icon?size=180"),
+      await read("/api/brand/icon?size=192")
+    ];
+  });
+  expect(sizes).toEqual([180, 192]);
+
+  // A size the app does not use, and no other restaurant, can be asked for.
+  const refused = await page.evaluate(
+    async () => (await fetch("/api/brand/icon?size=4096")).status
+  );
+  expect(refused).toBe(400);
+});

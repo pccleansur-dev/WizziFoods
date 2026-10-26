@@ -5,7 +5,13 @@ import {
   seedAdjustmentsBusiness,
   type AdjustmentsBusiness
 } from "./adjustments-data";
-import { ownerDatabaseUrl } from "./stack-env";
+import { ownerDatabaseUrl, stackEnv } from "./stack-env";
+
+/** A 40x20 solid red PNG, standing in for the restaurant's logo. */
+const redLogo = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAACgAAAAUCAIAAABwJOjsAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAI0lEQVRIx+3NsQ0AAAjAoP7/tJ7hIAk7TZ1ILBaLxWKx+E+8ffodDh5OyFwAAAAASUVORK5CYII=",
+  "base64"
+);
 
 export type MessagingBusiness = AdjustmentsBusiness & {
   /** Status of the outbox messages of a person, oldest first. */
@@ -26,6 +32,8 @@ export type MessagingBusiness = AdjustmentsBusiness & {
   ): Promise<{ channel: string; status: string }[]>;
   /** Adds an active browser to a person, as if they had turned notifications on. */
   subscribePush(displayName: string, endpoint: string): Promise<void>;
+  /** Gives the restaurant a logo, the way the media worker leaves one. */
+  setLogo(): Promise<void>;
   /** A diner with a profile, a phone and both consents. */
   newDiner(displayName: string, phone: string): Promise<void>;
 };
@@ -79,10 +87,22 @@ export async function seedMessagingBusiness(): Promise<MessagingBusiness> {
   const tenantId = tenant!.id;
   let counter = 0;
   const hashes: string[] = [];
+  let logoPath: string | null = null;
+  const storage = () => {
+    const env = stackEnv();
+    return { key: env.SUPABASE_SECRET_KEY!, url: env.SUPABASE_URL! };
+  };
 
   return {
     ...base,
     async close() {
+      if (logoPath) {
+        const { key, url } = storage();
+        await fetch(`${url}/storage/v1/object/business-media/${logoPath}`, {
+          headers: { apikey: key, authorization: `Bearer ${key}` },
+          method: "DELETE"
+        }).catch(() => undefined);
+      }
       await cleanupMessaging(owner);
       await base.close();
       await owner.end();
@@ -150,6 +170,49 @@ export async function seedMessagingBusiness(): Promise<MessagingBusiness> {
         select p.tenant_id, p.id, ${endpoint}, ${"A".repeat(87)}, ${"B".repeat(22)}
         from private.diner_profiles p
         where p.tenant_id = ${tenantId} and p.display_name = ${displayName}`;
+    },
+    async setLogo() {
+      const [location] = await owner<{ id: string }[]>`
+        select id from public.locations where tenant_id = ${tenantId}`;
+      const [member] = await owner<{ user_id: string }[]>`
+        select user_id from public.tenant_memberships where tenant_id = ${tenantId} limit 1`;
+      const [asset] = await owner<
+        { id: string }[]
+      >`select gen_random_uuid() as id`;
+      logoPath = `tenants/${tenantId}/locations/${location!.id}/business-profile/logo/${asset!.id}.png`;
+      const { key, url } = storage();
+      const upload = await fetch(
+        `${url}/storage/v1/object/business-media/${logoPath}`,
+        {
+          body: new Uint8Array(redLogo),
+          headers: {
+            apikey: key,
+            authorization: `Bearer ${key}`,
+            "content-type": "image/png",
+            "x-upsert": "true"
+          },
+          method: "POST"
+        }
+      );
+      if (!upload.ok) throw new Error(`logo upload failed (${upload.status})`);
+      await owner`
+        insert into private.business_media_assets (
+          id, tenant_id, location_id, kind, status, content_type, source_size_bytes,
+          stored_size_bytes, width, height, sha256, object_path, created_by
+        ) values (
+          ${asset!.id}, ${tenantId}, ${location!.id}, 'logo', 'ready', 'image/png',
+          ${redLogo.length}, ${redLogo.length}, 40, 20, ${"ef".repeat(32)}, ${logoPath},
+          ${member!.user_id})`;
+      await owner`
+        insert into private.business_profile_drafts (
+          tenant_id, location_id, display_name, primary_color, secondary_color,
+          logo_asset_id, updated_by
+        ) values (
+          ${tenantId}, ${location!.id}, 'Parrilla E2E', '#112233', '#EEEEEE',
+          ${asset!.id}, ${member!.user_id})
+        on conflict (tenant_id, location_id) do update set
+          display_name = excluded.display_name, primary_color = excluded.primary_color,
+          secondary_color = excluded.secondary_color, logo_asset_id = excluded.logo_asset_id`;
     },
     async storedCredential() {
       const [row] = await owner<{ ciphertext: Buffer }[]>`
