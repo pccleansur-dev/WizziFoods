@@ -43,6 +43,10 @@ select * from private.enqueue_catalog_import(
   '{"kind":"manual","rows":[{"category":"Café","description":"","name":"Cortado","price":"1500","sector":"Barra"}]}'::jsonb
 );
 
+-- The queue is shared with the whole database: compare against its size now.
+create temporary table queue_before on commit drop as
+select count(*) as total from pgmq.q_catalog_import_processing;
+
 select is((select status from queued_import), 'queued', 'new imports start queued');
 select ok(
   (select processing_message_id is not null from queued_import),
@@ -64,7 +68,7 @@ select is(
 );
 select is(
   (select count(*) from pgmq.q_catalog_import_processing),
-  1::bigint,
+  (select total from queue_before),
   'an idempotent retry does not duplicate the queue message'
 );
 select throws_ok(
@@ -80,6 +84,11 @@ select throws_ok(
   null,
   'an administrator from another tenant cannot read the import'
 );
+
+-- The development queue may hold leftovers from earlier runs that a worker keeps
+-- re-reading; this transaction (rolled back) only looks at its own message.
+delete from pgmq.q_catalog_import_processing
+where enqueued_at < transaction_timestamp();
 
 create temporary table claimed_job on commit drop as
 select * from private.read_catalog_import_job(60);

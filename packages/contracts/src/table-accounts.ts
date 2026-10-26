@@ -354,6 +354,11 @@ export function parseDiscountResult(input: unknown): DiscountResult | null {
   return { discountCents, pendingCents, sessionId };
 }
 
+/** The derived balance of an account, validated so it follows from its parts. */
+export function parseAccountSummary(input: unknown): AccountSummary | null {
+  return summary(input);
+}
+
 export function parseKeepOpenResult(input: unknown): KeepOpenResult | null {
   const root = record(input);
   if (

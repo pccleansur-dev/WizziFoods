@@ -56,6 +56,15 @@ function mapSaveFailure(error: unknown): never {
       }
     });
   }
+  if (code === "PT280") {
+    throw new ConflictException({
+      error: {
+        code: "FLOOR_PLAN_GROUP_IN_USE",
+        message:
+          "Una agrupación tiene una cuenta abierta. Unila o separala desde el salón en vez de editar el plano."
+      }
+    });
+  }
   if (
     code === "23505" &&
     /command id already used/u.test(databaseMessage(error))

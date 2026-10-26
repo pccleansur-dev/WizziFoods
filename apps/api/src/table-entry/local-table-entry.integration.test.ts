@@ -77,6 +77,7 @@ describeWithLocalStack("table entry with local Supabase", () => {
   async function cleanup() {
     for (const fixture of [one, two]) {
       await admin`delete from private.audit_events where tenant_id = ${fixture.tenantId}`;
+      await admin`delete from private.location_publications where tenant_id = ${fixture.tenantId}`;
       await admin`delete from public.tenants where id = ${fixture.tenantId}`;
       await admin`delete from auth.users where id = ${fixture.userId}`;
     }

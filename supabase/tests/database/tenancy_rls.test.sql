@@ -57,7 +57,8 @@ values
   );
 
 select is(
-  (select count(*)::integer from public.locations),
+  (select count(*)::integer from public.locations
+    where tenant_id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')),
   2,
   'each tenant receives an initial location'
 );
@@ -66,6 +67,7 @@ select is(
     select count(*)::integer
     from public.locations
     where is_primary
+      and tenant_id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')
   ),
   2,
   'each initial location is primary'

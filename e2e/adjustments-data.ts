@@ -133,6 +133,9 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
     for (const table of [
       "mp_webhook_events",
       "online_payments",
+      "cashier_requests",
+      "account_receipts",
+      "receipt_counters",
       "cash_movements",
       "cash_shift_closures",
       "cash_shifts",

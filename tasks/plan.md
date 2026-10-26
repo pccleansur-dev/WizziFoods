@@ -153,8 +153,8 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 8 — Mesa y cobros avanzados
 
 - [ ] T25. Cobrar importes parciales y dividir saldo con concurrencia segura.
-- [ ] T26. Cerrar cuenta, limpiar, habilitar y emitir comprobante no fiscal.
-- [ ] T27. Unir/separar mesas sin mover deuda ni perder historia.
+- [x] T26. Cerrar cuenta, limpiar, habilitar y emitir comprobante no fiscal.
+- [x] T27. Unir/separar mesas sin mover deuda ni perder historia.
 
 ### Fase 9 — Retención
 

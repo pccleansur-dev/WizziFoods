@@ -227,8 +227,12 @@ await owner.begin(async (tx) => {
   await tx`delete from private.account_split_assignments where split_id in (select id from private.account_splits where tenant_id = ${tenantId})`;
   await tx`delete from private.account_split_shares where split_id in (select id from private.account_splits where tenant_id = ${tenantId})`;
   for (const table of [
+    "table_group_events",
     "mp_webhook_events",
     "online_payments",
+    "cashier_requests",
+    "account_receipts",
+    "receipt_counters",
     "cash_movements",
     "cash_shift_closures",
     "cash_shifts",

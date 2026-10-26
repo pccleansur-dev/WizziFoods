@@ -14,6 +14,7 @@ import {
   onlineRefundablePayments,
   refundablePayments
 } from "../../../../../staff/cash-view";
+import { closeBlockedReason } from "../../../../../staff/closing-view";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
 
 export type PaymentDraft = {
@@ -49,6 +50,8 @@ export type AccountsPanelProps = {
   /** Opens the collection form of this account when the panel mounts. */
   collectSessionId: string | null;
   isManager: boolean;
+  /** Closes a settled account: the table then waits for cleaning. */
+  onClose(sessionId: string): void;
   onDiscount(sessionId: string, draft: DiscountDraft): void;
   onKeepOpen(sessionId: string): void;
   onOnlineRefund(sessionId: string, draft: RefundDraft): void;
@@ -76,6 +79,7 @@ function AccountCard({
   cashOpen,
   collectSessionId,
   isManager,
+  onClose,
   onDiscount,
   onKeepOpen,
   onOnlineRefund,
@@ -165,6 +169,7 @@ function AccountCard({
     (kind === "amount" || typedValue <= 10_000) &&
     reason.trim().length > 0;
   const toCollect = typedAmount ?? summary.pendingCents;
+  const blockedClose = closeBlockedReason(summary);
 
   return (
     <article
@@ -241,6 +246,17 @@ function AccountCard({
         >
           Dejar cuenta abierta
         </button>
+        {blockedClose === null ? (
+          <button
+            aria-label={`Cerrar cuenta: mesa ${tables}`}
+            className="button button--primary"
+            disabled={busy !== null}
+            onClick={() => onClose(account.sessionId)}
+            type="button"
+          >
+            Cerrar cuenta
+          </button>
+        ) : null}
         {isManager && owes ? (
           <button
             aria-expanded={panel === "discount"}
@@ -292,6 +308,10 @@ function AccountCard({
           </button>
         ) : null}
       </div>
+
+      {blockedClose !== null && summary.pendingCents < 0 ? (
+        <p className="waiter-note">{blockedClose}</p>
+      ) : null}
 
       {panel === "collect" && owes && cashOpen ? (
         <form

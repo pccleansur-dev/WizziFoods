@@ -166,7 +166,7 @@ Hecho: ver `docs/runbooks/entrada-por-qr.md`. `FloorPlanRepository.resolveTableE
 `POST /v1/public/table-entry` son el punto de entrada del comensal; la página es
 `/m/[token]`. La tabla `floor_table_service_states` es la única fuente del estado de
 mesa y la deben escribir T19/T22/T26. T22 debe colgar la sesión de `group.id` (o de la
-mesa) y T22/T27 debe aplicar «no agrupar mesas con cuentas abiertas distintas».
+mesa) y T22/T27 debe aplicar «no agrupar mesas con cuentas abiertas distintas» (hecho en T27: `PT278`).
 
 ### Estado de T17 — carta y borrador privado
 
@@ -449,3 +449,58 @@ Hasta entonces debe mantenerse `MERCADO_PAGO_MODE=fake` fuera de producción.
 ## Estado de T25 — dividir el saldo
 
 Hecho: ver `docs/runbooks/dividir-cuenta.md`. Migración `20261026010000_create_account_splits.sql` (rollback y pgTap `account_splits.test.sql`). `waiter_accounts_view` ahora trae `split` por cuenta; el cobro de partes reutiliza `record_account_payment`, así que caja, límites y libro no cambian. Después se completó lo pendiente: división por consumo, reserva desde el teléfono y pago de una parte con Mercado Pago (migraciones `20261026020000`, `20261026030000` y `20261026040000`, todas con rollback y pgTap). Siguiente: **T26** (cerrar la sesión cuando el saldo es cero, pasar la mesa a pendiente de limpieza, habilitarla solo con personal autorizado y emitir el comprobante). Al cerrar una sesión hay que cancelar divisiones abiertas (`supersede_account_split`) y no cerrar con pagos online en `needs_refund`. La API se prueba en serie (`--no-file-parallelism`) por el pool de Supavisor.
+
+## Estado de T26 — cierre, limpieza y comprobante
+
+Hecho: ver `docs/runbooks/cierre-limpieza-y-comprobante.md`. Migración
+`20261027010000_close_clean_and_receipt.sql` (rollback probado aplicar → revertir → reaplicar, pgTap
+`table_closing.test.sql` con 59 aserciones). API en `apps/api/src/table-closing`, repositorio
+`packages/database/src/table-closing-repository.ts`, contratos `packages/contracts/src/table-closing.ts`
+y web en `salon/closed-accounts-panel.tsx`, `salon/accounts-panel.tsx` («Cerrar cuenta»),
+`salon/waiter-tables.tsx` («Marcar limpia») y `comprobante/[sessionId]`.
+
+- Cerrar exige saldo cero y ningún pago online en `needs_refund`, anula la división abierta con
+  `supersede_account_split`, deja **todas** las mesas de la sesión en `needs_cleaning` y emite un
+  comprobante numerado por ubicación, inmutable y no fiscal. El libro de una cuenta cerrada sólo acepta
+  devoluciones (`PT273`). Códigos nuevos: `PT270`–`PT276`.
+- `floor_table_service_states` tiene ahora máquina de estados (`PT275`): una mesa pendiente de
+  limpieza o fuera de servicio nunca pasa a ocupada; sólo `mark_table_clean` (Mozo de la mesa o
+  Encargado) borra la fila y la deja Disponible.
+- «Avisar a caja» = una solicitud abierta por sesión, sin datos fiscales; el Encargado la marca atendida.
+- Los cleanups de integración/E2E que borran sesiones deben borrar antes `cashier_requests`,
+  `account_receipts` y `receipt_counters` (con `session_replication_role = replica`).
+- La caja del E2E y de la demo empieza cerrada; Marta (PIN 246810) la abre desde Caja.
+
+Punto de partida para T27: al separar mesas, el cierre ya considera el grupo de la sesión
+(`private.session_table_ids`); T27 debe decidir qué ancla conserva la sesión abierta y cómo se reparten
+los estados `needs_cleaning`. Pendientes conscientes: envío del comprobante por correo/WhatsApp, PDF generado
+en servidor (hoy se imprime o guarda desde el navegador) y que el comensal vea su comprobante.
+
+Corregido aparte de T26: `local-table-entry.integration.test.ts` ahora borra `location_publications` en su limpieza (se puede correr seguido) y los pgTap `tenancy_rls`, `platform_operations`, `business_sandbox` y `catalog_imports` acotan sus conteos a su propio fixture, así que ya no dependen de los datos de la base de desarrollo.
+
+## Estado de T27 — unir y separar mesas
+
+Hecho: ver `docs/runbooks/unir-y-separar-mesas.md`. Migración `20261027020000_regroup_tables.sql` (rollback probado
+aplicar → revertir → reaplicar, pgTap `table_regrouping.test.sql` con 85 aserciones). API en
+`apps/api/src/table-regrouping`, repositorio `packages/database/src/table-regrouping-repository.ts`, contratos
+`packages/contracts/src/table-regrouping.ts` y web en `salon/waiter-tables.tsx`, `regrouping-actions.ts` y
+`staff/regroup-view.ts`.
+
+- Una sesión abierta **sigue al grupo** al unir y **se queda con la mesa ancla** al separar; el libro y
+  `confirmed_orders` no se tocan. Dos cuentas abiertas distintas no se unen (`PT278`); separar con cuenta
+  abierta sin ancla es `PT279`; el editor del plano no puede romper un grupo con cuenta abierta (`PT280`).
+  Códigos usados hasta ahora: `PT270`–`PT280`.
+- Sólo `join_tables` y `separate_tables` pueden cambiar `scope_key`/`group_id`/`table_id` de una sesión abierta
+  (`private.regroup_session = on` local a la transacción). Abrir una sesión toma un candado compartido por
+  ubicación (`private.table_groups_lock_key`) que unir, separar y guardar el plano toman exclusivo: cualquier
+  función nueva que abra sesiones o cambie grupos debe respetarlo.
+- `private.table_group_events` es la historia append-only de cada unión y separación. Los limpiadores que borran
+  `table_sessions` deben borrar antes `table_group_events` (además de `cashier_requests`, `account_receipts` y
+  `receipt_counters`), con `session_replication_role = replica` en una transacción.
+- Unir y separar suben `floor_plans.version`: un editor con versión vieja recibe `FLOOR_PLAN_VERSION_CONFLICT`.
+- La API se prueba en serie (`--no-file-parallelism`) con `DATABASE_ADMIN_URL` del dueño de las tablas
+  (`supabase_admin.<tenant>`); Playwright usa 3100/3101 y la caja de la demo queda cerrada (Marta, PIN 246810).
+
+Punto de partida para el Checkpoint 8 / T28+: el salón ya cubre mesa → pedido → cobro → cierre → limpieza y
+unir/separar. Pendientes conscientes: sacar una sola mesa de un grupo grande, que el comensal confirme que se une a
+la cuenta del grupo, envío del comprobante y PDF en servidor (T26), y la regla de tasa de tokens (T33).

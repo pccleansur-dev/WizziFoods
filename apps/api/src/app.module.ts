@@ -66,6 +66,10 @@ import { CashRegisterController } from "./cash-register/cash-register.controller
 import { CashRegisterService } from "./cash-register/cash-register.service.js";
 import { TableAccountsController } from "./table-accounts/table-accounts.controller.js";
 import { TableAccountsService } from "./table-accounts/table-accounts.service.js";
+import { TableClosingController } from "./table-closing/table-closing.controller.js";
+import { TableClosingService } from "./table-closing/table-closing.service.js";
+import { TableRegroupingController } from "./table-regrouping/table-regrouping.controller.js";
+import { TableRegroupingService } from "./table-regrouping/table-regrouping.service.js";
 import { OrderAdjustmentsController } from "./order-adjustments/order-adjustments.controller.js";
 import { OrderAdjustmentsService } from "./order-adjustments/order-adjustments.service.js";
 import { ProductionController } from "./production/production.controller.js";
@@ -147,6 +151,8 @@ export class AppModule {
         // The sandbox exists only with the simulator, which production refuses.
         ...(mercadoPago.fake ? [FakeMercadoPagoController] : []),
         TableAccountsController,
+        TableClosingController,
+        TableRegroupingController,
         ProductionController,
         WaiterController
       ],
@@ -345,6 +351,18 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: TableClosingService,
+          useFactory: (database: TenantDatabase) =>
+            new TableClosingService(database.tableClosingRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: TableRegroupingService,
+          useFactory: (database: TenantDatabase) =>
+            new TableRegroupingService(database.tableRegroupingRepository)
         },
         {
           inject: [TENANT_DATABASE],

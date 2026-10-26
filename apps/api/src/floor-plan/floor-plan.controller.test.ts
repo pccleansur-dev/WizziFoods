@@ -93,6 +93,7 @@ describe("FloorPlanAdminController", () => {
 
   it.each([
     ["40001", ConflictException, "FLOOR_PLAN_VERSION_CONFLICT"],
+    ["PT280", ConflictException, "FLOOR_PLAN_GROUP_IN_USE"],
     ["23P01", UnprocessableEntityException, "FLOOR_PLAN_DUPLICATE_LABEL"],
     ["23514", UnprocessableEntityException, "FLOOR_PLAN_INVALID_GEOMETRY"]
   ])(

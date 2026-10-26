@@ -125,7 +125,8 @@ select is((select count(*)::int from private.audit_events
   where tenant_id = (select t1 from scope) and action not like 'sandbox.%'),
   (select real_events from before_state),
   'the simulation emits no real operation events');
-select is((select count(*)::int from private.location_publications), 0,
+select is((select count(*)::int from private.location_publications
+  where tenant_id = (select t1 from scope)), 0,
   'simulating never publishes the business');
 
 -- Structure: nothing real can point at the sandbox, and the runtime cannot touch it.

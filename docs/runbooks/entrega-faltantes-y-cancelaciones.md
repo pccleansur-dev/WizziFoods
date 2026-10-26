@@ -13,14 +13,14 @@ borra. La cuenta (T22) lee estos ajustes.
 `En cola → En preparación → Listo → Entregado`, más `Faltante`, `Cancelado` y
 `Reemplazado`. Un ítem sólo da pasos documentados (`PT209` si se intenta otro):
 
-| Desde | Hasta | Quién |
-|---|---|---|
-| En cola | En preparación | Cocina o Barra (su sector) |
-| En preparación | Listo | Cocina o Barra |
-| Listo | Entregado | Mozo de la mesa, o Encargado |
-| En cola / En preparación | Faltante | Cocina o Barra, con motivo |
-| En cola / En preparación / Faltante | Cancelado | Sólo Encargado, con motivo |
-| Faltante | Reemplazado | Mozo o Encargado, al aceptar el comensal |
+| Desde                               | Hasta          | Quién                                    |
+| ----------------------------------- | -------------- | ---------------------------------------- |
+| En cola                             | En preparación | Cocina o Barra (su sector)               |
+| En preparación                      | Listo          | Cocina o Barra                           |
+| Listo                               | Entregado      | Mozo de la mesa, o Encargado             |
+| En cola / En preparación            | Faltante       | Cocina o Barra, con motivo               |
+| En cola / En preparación / Faltante | Cancelado      | Sólo Encargado, con motivo               |
+| Faltante                            | Reemplazado    | Mozo o Encargado, al aceptar el comensal |
 
 El estado del pedido se deriva (`private.production_status_of`): cancelados y
 reemplazados quedan fuera; un faltante abierto manda («Hay un faltante»); si no, todo
@@ -29,20 +29,20 @@ En preparación.
 
 ## Matriz de permisos
 
-| Operación | Ruta | Capacidad | Quién |
-|---|---|---|---|
-| Ver pedidos en curso | `GET /v1/staff/orders/in-progress` | `tables.serve` | Mozo (sus mesas), Encargado (todas) |
-| Entregar | `POST /v1/staff/orders/:orderId/items/:lineId/delivery` | `tables.serve` | Mozo de la mesa, Encargado |
-| Informar faltante | `POST /v1/staff/production/orders/:orderId/items/:lineId/exception` | `production.*.manage` | Cocina o Barra, sólo su sector |
-| Proponer reemplazo | `POST /v1/staff/orders/:orderId/items/:lineId/replacement` | `orders.manage` | Mozo de la mesa, Encargado |
-| Decidir reemplazo | `POST /v1/staff/order-adjustments/:adjustmentId/decision` | `orders.manage` | Mozo de la mesa, Encargado |
-| Cancelar | `POST /v1/staff/orders/:orderId/items/:lineId/cancellation` | `operations.approve` | Sólo Encargado |
+| Operación            | Ruta                                                                | Capacidad             | Quién                               |
+| -------------------- | ------------------------------------------------------------------- | --------------------- | ----------------------------------- |
+| Ver pedidos en curso | `GET /v1/staff/orders/in-progress`                                  | `tables.serve`        | Mozo (sus mesas), Encargado (todas) |
+| Entregar             | `POST /v1/staff/orders/:orderId/items/:lineId/delivery`             | `tables.serve`        | Mozo de la mesa, Encargado          |
+| Informar faltante    | `POST /v1/staff/production/orders/:orderId/items/:lineId/exception` | `production.*.manage` | Cocina o Barra, sólo su sector      |
+| Proponer reemplazo   | `POST /v1/staff/orders/:orderId/items/:lineId/replacement`          | `orders.manage`       | Mozo de la mesa, Encargado          |
+| Decidir reemplazo    | `POST /v1/staff/order-adjustments/:adjustmentId/decision`           | `orders.manage`       | Mozo de la mesa, Encargado          |
+| Cancelar             | `POST /v1/staff/orders/:orderId/items/:lineId/cancellation`         | `operations.approve`  | Sólo Encargado                      |
 
 Siempre con la sesión del Bearer: el cuerpo no puede traer negocio, ubicación, rol,
 precio ni total (400). SQL vuelve a comprobar empleado activo, rol y sector (`PT200`
 sin permiso, `PT201` fuera de tu zona o de otro negocio, `PT222` si cancela un rol que
 no es Encargado). Cocina y Barra no entregan ni cancelan; el Mozo no informa faltantes ni
-cancela. La figura de *Administrador* del negocio no usa esta pantalla de personal: el
+cancela. La figura de _Administrador_ del negocio no usa esta pantalla de personal: el
 Encargado es quien decide.
 
 ## Entregar

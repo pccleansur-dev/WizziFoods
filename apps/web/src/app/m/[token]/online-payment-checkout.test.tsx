@@ -21,11 +21,14 @@ const view = (status: "approved" | "pending" | "rejected") =>
 
 describe("online payment status", () => {
   it("says that only an accredited payment confirms the order", () => {
-    expect(renderToStaticMarkup(<OnlinePaymentStatus view={view("approved")} />))
-      .toContain("Pago acreditado");
-    expect(renderToStaticMarkup(<OnlinePaymentStatus view={view("pending")} />))
-      .toContain("Todavía no se acreditó");
-    expect(renderToStaticMarkup(<OnlinePaymentStatus view={view("rejected")} />))
-      .toContain("Pago rechazado");
+    expect(
+      renderToStaticMarkup(<OnlinePaymentStatus view={view("approved")} />)
+    ).toContain("Pago acreditado");
+    expect(
+      renderToStaticMarkup(<OnlinePaymentStatus view={view("pending")} />)
+    ).toContain("Todavía no se acreditó");
+    expect(
+      renderToStaticMarkup(<OnlinePaymentStatus view={view("rejected")} />)
+    ).toContain("Pago rechazado");
   });
 });

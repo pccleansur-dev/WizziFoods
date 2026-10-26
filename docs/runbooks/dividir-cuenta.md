@@ -31,7 +31,7 @@ posteriores no tocan las partes: quedan como saldo nuevo.
 
 ## Dividir por consumo
 
-- El mozo elige **Dividir…** → *Dividir por consumo*, indica cuántas personas son y a quién
+- El mozo elige **Dividir…** → _Dividir por consumo_, indica cuántas personas son y a quién
   pertenece cada ítem vigente (los cancelados o reemplazados no se ofrecen). Lo que no se
   asigna es **compartido** y se reparte en partes iguales.
 - Cada persona paga su peso (lo suyo × personas + lo compartido) sobre el **pendiente
@@ -51,7 +51,7 @@ posteriores no tocan las partes: quedan como saldo nuevo.
 - Cada teléfono guarda un secreto aleatorio (`localStorage`); la base solo conoce su hash
   SHA-256, y solo ese teléfono puede **soltar** la parte. Un token de otra mesa o de otro
   negocio no ve ni toma nada.
-- El mozo ve *reservada por X* y cobra la parte como cualquier otra. Una división nueva anula
+- El mozo ve _reservada por X_ y cobra la parte como cualquier otra. Una división nueva anula
   también las reservadas.
 - API pública: `POST /v1/public/account-splits/{view,claim,release}` (proxy Next en
   `/api/account-splits/*`).

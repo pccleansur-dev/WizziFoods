@@ -186,10 +186,9 @@ export function CardBrick({
         const mp = new window.MercadoPago(checkout.publicKey!, {
           locale: "es-AR"
         });
-        controller.current = await mp.bricks().create(
-          "cardPayment",
-          "cardPaymentBrick_container",
-          {
+        controller.current = await mp
+          .bricks()
+          .create("cardPayment", "cardPaymentBrick_container", {
             callbacks: {
               onError: onProblem,
               onReady: () => undefined,
@@ -203,8 +202,7 @@ export function CardBrick({
               }
             },
             initialization: { amount: checkout.payment.amountCents / 100 }
-          }
-        );
+          });
       })
       .catch(onProblem);
     return () => {
@@ -214,7 +212,9 @@ export function CardBrick({
     };
   }, [checkout, onPay, onProblem]);
 
-  return <div aria-label="Pago seguro con tarjeta" id="cardPaymentBrick_container" />;
+  return (
+    <div aria-label="Pago seguro con tarjeta" id="cardPaymentBrick_container" />
+  );
 }
 
 export function OnlinePaymentCheckout({
@@ -239,7 +239,9 @@ export function OnlinePaymentCheckout({
         setCheckout(parsed);
       })
       .catch(() =>
-        setError("No pudimos iniciar el pago. Intentá nuevamente en un momento.")
+        setError(
+          "No pudimos iniciar el pago. Intentá nuevamente en un momento."
+        )
       );
   }, [intentId, token]);
 
@@ -254,7 +256,9 @@ export function OnlinePaymentCheckout({
         if (!parsed) throw new Error("invalid payment");
         setView(parsed);
       } catch {
-        setError("No pudimos procesar el pago. No vuelvas a pagar sin consultar el estado.");
+        setError(
+          "No pudimos procesar el pago. No vuelvas a pagar sin consultar el estado."
+        );
       } finally {
         setBusy(false);
       }
@@ -278,27 +282,50 @@ export function OnlinePaymentCheckout({
     }
   }, [intentId, token]);
 
-  if (view?.intentStatus === "confirmed") return <OnlinePaymentStatus view={view} />;
+  if (view?.intentStatus === "confirmed")
+    return <OnlinePaymentStatus view={view} />;
 
   return (
-    <section className="diner-checkout diner-online-payment" aria-labelledby="online-payment-title">
+    <section
+      className="diner-checkout diner-online-payment"
+      aria-labelledby="online-payment-title"
+    >
       <div>
         <p className="eyebrow">Mercado Pago</p>
         <h2 id="online-payment-title">Pagá para confirmar el pedido</h2>
         <p className="diner-help">
-          Total: <strong>{formatMoney(checkout?.payment.amountCents ?? 0)}</strong>.
-          Los datos de la tarjeta se cargan únicamente en el formulario seguro de Mercado Pago.
+          Total:{" "}
+          <strong>{formatMoney(checkout?.payment.amountCents ?? 0)}</strong>.
+          Los datos de la tarjeta se cargan únicamente en el formulario seguro
+          de Mercado Pago.
         </p>
       </div>
       {view ? <OnlinePaymentStatus view={view} /> : null}
-      {error ? <p className="diner-warning" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="diner-warning" role="alert">
+          {error}
+        </p>
+      ) : null}
       {!checkout && !error ? <p role="status">Preparando el pago…</p> : null}
-      {checkout?.mode === "sandbox" ? <SandboxCheckout busy={busy} onPay={pay} /> : null}
+      {checkout?.mode === "sandbox" ? (
+        <SandboxCheckout busy={busy} onPay={pay} />
+      ) : null}
       {checkout?.mode === "live" && !view ? (
-        <CardBrick checkout={checkout} onPay={pay} onProblem={() => setError("No pudimos cargar el formulario seguro de Mercado Pago.")} />
+        <CardBrick
+          checkout={checkout}
+          onPay={pay}
+          onProblem={() =>
+            setError("No pudimos cargar el formulario seguro de Mercado Pago.")
+          }
+        />
       ) : null}
       {view?.intentStatus === "payment_pending" ? (
-        <button className="button button-secondary" disabled={busy} onClick={() => void checkStatus()} type="button">
+        <button
+          className="button button-secondary"
+          disabled={busy}
+          onClick={() => void checkStatus()}
+          type="button"
+        >
           {busy ? "Consultando…" : "Consultar estado"}
         </button>
       ) : null}

@@ -117,6 +117,14 @@ export {
   type TableAccountsRepository
 } from "./table-accounts-repository.js";
 export {
+  createTableClosingRepository,
+  type TableClosingRepository
+} from "./table-closing-repository.js";
+export {
+  createTableRegroupingRepository,
+  type TableRegroupingRepository
+} from "./table-regrouping-repository.js";
+export {
   createOrderAdjustmentsRepository,
   type OrderAdjustmentsRepository
 } from "./order-adjustments-repository.js";
