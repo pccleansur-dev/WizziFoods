@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(127);
+select plan(173);
 
 insert into auth.users (id) values ('3d100000-0000-4000-8000-000000000001'), ('3d100000-0000-4000-8000-000000000002');
 insert into public.tenants (id, slug, name, status) values
@@ -113,7 +113,7 @@ select throws_ok(
   $$select private.get_messaging_overview((select t1 from scope), (select l1 from scope), '3d800000-0000-4000-8000-000000000001')$$,
   'PT200', null, 'a manager of another business cannot reach this location');
 select is(pg_temp.overview() -> 'connection', 'null'::jsonb, 'no connection yet: the module is simply off');
-select is(jsonb_array_length(pg_temp.overview() -> 'automations'), 4, 'the four permanent automations are listed');
+select is(jsonb_array_length(pg_temp.overview() -> 'automations'), 8, 'the four permanent automations are listed per channel');
 
 -- 2. Connection ----------------------------------------------------------------------------
 
@@ -173,11 +173,11 @@ select throws_ok($$select private.save_messaging_automation((select t1 from scop
 select is(
   (select item ->> 'status' from jsonb_array_elements(private.save_messaging_automation(
     (select t1 from scope), (select l1 from scope), pg_temp.mgr(), 'reward_earned',
-    pg_temp.template('premio_ganado')) -> 'automations') item where item ->> 'kind' = 'reward_earned'),
+    pg_temp.template('premio_ganado')) -> 'automations') item where item ->> 'kind' = 'reward_earned' and item ->> 'channel' = 'whatsapp'),
   'pending_approval', 'a configured automation waits for approval');
 create temporary table auto as select
   (select item ->> 'id' from jsonb_array_elements(pg_temp.overview() -> 'automations') item
-   where item ->> 'kind' = 'reward_earned')::uuid reward_earned;
+   where item ->> 'kind' = 'reward_earned' and item ->> 'channel' = 'whatsapp')::uuid reward_earned;
 select throws_ok($$select private.decide_messaging_automation((select t1 from scope), (select l1 from scope), pg_temp.mgr(),
   (select reward_earned from auto), 'resume')$$, 'PT296', null, 'cannot resume before the first approval');
 select lives_ok($$select private.decide_messaging_automation((select t1 from scope), (select l1 from scope), pg_temp.mgr(),
@@ -447,15 +447,132 @@ values ((select t1 from scope), (select l1 from scope), pg_temp.pid('viejo'), 'a
 select is(private.enqueue_due_messaging_automations() ->> 'queued', '1', 'a reward about to expire queues one notice');
 select is(private.enqueue_due_messaging_automations() ->> 'queued', '0', 'and only once');
 
+-- 9b. Web Push: the second channel ---------------------------------------------------------
+
+do $$ begin
+  perform pg_temp.diner((select t1 from scope), 'pushy', null, false, true);
+  perform pg_temp.diner((select t1 from scope), 'pushnomkt', null, false, false);
+  perform pg_temp.diner((select t1 from scope), 'pushanon', null, false, false);
+  perform pg_temp.diner((select t1 from scope), 'sinpush', null, false, false);
+end $$;
+create function pg_temp.subscribe(tag text, endpoint text) returns jsonb language sql as $$
+  select private.register_push_subscription(
+    (select t1 from scope), (select account from people where people.tag = subscribe.tag),
+    endpoint, repeat('A', 87), repeat('B', 22))
+$$;
+select is(pg_temp.subscribe('pushy', 'https://push.example.com/send/pushy-1') ->> 'subscribed', 'true', 'a diner subscribes a browser');
+do $$ begin
+  perform pg_temp.subscribe('pushnomkt', 'https://push.example.com/send/pushnomkt-1');
+  perform pg_temp.subscribe('pushanon', 'https://push.example.com/send/pushanon-1');
+end $$;
+select throws_ok($$select pg_temp.subscribe('pushy', 'http://push.example.com/insecure')$$, 'PT297', null, 'only https endpoints');
+select throws_ok($$select private.register_push_subscription((select t1 from scope), (select account from people where tag = 'pushy'),
+  'https://push.example.com/x', 'short', 'short')$$, 'PT297', null, 'and well-formed keys');
+select is(private.push_subscription_state((select t1 from scope), (select account from people where tag = 'pushy'),
+  'https://push.example.com/send/pushy-1') ->> 'subscribed', 'true', 'this browser is subscribed');
+select is(private.push_subscription_state((select t1 from scope), (select account from people where tag = 'pushy'),
+  'https://push.example.com/send/other') ->> 'subscribed', 'false', 'another one is not');
+select is(private.push_subscription_state((select t1 from scope), (select account from people where tag = 'sinpush'),
+  'https://push.example.com/send/pushy-1') ->> 'subscribed', 'false', 'and a subscription is not shared between people');
+
+select lives_ok($$select private.save_push_template((select t1 from scope), (select l1 from scope), pg_temp.mgr(),
+  'aviso_premio', 'operational', 'Hola {{1}}, ya tenés un premio disponible.')$$, 'the Encargado writes a push message');
+select lives_ok($$select private.save_push_template((select t1 from scope), (select l1 from scope), pg_temp.mgr(),
+  'promo_push', 'promotional', 'Hola {{1}}, esta semana hay novedades.')$$, 'and a promotional one');
+select throws_ok($$select private.save_push_template((select t1 from scope), (select l1 from scope), pg_temp.mgr(),
+  'larga', 'promotional', repeat('x', 241))$$, 'PT297', null, 'a push message has a limit');
+select is((select channel from private.whatsapp_templates where id = pg_temp.template('aviso_premio')), 'web_push',
+  'it belongs to the push channel');
+select is((select approval_status from private.whatsapp_templates where id = pg_temp.template('aviso_premio')), 'approved',
+  'with no Meta approval to wait for');
+select is(pg_temp.overview() -> 'push' ->> 'sendingEnabled', 'false', 'push sending is off by default too');
+select is(pg_temp.overview() -> 'push' ->> 'subscribers', '3', 'three people have a subscription');
+
+create temporary table pm as select
+  pg_temp.one_off('pushy', 'aviso_premio') pushy_oper,
+  pg_temp.one_off('pushy', 'promo_push') pushy_promo,
+  pg_temp.one_off('pushnomkt', 'promo_push') nomkt_promo,
+  pg_temp.one_off('sinpush', 'aviso_premio') sinpush_oper,
+  pg_temp.one_off('pushanon', 'aviso_premio') anon_oper;
+select is(pg_temp.decision((select pushy_oper from pm)), 'block:sending_disabled', 'with push sending off nothing leaves');
+select lives_ok($$select private.set_push_sending((select t1 from scope), (select l1 from scope), pg_temp.mgr(), true)$$, 'the Encargado turns it on');
+select is(pg_temp.decision((select pushy_oper from pm)), 'send:ok', 'an operational push needs only the subscription (no phone, no marketing)');
+select is(pg_temp.decision((select sinpush_oper from pm)), 'block:no_subscription', 'a person with no subscription gets nothing');
+select is(pg_temp.decision((select nomkt_promo from pm)), 'block:marketing_consent_missing', 'a promotional push still needs the marketing consent');
+select is(pg_temp.decision((select pushy_promo from pm)), 'send:ok', 'with it, it goes out inside the hours');
+do $$ begin perform pg_temp.at_hour(23); end $$;
+select is(pg_temp.decision((select pushy_promo from pm)), 'defer:outside_hours', 'the same hours apply to push');
+select is(pg_temp.decision((select pushy_oper from pm)), 'send:ok', 'operational ones do not wait');
+do $$ begin perform pg_temp.at_hour(15); end $$;
+insert into private.messaging_outbox (tenant_id, location_id, profile_id, origin, batch_id, event_key,
+  template_id, template_name, template_language, category, status, sent_at, channel)
+select (select t1 from scope), (select l1 from scope), pg_temp.pid('pushy'), 'one_off', gen_random_uuid(),
+  'wa-old:' || n, pg_temp.template('promo_semana'), 'promo_semana', 'es_AR', 'promotional', 'sent',
+  now() - interval '1 day', 'whatsapp'
+from generate_series(1, 2) n;
+select is(pg_temp.decision((select pushy_promo from pm)), 'block:weekly_cap',
+  'the weekly allowance counts WhatsApp and push together');
+create temporary table started as select
+  private.begin_messaging_send((select t1 from scope), (select l1 from scope), (select pushy_oper from pm)) first_try;
+select is((select first_try ->> 'channel' from started), 'web_push', 'the worker is told it is a push');
+select is((select first_try ->> 'body' from started), 'Hola Hola, ya tenés un premio disponible.',
+  'the text is filled with the variables');
+select is(jsonb_array_length((select first_try -> 'subscriptions' from started)), 1,
+  'and it carries the subscriptions of that person only');
+select is(private.begin_messaging_send((select t1 from scope), (select l1 from scope), (select pushy_oper from pm)) ->> 'action',
+  'skip', 'a message already started is skipped');
+
+select lives_ok($$select private.revoke_push_endpoint('https://push.example.com/send/pushy-1')$$, 'the push service says the endpoint is gone');
+select is((select revoked_reason from private.push_subscriptions where endpoint = 'https://push.example.com/send/pushy-1'), 'gone',
+  'it is revoked with its reason');
+select is(private.push_subscription_state((select t1 from scope), (select account from people where tag = 'pushy'),
+  'https://push.example.com/send/pushy-1') ->> 'subscribed', 'false', 'and no longer counts');
+select lives_ok($$select pg_temp.subscribe('pushy', 'https://push.example.com/send/pushy-1')$$, 'subscribing again brings it back');
+select is(private.revoke_push_subscription((select t1 from scope), (select account from people where tag = 'pushy'),
+  'https://push.example.com/send/pushy-1') ->> 'subscribed', 'false', 'the diner can unsubscribe');
+select is((select revoked_reason from private.push_subscriptions where endpoint = 'https://push.example.com/send/pushy-1'), 'diner',
+  'with the diner as the reason');
+
+select lives_ok($$select private.anonymize_diner_account((select account from people where tag = 'pushanon'))$$, 'anonymize a subscribed person');
+select is((select revoked_reason from private.push_subscriptions where endpoint = 'https://push.example.com/send/pushanon-1'), 'anonymized',
+  'their browsers are dropped');
+select is(pg_temp.decision((select anon_oper from pm)), 'block:anonymized_profile', 'and nothing is sent');
+
+-- Automations are per channel: the same event can reach both.
+select lives_ok($$select pg_temp.subscribe('pushy', 'https://push.example.com/send/pushy-2')$$, 'pushy subscribes another browser');
+select lives_ok($$select private.save_messaging_automation((select t1 from scope), (select l1 from scope), pg_temp.mgr(),
+  'reward_earned', pg_temp.template('aviso_premio'))$$, 'a push automation is configured with a push template');
+select is((select count(*) from private.messaging_automations where tenant_id = (select t1 from scope) and kind = 'reward_earned'),
+  2::bigint, 'next to the WhatsApp one');
+select is((select status from private.messaging_automations where channel = 'web_push' and kind = 'reward_earned'
+  and tenant_id = (select t1 from scope)), 'pending_approval', 'it waits for its own approval');
+select lives_ok($$select private.decide_messaging_automation((select t1 from scope), (select l1 from scope), pg_temp.mgr(),
+  (select id from private.messaging_automations where channel = 'web_push' and kind = 'reward_earned' and tenant_id = (select t1 from scope)), 'approve')$$,
+  'approve it');
+insert into private.loyalty_rewards (tenant_id, location_id, profile_id, reward_kind, reward_value, expires_at)
+values ((select t1 from scope), (select l1 from scope), pg_temp.pid('pushy'), 'percent', 1000, now() + interval '30 days');
+select is((select count(*) from private.messaging_outbox where profile_id = pg_temp.pid('pushy') and channel = 'web_push'
+  and event_key like 'push:reward_earned:%'), 1::bigint, 'an earned reward queues a push for a subscribed person');
+select is((select count(*) from private.messaging_outbox where profile_id = pg_temp.pid('pushy') and channel = 'whatsapp'
+  and event_key like 'reward_earned:%'), 0::bigint, 'and no WhatsApp one when they have no phone');
+select ok((select (entry ->> 'pushConsent')::boolean from jsonb_array_elements(
+  private.list_messaging_audience((select t1 from scope), (select l1 from scope), pg_temp.mgr())) entry
+  where entry ->> 'displayName' = 'Pushy'), 'the audience says who can be reached by push');
+select ok(private.list_messaging_audience((select t1 from scope), (select l1 from scope), pg_temp.mgr())::text !~ 'endpoint|p256dh|@',
+  'without exposing a browser, a key or an email');
+
 -- 10. Disconnecting ------------------------------------------------------------------------
 
 select lives_ok($$select private.disconnect_whatsapp((select t1 from scope), (select l1 from scope), pg_temp.mgr())$$, 'disconnect');
 select is(private.read_whatsapp_credentials((select t1 from scope), (select l1 from scope)), null, 'the credential is gone');
-select is((select count(*) from private.whatsapp_templates where tenant_id = (select t1 from scope)), 0::bigint, 'templates are gone');
+select is((select count(*) from private.whatsapp_templates where tenant_id = (select t1 from scope) and channel = 'whatsapp'), 0::bigint, 'templates are gone');
+select is((select count(*) from private.whatsapp_templates where tenant_id = (select t1 from scope) and channel = 'web_push'), 2::bigint, 'the push messages stay');
 select is((select count(*) from private.messaging_outbox where tenant_id = (select t1 from scope)
-  and status in ('queued', 'awaiting_confirmation')), 0::bigint, 'nothing is left waiting');
+  and channel = 'whatsapp' and status in ('queued', 'awaiting_confirmation')), 0::bigint, 'nothing is left waiting on WhatsApp');
 select is((select count(*) from private.messaging_automations where tenant_id = (select t1 from scope)
-  and status <> 'pending_approval'), 0::bigint, 'automations need approval again');
+  and channel = 'whatsapp' and status <> 'pending_approval'), 0::bigint, 'automations need approval again');
+select is((select status from private.messaging_automations where tenant_id = (select t1 from scope) and channel = 'web_push'
+  and kind = 'reward_earned'), 'approved', 'while the push one is untouched');
 select is(private.read_whatsapp_credentials((select t2 from scope), (select l2 from scope)) ->> 'phoneNumberId', '10000000002',
   'the other business keeps its own connection');
 
