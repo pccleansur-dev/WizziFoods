@@ -570,7 +570,8 @@ export type MessageToSend = {
 };
 
 export type BeginSendResult =
-  | { action: "blocked" | "deferred"; reason: string }
+  | { action: "blocked"; reason: string }
+  | { action: "deferred"; reason: string }
   | { action: "send"; message: MessageToSend }
   | { action: "skip" };
 
@@ -578,11 +579,13 @@ export function parseBeginSendResult(input: unknown): BeginSendResult | null {
   const root = record(input);
   if (!root) return null;
   if (root.action === "skip") return { action: "skip" };
-  if (
-    (root.action === "blocked" || root.action === "deferred") &&
-    typeof root.reason === "string"
-  ) {
-    return { action: root.action, reason: root.reason };
+  if (typeof root.reason === "string") {
+    if (root.action === "blocked") {
+      return { action: "blocked", reason: root.reason };
+    }
+    if (root.action === "deferred") {
+      return { action: "deferred", reason: root.reason };
+    }
   }
   const kind = category(root.category);
   const variables = Array.isArray(root.variables)

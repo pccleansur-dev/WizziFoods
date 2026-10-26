@@ -4,6 +4,12 @@ import { pathToFileURL } from "node:url";
 import { readWorkerConfig } from "@platform/config";
 import { createServiceStatus, type ServiceStatus } from "@platform/contracts";
 import { createTenantDatabase } from "@platform/database";
+import {
+  MetaWhatsappProvider,
+  PaymentSecretSealer,
+  SimulatedWhatsappProvider,
+  type WhatsappProvider
+} from "@platform/integrations";
 import { initializeTelemetry, startOperation } from "@platform/observability";
 
 import { createBusinessMediaJobObserver } from "./business-media-observer.js";
@@ -16,6 +22,10 @@ import {
   CatalogImportJobRetryError,
   runCatalogImportIteration
 } from "./catalog-import-worker.js";
+import {
+  runAutomationsIteration,
+  runMessagingIteration
+} from "./messaging-worker.js";
 import { startPollingLoop } from "./polling-loop.js";
 
 export function getWorkerStatus(): ServiceStatus {
@@ -99,6 +109,64 @@ function startWorker(): void {
     pollMs: config.pollMs
   });
 
+  // Messaging is optional: with WHATSAPP_MODE=off (the default) nothing is polled.
+  const loops = [mediaPolling, importPolling];
+  if (config.whatsapp.mode !== "off" && config.paymentSecretKey) {
+    const sealer = new PaymentSecretSealer(config.paymentSecretKey);
+    const provider: WhatsappProvider =
+      config.whatsapp.mode === "simulated"
+        ? new SimulatedWhatsappProvider(config.environment)
+        : new MetaWhatsappProvider({
+            graphVersion: config.whatsapp.graphVersion
+          });
+    loops.push(
+      startPollingLoop({
+        iteration: async () => {
+          const summary = await runMessagingIteration({
+            leaseSeconds: config.visibilityTimeoutSeconds,
+            limit: 20,
+            provider,
+            repository: database.messagingRepository,
+            sealer
+          });
+          if (
+            summary.sent + summary.blocked + summary.failed + summary.retried >
+            0
+          ) {
+            telemetry.logger.info("messaging_iteration", {
+              entryPoint: "queue",
+              requestId: randomUUID(),
+              ...summary
+            });
+          }
+        },
+        onError: () => {
+          telemetry.logger.warn("messaging_queue_retry", {
+            entryPoint: "queue",
+            reason: "queue_unavailable",
+            requestId: randomUUID()
+          });
+        },
+        pollMs: config.pollMs
+      }),
+      startPollingLoop({
+        iteration: async () => {
+          await runAutomationsIteration({
+            repository: database.messagingRepository
+          });
+        },
+        onError: () => {
+          telemetry.logger.warn("messaging_automations_retry", {
+            entryPoint: "scheduler",
+            reason: "queue_unavailable",
+            requestId: randomUUID()
+          });
+        },
+        pollMs: 60_000
+      })
+    );
+  }
+
   let shutdownPromise: Promise<void> | undefined;
   const shutdown = (signal: "SIGINT" | "SIGTERM") => {
     shutdownPromise ??= (async () => {
@@ -108,7 +176,7 @@ function startWorker(): void {
         signal
       });
       clearInterval(heartbeatTimer);
-      await Promise.all([mediaPolling.stop(), importPolling.stop()]);
+      await Promise.all(loops.map((loop) => loop.stop()));
       await database.close();
       await telemetry.sdk.shutdown();
     })();

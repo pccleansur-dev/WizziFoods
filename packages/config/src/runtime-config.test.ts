@@ -51,7 +51,8 @@ describe("runtime configuration", () => {
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
-      supabaseUrl: "http://supabase.local:8000"
+      supabaseUrl: "http://supabase.local:8000",
+      whatsapp: { mode: "off" }
     });
   });
 
@@ -295,11 +296,58 @@ describe("runtime configuration", () => {
       heartbeatMs: 60_000,
       logLevel: "info",
       metricsPort: 9465,
+      paymentSecretKey: null,
       pollMs: 1_000,
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000",
-      visibilityTimeoutSeconds: 120
+      visibilityTimeoutSeconds: 120,
+      whatsapp: { mode: "off" }
     });
+  });
+
+  it("keeps WhatsApp off unless asked and refuses the simulator in production", () => {
+    const worker = {
+      ...baseEnvironment,
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+      SUPABASE_URL: "http://supabase.local:8000",
+      WORKER_METRICS_PORT: "9465",
+      WORKER_HEARTBEAT_MS: "60000",
+      WORKER_POLL_MS: "1000",
+      WORKER_VISIBILITY_TIMEOUT_SECONDS: "120"
+    };
+    const whatsapp = {
+      PAYMENT_SECRET_KEY: Buffer.alloc(32, 7).toString("base64"),
+      WHATSAPP_APP_SECRET: "an-app-secret-of-16+",
+      WHATSAPP_MODE: "simulated",
+      WHATSAPP_VERIFY_TOKEN: "a-verify-token-16+"
+    };
+    expect(readWorkerConfig({ ...worker, ...whatsapp }).whatsapp).toEqual({
+      appSecret: "an-app-secret-of-16+",
+      graphVersion: "v21.0",
+      mode: "simulated",
+      verifyToken: "a-verify-token-16+"
+    });
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, APP_ENV: "production" })
+    ).toThrow("WHATSAPP_MODE simulated is not allowed in production");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, PAYMENT_SECRET_KEY: "" })
+    ).toThrow("PAYMENT_SECRET_KEY is required for WhatsApp");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, WHATSAPP_APP_SECRET: "short" })
+    ).toThrow("at least 16 characters");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, WHATSAPP_MODE: "live" })
+    ).toThrow("WHATSAPP_MODE must be off, simulated or meta");
+    expect(
+      readWorkerConfig({
+        ...worker,
+        ...whatsapp,
+        WHATSAPP_GRAPH_VERSION: "v22.0",
+        WHATSAPP_MODE: "meta"
+      }).whatsapp
+    ).toMatchObject({ graphVersion: "v22.0", mode: "meta" });
   });
 
   it("rejects an unsafe worker secret", () => {

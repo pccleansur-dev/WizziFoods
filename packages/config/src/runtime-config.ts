@@ -53,6 +53,20 @@ export type DinerAuthConfig =
       subPepper: string;
     };
 
+/**
+ * WhatsApp: off by default. "simulated" sends nothing (never in production); "meta"
+ * talks to the WhatsApp Cloud API. The app secret signs the webhook, the verify token
+ * answers Meta's handshake.
+ */
+export type WhatsappConfig =
+  | { mode: "off" }
+  | {
+      appSecret: string;
+      graphVersion: string;
+      mode: "meta" | "simulated";
+      verifyToken: string;
+    };
+
 export type ApiRuntimeConfig = BaseRuntimeConfig & {
   adminInviteRedirectUrl: string;
   /** Absent (or off) means diners can only continue without an account. */
@@ -69,6 +83,8 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   staffPinPepper: string;
   supabaseSecretKey: string;
   supabaseUrl: string;
+  /** Absent (or off) means no message is ever sent. */
+  whatsapp?: WhatsappConfig;
 };
 
 export type WebRuntimeConfig = BaseRuntimeConfig & {
@@ -86,7 +102,9 @@ export type WorkerRuntimeConfig = BaseRuntimeConfig & {
   databaseUrl: string;
   heartbeatMs: number;
   metricsPort: number;
+  paymentSecretKey: Buffer | null;
   pollMs: number;
+  whatsapp: WhatsappConfig;
   supabaseSecretKey: string;
   supabaseUrl: string;
   visibilityTimeoutSeconds: number;
@@ -206,6 +224,52 @@ function withServiceContext<T>(service: string, read: () => T): T {
       { cause: error }
     );
   }
+}
+
+function readPaymentSecretKey(source: EnvironmentSource): Buffer | null {
+  const raw = source.PAYMENT_SECRET_KEY?.trim();
+  if (!raw) return null;
+  const key = Buffer.from(raw, "base64");
+  if (key.length !== 32 || key.toString("base64") !== raw) {
+    throw new Error("PAYMENT_SECRET_KEY must be 32 random bytes in base64");
+  }
+  return key;
+}
+
+function readWhatsappConfig(
+  source: EnvironmentSource,
+  environment: AppEnvironment,
+  paymentSecretKey: Buffer | null
+): WhatsappConfig {
+  const mode = source.WHATSAPP_MODE?.trim() || "off";
+  if (!["off", "simulated", "meta"].includes(mode)) {
+    throw new Error("WHATSAPP_MODE must be off, simulated or meta");
+  }
+  if (mode === "off") return { mode: "off" };
+  if (mode === "simulated" && environment === "production") {
+    throw new Error("WHATSAPP_MODE simulated is not allowed in production");
+  }
+  // Tokens are stored sealed: without the key nothing can be connected or sent.
+  if (!paymentSecretKey) {
+    throw new Error("PAYMENT_SECRET_KEY is required for WhatsApp");
+  }
+  const appSecret = required(source, "WHATSAPP_APP_SECRET");
+  const verifyToken = required(source, "WHATSAPP_VERIFY_TOKEN");
+  if (appSecret.length < 16 || verifyToken.length < 16) {
+    throw new Error(
+      "WHATSAPP_APP_SECRET and WHATSAPP_VERIFY_TOKEN must have at least 16 characters"
+    );
+  }
+  const graphVersion = source.WHATSAPP_GRAPH_VERSION?.trim() || "v21.0";
+  if (!/^v\d+\.\d+$/u.test(graphVersion)) {
+    throw new Error("WHATSAPP_GRAPH_VERSION must look like v21.0");
+  }
+  return {
+    appSecret,
+    graphVersion,
+    mode: mode as "meta" | "simulated",
+    verifyToken
+  };
 }
 
 function readMercadoPagoConfig(
@@ -370,17 +434,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
     }
     // Optional so existing deployments keep booting; without it the API
     // refuses to store provider credentials instead of storing them weakly.
-    const rawPaymentKey = source.PAYMENT_SECRET_KEY?.trim();
-    let paymentSecretKey: Buffer | null = null;
-    if (rawPaymentKey) {
-      paymentSecretKey = Buffer.from(rawPaymentKey, "base64");
-      if (
-        paymentSecretKey.length !== 32 ||
-        paymentSecretKey.toString("base64") !== rawPaymentKey
-      ) {
-        throw new Error("PAYMENT_SECRET_KEY must be 32 random bytes in base64");
-      }
-    }
+    const paymentSecretKey = readPaymentSecretKey(source);
 
     const rawAnthropicKey = source.ANTHROPIC_API_KEY?.trim();
     if (
@@ -409,7 +463,8 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       paymentSecretKey,
       staffPinPepper,
       supabaseSecretKey,
-      supabaseUrl
+      supabaseUrl,
+      whatsapp: readWhatsappConfig(source, base.environment, paymentSecretKey)
     };
   });
 }
@@ -530,12 +585,16 @@ export function readWorkerConfig(
       3_600
     );
 
+    const paymentSecretKey = readPaymentSecretKey(source);
+
     return {
       ...base,
       databaseUrl,
       heartbeatMs,
       metricsPort,
+      paymentSecretKey,
       pollMs,
+      whatsapp: readWhatsappConfig(source, base.environment, paymentSecretKey),
       supabaseSecretKey,
       supabaseUrl,
       visibilityTimeoutSeconds
