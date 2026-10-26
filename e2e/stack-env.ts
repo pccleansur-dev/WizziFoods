@@ -102,7 +102,10 @@ export function stackEnv(): Record<string, string> {
     STAFF_PIN_PEPPER: "e2e-pepper-with-at-least-32-characters",
     SUPABASE_SECRET_KEY: need(supabase, "SUPABASE_SECRET_KEY"),
     SUPABASE_URL: supabaseUrl,
-    WEB_METRICS_PORT: "9576"
+    WEB_METRICS_PORT: "9576",
+    WHATSAPP_APP_SECRET: "e2e-whatsapp-app-secret-with-16-plus",
+    WHATSAPP_MODE: "simulated",
+    WHATSAPP_VERIFY_TOKEN: "e2e-whatsapp-verify-token-16-plus"
   };
 }
 

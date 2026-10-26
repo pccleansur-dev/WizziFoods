@@ -37,6 +37,12 @@ const modules: readonly StaffOperationModule[] = [
     title: "Cobros"
   },
   {
+    description: "WhatsApp, plantillas, automatizaciones y registro de envíos.",
+    path: "mensajeria",
+    requiredCapability: "operations.approve",
+    title: "Mensajería"
+  },
+  {
     description: "Cola de preparación y estados de cocina.",
     path: "produccion",
     requiredCapability: "production.kitchen.manage",

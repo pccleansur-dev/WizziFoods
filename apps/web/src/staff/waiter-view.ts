@@ -108,6 +108,20 @@ const errorMessages: Record<string, string> = {
   SPLIT_SHARE_UNAVAILABLE:
     "Esa parte ya se cobró o la división cambió. Actualizá la cuenta.",
   INVALID_LOYALTY_REQUEST: "Revisá los datos del premio.",
+  AUTOMATION_INVALID:
+    "Esa automatización no admite esa operación en su estado actual.",
+  INVALID_MESSAGING_REQUEST: "Revisá los datos.",
+  MESSAGING_INVALID: "Revisá los datos.",
+  MESSAGING_NOT_AVAILABLE:
+    "Los mensajes de WhatsApp no están disponibles en este entorno.",
+  ONE_OFF_EVENT_NOT_FOUND: "No encontramos ese evento.",
+  TEMPLATE_NOT_APPROVED:
+    "Esa plantilla no existe o todavía no está aprobada por Meta.",
+  WHATSAPP_CREDENTIALS_REJECTED:
+    "Meta no aceptó el token o el ID de la cuenta.",
+  WHATSAPP_NOT_CONNECTED:
+    "Primero conectá el número de WhatsApp del restaurante.",
+  WHATSAPP_NUMBER_IN_USE: "Ese número ya está conectado a otro restaurante.",
   LOYALTY_DISABLED: "El programa de premios no está activo.",
   LOYALTY_INVALID: "Revisá los datos del programa de premios.",
   REWARD_NOT_APPLICABLE: "No se puede aplicar un premio a esta cuenta.",
