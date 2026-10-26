@@ -5,6 +5,8 @@ import {
   parseConnectWhatsappRequest,
   parseMessagingOverview,
   parseProposeOneOffRequest,
+  parsePushSubscriptionRequest,
+  parseSavePushTemplateRequest,
   parseProviderTemplates,
   parseSetTemplateCostRequest
 } from "./messaging.js";
@@ -109,6 +111,7 @@ describe("messaging contracts", () => {
       automations: [
         {
           approvedAt: null,
+          channel: "whatsapp",
           id: null,
           kind: "birthday",
           status: "not_configured",
@@ -118,10 +121,73 @@ describe("messaging contracts", () => {
       ],
       connection: null,
       oneOffEvents: [],
+      push: { sendingEnabled: false, subscribers: 0 },
       templates: [],
       usage: { estimatedCostCents: 0, sentThisMonth: 0 }
     });
     expect(overview?.connection).toBeNull();
     expect(parseMessagingOverview({ connection: null })).toBeNull();
+  });
+});
+
+describe("web push contracts", () => {
+  const keys = {
+    auth: "B".repeat(22),
+    endpoint: "https://push.example.com/send/abc",
+    p256dh: "A".repeat(87)
+  };
+
+  it("accepts what a browser subscription looks like and nothing else", () => {
+    expect(parsePushSubscriptionRequest(keys)).toEqual(keys);
+    expect(
+      parsePushSubscriptionRequest({
+        ...keys,
+        endpoint: "http://insecure.example/x"
+      })
+    ).toBeNull();
+    expect(
+      parsePushSubscriptionRequest({ ...keys, p256dh: "short" })
+    ).toBeNull();
+    expect(parsePushSubscriptionRequest({ ...keys, auth: "a b" })).toBeNull();
+    expect(parsePushSubscriptionRequest({ ...keys, tenantId: id })).toBeNull();
+  });
+
+  it("limits the push messages the Encargado writes", () => {
+    const message = {
+      body: "Hola {{1}}, ya tenés un premio.",
+      category: "operational",
+      name: "aviso_premio"
+    };
+    expect(parseSavePushTemplateRequest(message)).toEqual(message);
+    expect(
+      parseSavePushTemplateRequest({ ...message, body: "x".repeat(241) })
+    ).toBeNull();
+    expect(
+      parseSavePushTemplateRequest({ ...message, name: "Mal Nombre" })
+    ).toBeNull();
+    expect(
+      parseSavePushTemplateRequest({ ...message, category: "other" })
+    ).toBeNull();
+  });
+
+  it("reads the push the worker must deliver", () => {
+    const result = parseBeginSendResult({
+      action: "send",
+      attempt: 1,
+      body: "Hola",
+      category: "operational",
+      channel: "web_push",
+      subscriptions: [keys],
+      title: "La Parrilla",
+      url: "/cuenta"
+    });
+    expect(result).toMatchObject({ action: "send_push" });
+    expect(
+      parseBeginSendResult({
+        action: "send",
+        channel: "web_push",
+        subscriptions: [{ endpoint: 1 }]
+      })
+    ).toBeNull();
   });
 });

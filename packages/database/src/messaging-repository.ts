@@ -1,6 +1,7 @@
 import {
   parseBeginSendResult,
   parseDecidedOneOff,
+  parseDinerPushState,
   parseMessagingAudience,
   parseMessagingEvents,
   parseMessagingOverview,
@@ -8,11 +9,14 @@ import {
   parseTenantScope,
   type BeginSendResult,
   type DecidedOneOff,
+  type DinerPushState,
   type MessagingAudienceMember,
   type MessagingEvent,
   type MessagingOverview,
   type ProposedOneOff,
   type ProviderTemplate,
+  type PushSubscriptionRequest,
+  type SavePushTemplateRequest,
   type SendOutcome,
   type TenantScope
 } from "@platform/contracts";
@@ -101,7 +105,34 @@ export interface MessagingRepository {
     input: StaffScope & { templates: ProviderTemplate[] }
   ): Promise<MessagingOverview>;
 
+  // Push: the Encargado's side
+  savePushTemplate(
+    input: StaffScope & { request: SavePushTemplateRequest }
+  ): Promise<MessagingOverview>;
+  setPushSending(
+    input: StaffScope & { enabled: boolean }
+  ): Promise<MessagingOverview>;
+
+  // Push: the diner's side (the account comes from the diner session)
+  getPushState(input: {
+    accountId: string;
+    endpoint: string;
+    scope: TenantScope;
+  }): Promise<DinerPushState>;
+  registerPush(input: {
+    accountId: string;
+    request: PushSubscriptionRequest;
+    scope: TenantScope;
+  }): Promise<DinerPushState>;
+  unregisterPush(input: {
+    accountId: string;
+    endpoint: string;
+    scope: TenantScope;
+  }): Promise<DinerPushState>;
+
   // Worker side
+  /** The push service says the endpoint is gone: stop using it. */
+  revokePushEndpoint(endpoint: string): Promise<void>;
   beginSend(input: {
     outboxId: string;
     scope: TenantScope;
@@ -350,6 +381,68 @@ export function createMessagingRepository(client: Sql): MessagingRepository {
         ) as result
       `;
       return overviewOf(row);
+    },
+
+    async savePushTemplate(input) {
+      const scope = scopeOf(input.scope);
+      const [row] = await client<ResultRow[]>`
+        select private.save_push_template(
+          ${scope.tenantId}::uuid, ${scope.locationId}::uuid,
+          ${uuid(input.staffId, "staff id")}::uuid,
+          ${input.request.name}::text, ${input.request.category}::text,
+          ${input.request.body}::text
+        ) as result
+      `;
+      return overviewOf(row);
+    },
+
+    async setPushSending(input) {
+      const scope = scopeOf(input.scope);
+      const [row] = await client<ResultRow[]>`
+        select private.set_push_sending(
+          ${scope.tenantId}::uuid, ${scope.locationId}::uuid,
+          ${uuid(input.staffId, "staff id")}::uuid, ${input.enabled}::boolean
+        ) as result
+      `;
+      return overviewOf(row);
+    },
+
+    async getPushState(input) {
+      const scope = scopeOf(input.scope);
+      const [row] = await client<ResultRow[]>`
+        select private.push_subscription_state(
+          ${scope.tenantId}::uuid, ${uuid(input.accountId, "account id")}::uuid,
+          ${input.endpoint}::text
+        ) as result
+      `;
+      return canonical(parseDinerPushState(row?.result), "push state");
+    },
+
+    async registerPush(input) {
+      const scope = scopeOf(input.scope);
+      const [row] = await client<ResultRow[]>`
+        select private.register_push_subscription(
+          ${scope.tenantId}::uuid, ${uuid(input.accountId, "account id")}::uuid,
+          ${input.request.endpoint}::text, ${input.request.p256dh}::text,
+          ${input.request.auth}::text
+        ) as result
+      `;
+      return canonical(parseDinerPushState(row?.result), "push state");
+    },
+
+    async unregisterPush(input) {
+      const scope = scopeOf(input.scope);
+      const [row] = await client<ResultRow[]>`
+        select private.revoke_push_subscription(
+          ${scope.tenantId}::uuid, ${uuid(input.accountId, "account id")}::uuid,
+          ${input.endpoint}::text
+        ) as result
+      `;
+      return canonical(parseDinerPushState(row?.result), "push state");
+    },
+
+    async revokePushEndpoint(endpoint) {
+      await client`select private.revoke_push_endpoint(${endpoint}::text)`;
     },
 
     async beginSend(input) {

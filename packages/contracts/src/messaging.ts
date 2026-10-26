@@ -21,10 +21,13 @@ export type MessagingEventKind =
   | "retry_scheduled"
   | "sent";
 
+export type MessagingChannel = "web_push" | "whatsapp";
+
 export type MessagingTemplate = {
   approvalStatus: MessagingTemplateStatus;
   body: string;
   category: MessagingCategory;
+  channel: MessagingChannel;
   estimatedCostCents: number;
   id: string;
   language: string;
@@ -41,6 +44,7 @@ export type MessagingConnection = {
 
 export type MessagingAutomation = {
   approvedAt: string | null;
+  channel: MessagingChannel;
   id: string | null;
   kind: MessagingAutomationKind;
   status: MessagingAutomationStatus;
@@ -58,6 +62,8 @@ export type MessagingOverview = {
   automations: MessagingAutomation[];
   connection: MessagingConnection | null;
   oneOffEvents: MessagingOneOffEvent[];
+  /** Notifications of the installed PWA: sending switch and people reachable. */
+  push: { sendingEnabled: boolean; subscribers: number };
   templates: MessagingTemplate[];
   usage: { estimatedCostCents: number; sentThisMonth: number };
 };
@@ -77,6 +83,9 @@ export type MessagingAudienceMember = {
   displayName: string;
   marketingConsent: boolean;
   profileId: string;
+  /** An active push subscription, and that plus the marketing consent. */
+  pushConsent: boolean;
+  pushMarketingConsent: boolean;
   whatsappConsent: boolean;
 };
 
@@ -171,6 +180,10 @@ export function isMessagingAutomationKind(
   return messagingAutomationKinds.includes(value as MessagingAutomationKind);
 }
 
+function channelOf(value: unknown): MessagingChannel | null {
+  return value === "whatsapp" || value === "web_push" ? value : null;
+}
+
 function parseTemplate(input: unknown): MessagingTemplate | null {
   const root = record(input);
   if (!root) return null;
@@ -180,8 +193,10 @@ function parseTemplate(input: unknown): MessagingTemplate | null {
   const body = text(root.body, 1024);
   const kind = category(root.category);
   const status = templateStatus(root.approvalStatus);
+  const channel = channelOf(root.channel);
   const cost = root.estimatedCostCents;
   if (
+    !channel ||
     !id ||
     !name ||
     !language ||
@@ -197,6 +212,7 @@ function parseTemplate(input: unknown): MessagingTemplate | null {
     approvalStatus: status,
     body,
     category: kind,
+    channel,
     estimatedCostCents: cost,
     id,
     language,
@@ -207,6 +223,8 @@ function parseTemplate(input: unknown): MessagingTemplate | null {
 function parseAutomation(input: unknown): MessagingAutomation | null {
   const root = record(input);
   if (!root || !isMessagingAutomationKind(root.kind)) return null;
+  const channel = channelOf(root.channel);
+  if (!channel) return null;
   const status = root.status;
   if (
     status !== "approved" &&
@@ -228,6 +246,7 @@ function parseAutomation(input: unknown): MessagingAutomation | null {
   }
   return {
     approvedAt: root.approvedAt as string | null,
+    channel,
     id,
     kind: root.kind,
     status,
@@ -288,6 +307,7 @@ export function parseMessagingOverview(
       : null;
   });
   const usage = record(root.usage);
+  const push = record(root.push);
   const connection =
     root.connection === null ? null : parseConnection(root.connection);
   if (
@@ -295,6 +315,9 @@ export function parseMessagingOverview(
     !automations ||
     !oneOffEvents ||
     !usage ||
+    !push ||
+    typeof push.sendingEnabled !== "boolean" ||
+    typeof push.subscribers !== "number" ||
     typeof usage.sentThisMonth !== "number" ||
     typeof usage.estimatedCostCents !== "number" ||
     (root.connection !== null && !connection)
@@ -305,6 +328,10 @@ export function parseMessagingOverview(
     automations,
     connection,
     oneOffEvents,
+    push: {
+      sendingEnabled: push.sendingEnabled,
+      subscribers: push.subscribers
+    },
     templates,
     usage: {
       estimatedCostCents: usage.estimatedCostCents,
@@ -368,11 +395,15 @@ export function parseMessagingAudience(
       profileId &&
       typeof root.displayName === "string" &&
       typeof root.marketingConsent === "boolean" &&
+      typeof root.pushConsent === "boolean" &&
+      typeof root.pushMarketingConsent === "boolean" &&
       typeof root.whatsappConsent === "boolean"
       ? {
           displayName: root.displayName,
           marketingConsent: root.marketingConsent,
           profileId,
+          pushConsent: root.pushConsent,
+          pushMarketingConsent: root.pushMarketingConsent,
           whatsappConsent: root.whatsappConsent
         }
       : null;
@@ -569,10 +600,27 @@ export type MessageToSend = {
   variables: string[];
 };
 
+/** A push the worker must deliver to every browser of one person. */
+export type PushToSend = {
+  attempt: number;
+  body: string;
+  category: MessagingCategory;
+  subscriptions: PushSubscriptionKeys[];
+  title: string;
+  url: string;
+};
+
+export type PushSubscriptionKeys = {
+  auth: string;
+  endpoint: string;
+  p256dh: string;
+};
+
 export type BeginSendResult =
   | { action: "blocked"; reason: string }
   | { action: "deferred"; reason: string }
   | { action: "send"; message: MessageToSend }
+  | { action: "send_push"; push: PushToSend }
   | { action: "skip" };
 
 export function parseBeginSendResult(input: unknown): BeginSendResult | null {
@@ -588,6 +636,27 @@ export function parseBeginSendResult(input: unknown): BeginSendResult | null {
     }
   }
   const kind = category(root.category);
+  if (root.action === "send" && root.channel === "web_push") {
+    const subscriptions = all(root.subscriptions, parsePushKeys);
+    return kind &&
+      subscriptions &&
+      typeof root.title === "string" &&
+      typeof root.body === "string" &&
+      typeof root.url === "string" &&
+      typeof root.attempt === "number"
+      ? {
+          action: "send_push",
+          push: {
+            attempt: root.attempt,
+            body: root.body,
+            category: kind,
+            subscriptions,
+            title: root.title,
+            url: root.url
+          }
+        }
+      : null;
+  }
   const variables = Array.isArray(root.variables)
     ? root.variables.map((entry) => text(entry, 200))
     : null;
@@ -620,3 +689,98 @@ export function parseBeginSendResult(input: unknown): BeginSendResult | null {
 }
 
 export type SendOutcome = "permanent_failure" | "sent" | "transient_failure";
+
+function parsePushKeys(input: unknown): PushSubscriptionKeys | null {
+  const root = record(input);
+  return root &&
+    typeof root.endpoint === "string" &&
+    typeof root.p256dh === "string" &&
+    typeof root.auth === "string"
+    ? { auth: root.auth, endpoint: root.endpoint, p256dh: root.p256dh }
+    : null;
+}
+
+/** Push messages the Encargado writes: no Meta approval, 240 characters at most. */
+export type SavePushTemplateRequest = {
+  body: string;
+  category: MessagingCategory;
+  name: string;
+};
+
+export function parseSavePushTemplateRequest(
+  input: unknown
+): SavePushTemplateRequest | null {
+  const root = record(input);
+  const body = root ? text(root.body, 240) : null;
+  const name = root ? text(root.name, 100) : null;
+  const kind = root ? category(root.category) : null;
+  return root &&
+    exactKeys(root, ["body", "category", "name"]) &&
+    body &&
+    body.trim() === body &&
+    name &&
+    templateNamePattern.test(name) &&
+    kind
+    ? { body, category: kind, name }
+    : null;
+}
+
+/** What the browser hands over when the diner allows notifications. */
+export type PushSubscriptionRequest = {
+  auth: string;
+  endpoint: string;
+  p256dh: string;
+};
+
+const pushEndpointPattern = /^https:\/\/[^\s]{4,1990}$/u;
+
+export function parsePushSubscriptionRequest(
+  input: unknown
+): PushSubscriptionRequest | null {
+  const root = record(input);
+  if (!root || !exactKeys(root, ["auth", "endpoint", "p256dh"])) return null;
+  const { auth, endpoint, p256dh } = root;
+  return typeof auth === "string" &&
+    /^[A-Za-z0-9_-]{20,30}$/u.test(auth) &&
+    typeof endpoint === "string" &&
+    pushEndpointPattern.test(endpoint) &&
+    typeof p256dh === "string" &&
+    /^[A-Za-z0-9_-]{80,100}$/u.test(p256dh)
+    ? { auth, endpoint, p256dh }
+    : null;
+}
+
+export type PushEndpointRequest = { endpoint: string };
+
+export function parsePushEndpointRequest(
+  input: unknown
+): PushEndpointRequest | null {
+  const root = record(input);
+  return root &&
+    exactKeys(root, ["endpoint"]) &&
+    typeof root.endpoint === "string" &&
+    pushEndpointPattern.test(root.endpoint)
+    ? { endpoint: root.endpoint }
+    : null;
+}
+
+export type DinerPushState = { subscribed: boolean };
+
+export function parseDinerPushState(input: unknown): DinerPushState | null {
+  const root = record(input);
+  return root && typeof root.subscribed === "boolean"
+    ? { subscribed: root.subscribed }
+    : null;
+}
+
+/** Whether this deployment offers push, and the public key the browser needs. */
+export type DinerPushConfig = { available: boolean; publicKey: string | null };
+
+export function parseDinerPushConfig(input: unknown): DinerPushConfig | null {
+  const root = record(input);
+  return root &&
+    typeof root.available === "boolean" &&
+    (root.publicKey === null || typeof root.publicKey === "string")
+    ? { available: root.available, publicKey: root.publicKey }
+    : null;
+}

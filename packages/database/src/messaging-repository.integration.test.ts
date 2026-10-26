@@ -89,6 +89,8 @@ describeWithLocalStack("messaging races against local Supabase", () => {
       await tx`delete from private.whatsapp_templates where tenant_id = ${tenantId}`;
       await tx`delete from private.whatsapp_connections where tenant_id = ${tenantId}`;
       await tx`delete from private.messaging_webhook_events where event_key like 'it-%'`;
+      await tx`delete from private.push_subscriptions where tenant_id = ${tenantId}`;
+      await tx`delete from private.push_settings where tenant_id = ${tenantId}`;
       await tx`delete from private.loyalty_visits where tenant_id = ${tenantId}`;
       await tx`delete from private.loyalty_rewards where tenant_id = ${tenantId}`;
       await tx`delete from private.diner_birthdays where tenant_id = ${tenantId}`;
@@ -289,6 +291,75 @@ describeWithLocalStack("messaging races against local Supabase", () => {
     expect(
       blocked.every((r) => r.action === "blocked" && r.reason === "weekly_cap")
     ).toBe(true);
+  });
+
+  it("shares the promotional allowance between WhatsApp and push even when they race", async () => {
+    const profile = await newDiner("canales", "+5491133330050");
+    const accountId = accounts[accounts.length - 1]!;
+    await repository().registerPush({
+      accountId,
+      request: {
+        auth: "B".repeat(22),
+        endpoint: "https://push.example.com/send/race-1",
+        p256dh: "A".repeat(87)
+      },
+      scope: scope()
+    });
+    await repository().setPushSending({
+      enabled: true,
+      scope: scope(),
+      staffId
+    });
+    const overview = await repository().savePushTemplate({
+      request: {
+        body: "Hola {{1}}, novedades",
+        category: "promotional",
+        name: "push_promo"
+      },
+      scope: scope(),
+      staffId
+    });
+    const pushTemplate = overview.templates.find(
+      (template) => template.name === "push_promo"
+    )!.id;
+    const ids = [
+      ...(await queueFor(profile, promoTemplate, 3)),
+      ...(await queueFor(profile, pushTemplate, 3))
+    ];
+    const begins = await Promise.all(
+      ids.map((outboxId) =>
+        repository().beginSend({ outboxId, scope: scope() })
+      )
+    );
+    const sent = begins.filter(
+      (result) => result.action === "send" || result.action === "send_push"
+    );
+    expect(sent).toHaveLength(2);
+    expect(begins.filter((result) => result.action === "blocked")).toHaveLength(
+      4
+    );
+  });
+
+  it("stops using a browser the push service says is gone", async () => {
+    const profile = await newDiner("fantasma", "+5491133330060");
+    const accountId = accounts[accounts.length - 1]!;
+    const endpoint = "https://push.example.com/send/gone-1";
+    await repository().registerPush({
+      accountId,
+      request: { auth: "B".repeat(22), endpoint, p256dh: "A".repeat(87) },
+      scope: scope()
+    });
+    await expect(
+      repository().getPushState({ accountId, endpoint, scope: scope() })
+    ).resolves.toEqual({ subscribed: true });
+    await repository().revokePushEndpoint(endpoint);
+    await expect(
+      repository().getPushState({ accountId, endpoint, scope: scope() })
+    ).resolves.toEqual({ subscribed: false });
+    const [row] = await admin<{ revoked_reason: string }[]>`
+      select revoked_reason from private.push_subscriptions where endpoint = ${endpoint}`;
+    expect(row?.revoked_reason).toBe("gone");
+    expect(profile).toBeTruthy();
   });
 
   it("blocks at once what is waiting when the person writes BAJA", async () => {
