@@ -13,11 +13,15 @@ import type {
   DecideAutomationRequest,
   DecideOneOffRequest,
   DecidedOneOff,
+  DinerPushConfig,
+  DinerPushState,
   MessagingAudienceMember,
   MessagingEvent,
   MessagingOverview,
   ProposeOneOffRequest,
   ProposedOneOff,
+  PushSubscriptionRequest,
+  SavePushTemplateRequest,
   SaveAutomationRequest,
   TenantScope
 } from "@platform/contracts";
@@ -66,7 +70,9 @@ export class MessagingService {
     private readonly repository: MessagingRepository,
     private readonly sealer: PaymentSecretSealer | null,
     private readonly provider: WhatsappProvider | null,
-    private readonly webhook: MessagingWebhookSettings | null
+    private readonly webhook: MessagingWebhookSettings | null,
+    /** The VAPID public key; null when the PWA does not offer notifications. */
+    private readonly pushPublicKey: string | null = null
   ) {}
 
   getOverview(context: StaffRequestContext): Promise<MessagingOverview> {
@@ -216,6 +222,55 @@ export class MessagingService {
       batchId,
       decision: request.decision
     });
+  }
+
+  setPushSending(
+    context: StaffRequestContext,
+    enabled: boolean
+  ): Promise<MessagingOverview> {
+    return this.repository.setPushSending({ ...this.staff(context), enabled });
+  }
+
+  savePushTemplate(
+    context: StaffRequestContext,
+    request: SavePushTemplateRequest
+  ): Promise<MessagingOverview> {
+    return this.repository.savePushTemplate({
+      ...this.staff(context),
+      request
+    });
+  }
+
+  pushConfig(): DinerPushConfig {
+    return {
+      available: this.pushPublicKey !== null,
+      publicKey: this.pushPublicKey
+    };
+  }
+
+  registerPush(
+    scope: TenantScope,
+    accountId: string,
+    request: PushSubscriptionRequest
+  ): Promise<DinerPushState> {
+    if (this.pushPublicKey === null) throw unavailable();
+    return this.repository.registerPush({ accountId, request, scope });
+  }
+
+  pushState(
+    scope: TenantScope,
+    accountId: string,
+    endpoint: string
+  ): Promise<DinerPushState> {
+    return this.repository.getPushState({ accountId, endpoint, scope });
+  }
+
+  unregisterPush(
+    scope: TenantScope,
+    accountId: string,
+    endpoint: string
+  ): Promise<DinerPushState> {
+    return this.repository.unregisterPush({ accountId, endpoint, scope });
   }
 
   /** Meta's handshake when the webhook is registered. */

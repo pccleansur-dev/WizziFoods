@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createECDH, createHash, randomBytes } from "node:crypto";
 
 import { NestFactory } from "@nestjs/core";
 import {
@@ -40,6 +40,15 @@ const two: Fixture = {
   userId: "3b000000-0000-4000-8000-000000000021"
 };
 
+const vapid = createECDH("prime256v1");
+vapid.generateKeys();
+const vapidPublicKey = vapid.getPublicKey().toString("base64url");
+const browserKeys = (n: number) => ({
+  auth: "B".repeat(22),
+  endpoint: `https://push.example.com/send/api-${n}`,
+  p256dh: "A".repeat(87)
+});
+
 const hex = (value: string) => createHash("sha256").update(value).digest("hex");
 
 describeWithLocalStack("messaging API with local Supabase", () => {
@@ -59,6 +68,8 @@ describeWithLocalStack("messaging API with local Supabase", () => {
       await admin.begin(async (tx) => {
         await tx`set local session_replication_role = replica`;
         await tx`delete from private.messaging_events where tenant_id = ${tenant}`;
+        await tx`delete from private.push_subscriptions where tenant_id = ${tenant}`;
+        await tx`delete from private.push_settings where tenant_id = ${tenant}`;
         await tx`delete from private.messaging_outbox where tenant_id = ${tenant}`;
         await tx`delete from private.messaging_automations where tenant_id = ${tenant}`;
         await tx`delete from private.whatsapp_templates where tenant_id = ${tenant}`;
@@ -138,6 +149,43 @@ describeWithLocalStack("messaging API with local Supabase", () => {
     };
   }
 
+  /** A diner session for the last account created, as the diner cookie would carry it. */
+  async function dinerToken(tenantId: string) {
+    const token = randomBytes(32).toString("base64url");
+    const [account] = await admin<{ account_id: string }[]>`
+      select account_id from private.diner_profile_links
+      where tenant_id = ${tenantId} order by created_at desc limit 1`;
+    await admin`
+      insert into private.diner_sessions (token_hash, account_id, tenant_id, expires_at)
+      values (${createHash("sha256").update(token).digest()}, ${account!.account_id},
+        ${tenantId}, now() + interval '1 day')`;
+    return token;
+  }
+
+  async function dinerCall(
+    fixture: Fixture,
+    method: "GET" | "POST",
+    url: string,
+    token: string | null,
+    payload?: unknown
+  ) {
+    const options: InjectOptions = {
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        host: `${fixture.slug}.plataforma.test`
+      },
+      method,
+      url
+    };
+    if (payload !== undefined) options.payload = payload as object;
+    const response = await app!.getHttpAdapter().getInstance().inject(options);
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      body: response.json() as Record<string, any>,
+      status: response.statusCode
+    };
+  }
+
   async function webhook(body: unknown, signature?: string) {
     const raw = JSON.stringify(body);
     const response = await app!
@@ -211,6 +259,12 @@ describeWithLocalStack("messaging API with local Supabase", () => {
       staffPinPepper: pepper,
       supabaseSecretKey: supabaseSecretKey ?? "",
       supabaseUrl: supabaseUrl ?? "",
+      webPush: {
+        mode: "simulated",
+        privateKey: null,
+        publicKey: vapidPublicKey,
+        subject: "mailto:soporte@plataforma.test"
+      },
       whatsapp: {
         appSecret,
         graphVersion: "v21.0",
@@ -245,7 +299,7 @@ describeWithLocalStack("messaging API with local Supabase", () => {
     const manager = await staff("marta", "GET", "/v1/staff/messaging");
     expect(manager.status).toBe(200);
     expect(manager.body.data.connection).toBeNull();
-    expect(manager.body.data.automations).toHaveLength(4);
+    expect(manager.body.data.automations).toHaveLength(8);
   });
 
   it("seals the token, keeps it out of every response and isolates each restaurant", async () => {
@@ -492,6 +546,162 @@ describeWithLocalStack("messaging API with local Supabase", () => {
     expect(seen!.total).toBe(2);
   });
 
+  it("offers the PWA notifications: the diner subscribes, the Encargado writes and turns them on", async () => {
+    const config = await dinerCall(
+      one,
+      "GET",
+      "/v1/public/diner/push/config",
+      null
+    );
+    expect(config.body.data).toEqual({
+      available: true,
+      publicKey: vapidPublicKey
+    });
+
+    await newDiner(one.tenantId, "Camila", "+5491155550201");
+    const token = await dinerToken(one.tenantId);
+    const keys = browserKeys(1);
+    expect(
+      (
+        await dinerCall(
+          one,
+          "POST",
+          "/v1/public/diner/push/subscriptions",
+          null,
+          keys
+        )
+      ).status
+    ).toBe(401);
+    expect(
+      (
+        await dinerCall(
+          one,
+          "POST",
+          "/v1/public/diner/push/subscriptions",
+          token,
+          { ...keys, endpoint: "http://insecure.example/x" }
+        )
+      ).status
+    ).toBe(400);
+    expect(
+      (
+        await dinerCall(
+          one,
+          "POST",
+          "/v1/public/diner/push/subscriptions",
+          token,
+          { ...keys, tenantId: one.tenantId }
+        )
+      ).status
+    ).toBe(400);
+    const subscribed = await dinerCall(
+      one,
+      "POST",
+      "/v1/public/diner/push/subscriptions",
+      token,
+      keys
+    );
+    expect(subscribed.body.data).toEqual({ subscribed: true });
+    const state = (endpoint: string) =>
+      dinerCall(
+        one,
+        "POST",
+        "/v1/public/diner/push/subscriptions/state",
+        token,
+        { endpoint }
+      );
+    expect((await state(keys.endpoint)).body.data).toEqual({
+      subscribed: true
+    });
+    expect((await state(browserKeys(2).endpoint)).body.data).toEqual({
+      subscribed: false
+    });
+
+    // The same session is worthless at the other restaurant.
+    expect(
+      (
+        await dinerCall(
+          two,
+          "POST",
+          "/v1/public/diner/push/subscriptions",
+          token,
+          browserKeys(3)
+        )
+      ).status
+    ).toBe(401);
+
+    // The Encargado sees how many people can be reached, never who or where.
+    const overview = await staff("marta", "GET", "/v1/staff/messaging");
+    expect(overview.body.data.push).toEqual({
+      sendingEnabled: false,
+      subscribers: 1
+    });
+    expect(overview.text).not.toContain(keys.endpoint);
+    expect(
+      (
+        await staff("ana", "PUT", "/v1/staff/messaging/push/sending", {
+          enabled: true
+        })
+      ).status
+    ).toBe(403);
+    const written = await staff(
+      "marta",
+      "PUT",
+      "/v1/staff/messaging/push/templates",
+      {
+        body: "Hola {{1}}, ya tenés un premio.",
+        category: "operational",
+        name: "aviso_premio"
+      }
+    );
+    const template = written.body.data.templates.find(
+      (t: { name: string }) => t.name === "aviso_premio"
+    );
+    expect(template).toMatchObject({
+      approvalStatus: "approved",
+      channel: "web_push"
+    });
+    expect(
+      (
+        await staff("marta", "PUT", "/v1/staff/messaging/push/templates", {
+          body: "x".repeat(241),
+          category: "operational",
+          name: "larga"
+        })
+      ).status
+    ).toBe(400);
+    const on = await staff("marta", "PUT", "/v1/staff/messaging/push/sending", {
+      enabled: true
+    });
+    expect(on.body.data.push.sendingEnabled).toBe(true);
+
+    // The people to choose from say who can be reached by push, without the browser.
+    const audience = await staff(
+      "marta",
+      "GET",
+      "/v1/staff/messaging/audience"
+    );
+    expect(
+      audience.body.data.find(
+        (p: { displayName: string }) => p.displayName === "Camila"
+      )
+    ).toMatchObject({ pushConsent: true });
+    expect(audience.text).not.toMatch(/endpoint|p256dh|push\.example/u);
+
+    const revoked = await dinerCall(
+      one,
+      "POST",
+      "/v1/public/diner/push/subscriptions/revoke",
+      token,
+      { endpoint: keys.endpoint }
+    );
+    expect(revoked.body.data).toEqual({ subscribed: false });
+    expect(
+      (await staff("marta", "GET", "/v1/staff/messaging")).body.data.push
+        .subscribers
+    ).toBe(0);
+  });
+
   it("disconnects and removes the credential and the templates", async () => {
     const response = await staff(
       "marta",
@@ -500,7 +710,9 @@ describeWithLocalStack("messaging API with local Supabase", () => {
     );
     expect(response.status).toBe(200);
     expect(response.body.data.connection).toBeNull();
-    expect(response.body.data.templates).toEqual([]);
+    expect(
+      response.body.data.templates.map((t: { channel: string }) => t.channel)
+    ).toEqual(["web_push"]);
     const [row] = await admin<{ total: number }[]>`
       select count(*)::int as total from private.whatsapp_connections where tenant_id = ${one.tenantId}`;
     expect(row!.total).toBe(0);

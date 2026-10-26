@@ -85,6 +85,7 @@ import { LoyaltyStaffController } from "./loyalty/loyalty-staff.controller.js";
 import { LoyaltyService } from "./loyalty/loyalty.service.js";
 import { MessagingStaffController } from "./messaging/messaging-staff.controller.js";
 import { MessagingService } from "./messaging/messaging.service.js";
+import { PushDinerController } from "./messaging/push-diner.controller.js";
 import { WhatsappWebhookController } from "./messaging/whatsapp-webhook.controller.js";
 import { TableClosingController } from "./table-closing/table-closing.controller.js";
 import { TableClosingService } from "./table-closing/table-closing.service.js";
@@ -181,6 +182,7 @@ export class AppModule {
         LoyaltyStaffController,
         MessagingStaffController,
         WhatsappWebhookController,
+        PushDinerController,
         TableClosingController,
         TableRegroupingController,
         ProductionController,
@@ -402,12 +404,17 @@ export class AppModule {
           provide: MessagingService,
           useFactory: (database: TenantDatabase) => {
             const whatsapp = config.whatsapp ?? { mode: "off" as const };
+            const pushPublicKey =
+              config.webPush && config.webPush.mode !== "off"
+                ? config.webPush.publicKey
+                : null;
             if (whatsapp.mode === "off") {
               return new MessagingService(
                 database.messagingRepository,
                 null,
                 null,
-                null
+                null,
+                pushPublicKey
               );
             }
             return new MessagingService(
@@ -424,7 +431,8 @@ export class AppModule {
               {
                 appSecret: whatsapp.appSecret,
                 verifyToken: whatsapp.verifyToken
-              }
+              },
+              pushPublicKey
             );
           }
         },

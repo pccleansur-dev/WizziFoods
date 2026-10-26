@@ -22,6 +22,7 @@ import {
   parseDecideOneOffRequest,
   parseProposeOneOffRequest,
   parseSaveAutomationRequest,
+  parseSavePushTemplateRequest,
   parseSetSendingRequest,
   parseSetTemplateCostRequest
 } from "@platform/contracts";
@@ -130,6 +131,34 @@ export class MessagingStaffController {
       return {
         data: await this.service.setSending(context, parsed.enabled)
       };
+    } catch (error) {
+      return mapMessagingFailure(error);
+    }
+  }
+
+  /** Notifications of the PWA: a switch of their own, off by default. */
+  @Put("push/sending")
+  async pushSending(@Req() request: MessagingRequest, @Body() body: unknown) {
+    const context = manager(request);
+    const parsed = parseSetSendingRequest(body);
+    if (!parsed) throw invalid();
+    try {
+      return {
+        data: await this.service.setPushSending(context, parsed.enabled)
+      };
+    } catch (error) {
+      return mapMessagingFailure(error);
+    }
+  }
+
+  /** The restaurant writes its own push messages: no Meta approval involved. */
+  @Put("push/templates")
+  async pushTemplate(@Req() request: MessagingRequest, @Body() body: unknown) {
+    const context = manager(request);
+    const parsed = parseSavePushTemplateRequest(body);
+    if (!parsed) throw invalid();
+    try {
+      return { data: await this.service.savePushTemplate(context, parsed) };
     } catch (error) {
       return mapMessagingFailure(error);
     }
