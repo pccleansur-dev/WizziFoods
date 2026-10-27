@@ -101,6 +101,12 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   whatsapp?: WhatsappConfig;
   /** Absent (or off) means the PWA does not offer notifications. */
   webPush?: WebPushConfig;
+  /**
+   * The JWT secret of the Supabase stack, used only to sign the short tokens that let a
+   * signed-in staff member listen to Realtime. Absent means no live updates: the screens
+   * keep polling.
+   */
+  realtimeJwtSecret?: string | null;
 };
 
 export type WebRuntimeConfig = BaseRuntimeConfig & {
@@ -251,6 +257,15 @@ function readPaymentSecretKey(source: EnvironmentSource): Buffer | null {
     throw new Error("PAYMENT_SECRET_KEY must be 32 random bytes in base64");
   }
   return key;
+}
+
+function readRealtimeJwtSecret(source: EnvironmentSource): string | null {
+  const secret = source.SUPABASE_JWT_SECRET?.trim();
+  if (!secret) return null;
+  if (secret.length < 32) {
+    throw new Error("SUPABASE_JWT_SECRET must have at least 32 characters");
+  }
+  return secret;
 }
 
 function readWebPushConfig(
@@ -523,6 +538,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       staffPinPepper,
       supabaseSecretKey,
       supabaseUrl,
+      realtimeJwtSecret: readRealtimeJwtSecret(source),
       webPush: readWebPushConfig(source, base.environment, false),
       whatsapp: readWhatsappConfig(source, base.environment, paymentSecretKey)
     };

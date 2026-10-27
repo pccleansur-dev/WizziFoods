@@ -51,6 +51,7 @@ describe("runtime configuration", () => {
       platformBaseDomain: "plataforma.example.test",
       paymentSecretKey: null,
       port: 3001,
+      realtimeJwtSecret: null,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000",
@@ -307,6 +308,29 @@ describe("runtime configuration", () => {
       webPush: { mode: "off" },
       whatsapp: { mode: "off" }
     });
+  });
+
+  it("reads the Supabase JWT secret only when it is long enough to be one", () => {
+    const api = {
+      ...baseEnvironment,
+      ADMIN_INVITE_REDIRECT_URL:
+        "https://app.example.test/auth/callback?next=/acceso/continuar",
+      API_METRICS_PORT: "9464",
+      API_PORT: "3001",
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      PLATFORM_BASE_DOMAIN: "plataforma.example.test",
+      STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+      SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+      SUPABASE_URL: "http://supabase.local:8000"
+    };
+    expect(readApiConfig(api).realtimeJwtSecret).toBeNull();
+    expect(
+      readApiConfig({ ...api, SUPABASE_JWT_SECRET: "x".repeat(40) })
+        .realtimeJwtSecret
+    ).toBe("x".repeat(40));
+    expect(() =>
+      readApiConfig({ ...api, SUPABASE_JWT_SECRET: "short" })
+    ).toThrow("SUPABASE_JWT_SECRET must have at least 32 characters");
   });
 
   it("keeps Web Push off unless asked and checks the VAPID keys", () => {

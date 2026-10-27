@@ -88,6 +88,8 @@ import { LoyaltyStaffController } from "./loyalty/loyalty-staff.controller.js";
 import { LoyaltyService } from "./loyalty/loyalty.service.js";
 import { MessagingStaffController } from "./messaging/messaging-staff.controller.js";
 import { MessagingService } from "./messaging/messaging.service.js";
+import { RealtimeController } from "./realtime/realtime.controller.js";
+import { RealtimeTokenService } from "./realtime/realtime-token.service.js";
 import { PushDinerController } from "./messaging/push-diner.controller.js";
 import { WhatsappWebhookController } from "./messaging/whatsapp-webhook.controller.js";
 import { TableClosingController } from "./table-closing/table-closing.controller.js";
@@ -185,6 +187,7 @@ export class AppModule {
         LoyaltyStaffController,
         MessagingStaffController,
         BrandController,
+        RealtimeController,
         WhatsappWebhookController,
         PushDinerController,
         TableClosingController,
@@ -402,6 +405,10 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          provide: RealtimeTokenService,
+          useValue: new RealtimeTokenService(config.realtimeJwtSecret ?? null)
         },
         {
           inject: [TENANT_DATABASE],
