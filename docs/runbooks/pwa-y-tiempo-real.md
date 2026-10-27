@@ -27,13 +27,30 @@ Cada cambio en la base se anuncia en un canal `tenant:<negocio>:location:<local>
   canales de ese claim. Un navegador **no puede escribir** en ningún canal (no hay política de inserción), un usuario de
   Supabase Auth sin ese claim no oye nada y un token vencido o de otra clave es rechazado.
 - **Cobertura:** un cambio que alguna pantalla lee y no anuncia tarda hasta 60 s en verse (el latido). Por eso hay
-  disparadores en 24 tablas: llamados, intenciones, pedidos, sesiones, caja, libro, plano, grupos, partes de cuenta (y quién las
+  disparadores en 21 tablas: llamados, intenciones, pedidos, sesiones, caja, libro, plano, grupos, partes de cuenta (y quién las
   tomó), decisiones de cuenta, ajustes, pagos online, estado de servicio y asignación de sectores. **Si una pantalla
   nueva lee una tabla nueva, hay que agregarle su disparador** (migración + prueba pgTap).
 - Dentro de una transacción un tema se anuncia **una sola vez** y publicar nunca hace fallar la escritura (todo
   envío está protegido). Un aviso de una transacción que se revierte no sale.
 - No hay repetición: si una pantalla estuvo desconectada no recibe lo que se perdió; por eso **vuelve a consultar al
   reconectar**.
+
+### El comensal también escucha, pero sólo su mesa
+
+La página que abre el comensal con el QR escucha un canal propio:
+`tenant:<negocio>:location:<local>:table-<mesa>` (migración `20261031020000_realtime_diner_tables.sql`, pgTap
+`realtime_diner.test.sql`).
+
+- **Cómo obtiene permiso:** `POST /v1/public/realtime/token` (por el host del negocio, con el token del QR en el cuerpo, sin
+  que llegue a los registros). La API resuelve a qué mesa corresponde el QR y firma un token de 10 minutos con **ese solo
+  canal** y un sujeto anónimo distinto por teléfono. Un QR inexistente o de otro negocio da 404; sin `SUPABASE_JWT_SECRET`
+  da 503 y la página sigue como antes.
+- **Qué lo dispara:** el estado de servicio de la mesa, sus miembros de grupo y los eventos de agrupar/separar, la sesión de la
+  mesa (y las mesas de su grupo) y las partes de una cuenta dividida. Un grupo avisa a todas las mesas que lo forman.
+- **Lo que no avisa:** la disponibilidad de la carta. Por eso la página mantiene un latido de 15 s aun con Realtime
+  (`heartbeatMs`), el mismo ritmo de antes; Realtime sólo adelanta lo de la mesa.
+- Cada teléfono abre una conexión para la mesa y, mientras mira la división de la cuenta, una más: cuentan en
+  `max_concurrent_users` (ver Dimensionar).
 
 ### Configuración
 
@@ -97,9 +114,8 @@ Registrado en toda la web (`PwaRegistrar`, al terminar de cargar y con el navega
   un mozo no puede pedir el canal de Cocina ni un vecino el de otro local, token vencido rechazado, sin repetición tras
   desconectar, y 120 oyentes de dos negocios (`REALTIME_LOAD_CLIENTS`, 60 por negocio por defecto) con 20 cambios en
   ráfaga: todos reciben exactamente los de su negocio.
-  **Límite medido:** con 300 oyentes la pila local rechaza suscripciones; el tenant de Realtime de desarrollo permite
-  unas 200 conexiones concurrentes. En producción hay que dimensionar `max_concurrent_users`, `max_events_per_second`
-  y `max_joins_per_second` del tenant de Realtime según la cantidad de pantallas abiertas.
+  También prueba el token del comensal: sólo oye el canal de su mesa, no el del personal, y un QR de otro negocio no da
+  token.
 - `live-sync.test.ts` (9), `settle-action.test.ts`, `connection-view.test.ts` y `service-worker.test.ts` (11).
 - Playwright `e2e/connectivity.spec.ts` (móvil y escritorio): la Cocina recibe un pedido por Realtime en segundos (el
   latido es de un minuto), tres ciclos sin conexión con cambios ocurridos mientras tanto, servidor 503 y servidor
@@ -107,11 +123,60 @@ Registrado en toda la web (`PwaRegistrar`, al terminar de cargar y con el navega
   conexión que muestra la página sin conexión y vuelve sola, y el comensal sin conexión (carta vieja, no envía, y al
   volver el pedido sale una sola vez).
 
+## Dimensionar Realtime
+
+El tenant de Realtime trae límites bajos de fábrica: **200 conexiones, 100 eventos/s y 100 entradas/s**. Con eso la
+prueba de carga falla a partir de ~300 oyentes (`ConnectionRateLimitReached: Too many connected users` en el log
+del contenedor `realtime-dev.supabase-realtime`). Es configuración, no un tope de la arquitectura: con los límites subidos,
+la prueba pasó con **900 oyentes** de dos negocios (450 + 450, 20 cambios en ráfaga), cada uno recibiendo exactamente
+los de su negocio.
+
+Para calcular lo que hace falta por local:
+
+```text
+conexiones   = pantallas del personal abiertas + 1 por teléfono de comensal (+1 mientras ve la división de cuenta)
+eventos/s    = transacciones por segundo que tocan tablas vigiladas × temas distintos por transacción
+               (un tema se anuncia una sola vez por transacción; agrupar mesas anuncia una vez por mesa del grupo)
+entradas/s   = conexiones nuevas por segundo: el pico es la apertura del local o una reconexión masiva
+```
+
+Margen recomendado: el doble de lo calculado, y `max_joins_per_second` >= la mitad de las conexiones, porque tras una caída
+de red todos vuelven a la vez (las pantallas del personal reintentan solas; los teléfonos al recuperar el foco).
+
+Los límites se fijan por la API de administración del tenant y **Realtime los repone a los de fábrica en cada arranque**
+(`SEED_SELF_HOST`), así que hay que reaplicarlos tras reiniciar el contenedor:
+
+```bash
+corepack pnpm exec tsx packages/infra/src/realtime-limits.ts --users 2000 --events 500 --joins 500
+```
+
+El script firma la llamada con el `JWT_SECRET` de `infra/supabase/.env` (no lo imprime) y muestra los límites vigentes. En
+producción (Supabase alojado) los mismos tres valores se cambian desde la configuración de Realtime del proyecto.
+
+La prueba: `REALTIME_LOAD_CLIENTS=450 corepack pnpm --filter @platform/api exec vitest run src/realtime/local-realtime`
+(con el entorno de `e2e/stack-env.ts`).
+
+## Con la caché de verdad: E2E de producción
+
+El service worker sólo cachea en una compilación de producción, así que ese recorrido no corre con `next dev`:
+
+```bash
+corepack pnpm e2e:production
+```
+
+Compila la web con el entorno de E2E y la sirve con `next start`. `e2e/cache.production.spec.ts` (móvil y escritorio) comprueba que
+se guardan los archivos con hash y la página sin conexión, que la carta del comensal se muestra sin conexión avisando que
+puede estar vieja, que al volver la conexión se olvida lo guardado, que ninguna pantalla privada ni respuesta de API llega a
+una caché y que una pantalla privada sin conexión muestra la página sin conexión.
+
 ## Fuera de alcance / pendientes
 
-- El comensal sigue sin Realtime: ve el estado de su pedido con las consultas de siempre.
-- El modo `cache=1` está probado en unidad y con una compilación de producción no corrida en CI; falta un E2E contra
-  `next start` con la caché activa.
+- Las notificaciones push reales (servicio de push del navegador) y la API real de Meta no se pudieron probar sin cuentas
+  ni credenciales reales: sólo el simulador (ver `avisos-pwa.md` y `whatsapp.md`).
+- Los límites de producción de Realtime se calcularon y se probaron en local; falta fijarlos en el proyecto real y medir
+  con tráfico real.
+- El E2E de producción (`pnpm e2e:production`) no está en la suite por defecto porque compila la web; conviene correrlo antes
+  de cada publicación.
 - Cola de escrituras sin conexión: a propósito **no existe** (la regla es no dar nada por enviado).
 - Reintentos automáticos de acciones críticas: hoy el reintento lo decide la persona, con el mismo comando.
 - Dimensionar y probar el Realtime de producción (límites arriba).

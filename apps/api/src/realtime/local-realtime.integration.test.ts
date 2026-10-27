@@ -307,6 +307,56 @@ describeWithStack("private Realtime channels against local Supabase", () => {
     expect(spy.got).toHaveLength(0);
   });
 
+  it("lets a diner hear only the table their QR stands for", async () => {
+    const qrOf = async (fixture: Fixture) => {
+      const [row] = await admin<{ token: string }[]>`
+        select token from private.list_floor_table_qr_codes(
+          ${fixture.tenantId}::uuid, ${locations.get(fixture.slug)!}::uuid,
+          ${fixture.userId}::uuid)`;
+      return row!.token;
+    };
+    const dinerGrant = async (fixture: Fixture, token: string) => {
+      const response = await app!
+        .getHttpAdapter()
+        .getInstance()
+        .inject({
+          headers: { host: `${fixture.slug}.plataforma.test` },
+          method: "POST",
+          payload: { token },
+          url: "/v1/public/realtime/token"
+        });
+      return {
+        body: response.json() as {
+          data?: { channels: string[]; token: string };
+        },
+        status: response.statusCode
+      };
+    };
+    const mine = await dinerGrant(one, await qrOf(one));
+    expect(mine.status).toBe(200);
+    const channel = `tenant:${one.tenantId}:location:${locations.get(one.slug)}:table-3f600000-0000-4000-8000-000000000001`;
+    expect(mine.body.data!.channels).toEqual([channel]);
+    // A QR of the neighbour restaurant means nothing on this host.
+    expect((await dinerGrant(one, await qrOf(two))).status).toBe(404);
+
+    const diner = listen(mine.body.data!.token, channel);
+    const salon = listen(
+      mine.body.data!.token,
+      `tenant:${one.tenantId}:location:${locations.get(one.slug)}:salon`
+    );
+    expect(await until(() => diner.status === "SUBSCRIBED")).toBe(true);
+    await sleep(1_000);
+    // The same token cannot listen to the staff channel.
+    expect(salon.status).not.toBe("SUBSCRIBED");
+
+    await admin`
+      insert into private.floor_table_service_states (tenant_id, location_id, table_id, state)
+      values (${one.tenantId}, ${locations.get(one.slug)!}, '3f600000-0000-4000-8000-000000000001', 'occupied')
+      on conflict (tenant_id, location_id, table_id) do update set state = 'needs_cleaning'`;
+    expect(await until(() => diner.got.length >= 1)).toBe(true);
+    expect(salon.got).toHaveLength(0);
+  });
+
   it("refuses an expired token", async () => {
     const past = new RealtimeTokenService(
       jwtSecret!,

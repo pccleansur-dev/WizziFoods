@@ -67,6 +67,9 @@ function connectBrowser(
  */
 export function useLiveSync(options: {
   endpoint: string;
+  /** A JSON body for the grant request, for pages that identify themselves (a diner's QR). */
+  grantBody?: Record<string, string>;
+  heartbeatMs?: number;
   pollMs?: number;
   refresh: () => Promise<boolean>;
 }): LiveState {
@@ -78,16 +81,27 @@ export function useLiveSync(options: {
   useEffect(() => {
     refreshRef.current = options.refresh;
   });
-  const { endpoint, pollMs } = options;
+  const { endpoint, heartbeatMs, pollMs } = options;
+  // A string, so a new object with the same content does not restart the connection.
+  const grantBody = options.grantBody
+    ? JSON.stringify(options.grantBody)
+    : null;
 
   useEffect(() => {
     const sync = createLiveSync({
       ...(pollMs === undefined ? {} : { pollMs }),
+      ...(heartbeatMs === undefined ? {} : { heartbeatMs }),
       clearTimeout: (handle) => clearTimeout(handle as number),
       connect: connectBrowser,
       fetchGrant: async () => {
         try {
           const response = await fetch(endpoint, {
+            ...(grantBody === null
+              ? {}
+              : {
+                  body: grantBody,
+                  headers: { "content-type": "application/json" }
+                }),
             cache: "no-store",
             method: "POST"
           });
@@ -122,7 +136,7 @@ export function useLiveSync(options: {
       document.removeEventListener("visibilitychange", onVisible);
       sync.stop();
     };
-  }, [endpoint, pollMs]);
+  }, [endpoint, grantBody, heartbeatMs, pollMs]);
 
   return state;
 }

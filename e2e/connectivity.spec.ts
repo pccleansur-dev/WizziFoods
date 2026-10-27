@@ -283,3 +283,27 @@ test("a diner offline sees the menu is old, cannot send, and the order goes out 
   ).toBeVisible({ timeout: 20_000 });
   expect(await business.intents()).toBe(before + 1);
 });
+
+test("a diner's page hears that the table changed through Realtime, not by asking every 15 seconds", async ({
+  browser
+}) => {
+  const context = await browser.newContext({
+    ...contextOptions(test.info().project.use),
+    baseURL: origin
+  });
+  contexts.push(context);
+  const diner = await context.newPage();
+  const socket = diner.waitForEvent("websocket", {
+    predicate: (ws) => ws.url().includes("/realtime/")
+  });
+  await diner.goto(`${origin}/m/${await business.dinerToken("6")}`);
+  await expect(diner.getByText("Mesa 6").first()).toBeVisible();
+  await socket;
+  // The page asks again by itself only every 15 seconds: seeing the change sooner means
+  // the push got through.
+  await diner.waitForTimeout(2_500);
+  await business.takeTableOut("6");
+  await expect(diner.getByText(/^Esta mesa no está disponible/u)).toBeVisible({
+    timeout: 8_000
+  });
+});

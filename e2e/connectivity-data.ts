@@ -12,6 +12,8 @@ export type ConnectivityBusiness = AdjustmentsBusiness & {
   itemStatuses(): Promise<string[]>;
   /** How many orders the diners have sent for confirmation. */
   intents(): Promise<number>;
+  /** Takes a table out of service, as the staff would, while its QR page is open. */
+  takeTableOut(label: "5" | "6"): Promise<void>;
   /** How many times an item moved forward, and with how many different commands. */
   transitions(): Promise<{ commands: number; events: number }>;
 };
@@ -43,6 +45,16 @@ export async function seedConnectivityBusiness(): Promise<ConnectivityBusiness> 
         select status from private.production_items
         where tenant_id = ${tenantId} order by queued_at, line_id`;
       return rows.map((row) => row.status);
+    },
+    async takeTableOut(label) {
+      await owner`
+        insert into private.floor_table_service_states
+          (tenant_id, location_id, table_id, state)
+        select tenant_id, location_id, id, 'out_of_service'
+        from private.floor_tables
+        where tenant_id = ${tenantId} and label = ${label}
+        on conflict (tenant_id, location_id, table_id)
+        do update set state = 'out_of_service'`;
     },
     async transitions() {
       const [row] = await owner<{ commands: number; events: number }[]>`

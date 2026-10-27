@@ -88,6 +88,10 @@ import { LoyaltyStaffController } from "./loyalty/loyalty-staff.controller.js";
 import { LoyaltyService } from "./loyalty/loyalty.service.js";
 import { MessagingStaffController } from "./messaging/messaging-staff.controller.js";
 import { MessagingService } from "./messaging/messaging.service.js";
+import {
+  DINER_QR_RESOLVER,
+  DinerRealtimeController
+} from "./realtime/diner-realtime.controller.js";
 import { RealtimeController } from "./realtime/realtime.controller.js";
 import { RealtimeTokenService } from "./realtime/realtime-token.service.js";
 import { PushDinerController } from "./messaging/push-diner.controller.js";
@@ -188,6 +192,7 @@ export class AppModule {
         MessagingStaffController,
         BrandController,
         RealtimeController,
+        DinerRealtimeController,
         WhatsappWebhookController,
         PushDinerController,
         TableClosingController,
@@ -405,6 +410,11 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: DINER_QR_RESOLVER,
+          useFactory: (database: TenantDatabase) => database.floorPlanRepository
         },
         {
           provide: RealtimeTokenService,

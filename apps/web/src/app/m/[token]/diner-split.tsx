@@ -7,10 +7,13 @@ import {
 } from "@platform/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useLiveSync } from "../../../lib/use-live-sync";
 import { formatMoney } from "./diner-catalog-format";
 import { SharePayment } from "./share-payment";
 
 const POLL_MS = 5_000;
+/** Even with Realtime the page checks now and then, in case a push was missed. */
+const HEARTBEAT_MS = 15_000;
 
 /** A secret only this phone knows: it proves which reserved shares are its own. */
 function deviceSecret(token: string): string {
@@ -76,22 +79,28 @@ export function DinerSplit({ token }: { token: string }) {
     [token]
   );
 
+  // Realtime says when the shares of the table changed; without it the page asks every
+  // few seconds. Either way what is shown is what the server answers.
+  const refresh = useCallback(async () => {
+    try {
+      await call("view");
+      return true;
+    } catch {
+      return false;
+    }
+  }, [call]);
   useEffect(() => {
     secret.current ??= deviceSecret(token);
     setDeviceKey(secret.current);
-    let stopped = false;
-    const tick = () => {
-      if (!stopped && document.visibilityState === "visible") {
-        void call("view").catch(() => undefined);
-      }
-    };
-    tick();
-    const timer = window.setInterval(tick, POLL_MS);
-    return () => {
-      stopped = true;
-      window.clearInterval(timer);
-    };
-  }, [call, token]);
+    void refresh();
+  }, [refresh, token]);
+  useLiveSync({
+    endpoint: "/api/diner-realtime",
+    grantBody: { token },
+    heartbeatMs: HEARTBEAT_MS,
+    pollMs: POLL_MS,
+    refresh
+  });
 
   async function act(action: "claim" | "release", position: number) {
     setBusy(true);

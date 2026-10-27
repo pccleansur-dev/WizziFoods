@@ -19,6 +19,7 @@ export default defineConfig({
   ],
   reporter: [["list"]],
   testDir: ".",
+  testIgnore: "**/*.production.spec.ts",
   testMatch: "**/*.spec.ts",
   use: {
     baseURL: `http://${e2eHostname}:${webPort}`,

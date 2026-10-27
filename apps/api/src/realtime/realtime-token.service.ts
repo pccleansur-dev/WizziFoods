@@ -4,6 +4,8 @@ import {
   type StaffCapability,
   type TenantScope
 } from "@platform/contracts";
+import { randomUUID } from "node:crypto";
+
 import { SignJWT } from "jose";
 
 /** Ten minutes: long enough not to chatter, short enough that a revoked staff member fades. */
@@ -72,6 +74,29 @@ export class RealtimeTokenService {
   }
 
   async issue(who: Who): Promise<RealtimeGrant> {
+    return this.sign(staffRealtimeChannels(who), who.scope, who.staffId);
+  }
+
+  /**
+   * For the page of a diner: the one channel of their table, under an anonymous subject.
+   * The caller has already proved the QR; the table is what the QR stands for.
+   */
+  async issueForTable(
+    scope: TenantScope,
+    tableId: string
+  ): Promise<RealtimeGrant> {
+    return this.sign(
+      [tenantRealtimeChannel(scope, `table-${tableId}`)],
+      scope,
+      randomUUID()
+    );
+  }
+
+  private async sign(
+    channels: string[],
+    scope: TenantScope,
+    subject: string
+  ): Promise<RealtimeGrant> {
     if (!this.key) {
       throw new ServiceUnavailableException({
         error: {
@@ -80,18 +105,17 @@ export class RealtimeTokenService {
         }
       });
     }
-    const channels = staffRealtimeChannels(who);
     const issuedAt = Math.floor(this.now().getTime() / 1000);
     const expiresAt = issuedAt + REALTIME_TOKEN_SECONDS;
     const token = await new SignJWT({
       channels,
-      location_id: who.scope.locationId,
+      location_id: scope.locationId,
       role: "authenticated",
-      tenant_id: who.scope.tenantId
+      tenant_id: scope.tenantId
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setAudience("authenticated")
-      .setSubject(who.staffId)
+      .setSubject(subject)
       .setIssuedAt(issuedAt)
       .setExpirationTime(expiresAt)
       .sign(this.key);
