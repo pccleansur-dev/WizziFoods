@@ -35,6 +35,11 @@ services:
       - ../supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:ro
       - ../supabase/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:ro
       - db-config:/etc/postgresql-custom
+    # The first start initialises the database (roles, extensions): on a busy machine (images
+    # being built at the same time) that takes longer than the official 50 s of retries.
+    healthcheck:
+      start_period: 120s
+      retries: 20
 
   auth:
     extends: { file: *supabase-file, service: auth }
@@ -49,8 +54,14 @@ services:
       db: { condition: service_healthy }
 
   realtime:
-    # Realtime derives its tenant id from this exact name, so it is the one fixed name.
     extends: { file: *supabase-file, service: realtime }
+    # The gateway reaches Realtime by this name, and Realtime reads its tenant id (realtime-dev)
+    # from the first label of the name it is called by. Coolify renames containers, so the name
+    # is kept as a network alias instead of a container name.
+    networks:
+      default:
+        aliases:
+          - realtime-dev.supabase-realtime
     depends_on:
       db: { condition: service_healthy }
 
