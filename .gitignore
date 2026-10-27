@@ -39,3 +39,4 @@ playwright-report/
 /backups/
 /infra/observability/textfile/*.prom
 /infra/observability/secrets/
+/deploy-secrets/

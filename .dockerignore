@@ -1,0 +1,25 @@
+# Keep the build context small and free of anything private.
+.git
+.claude
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/*.log
+test-results
+playwright-report
+backups
+deploy-secrets
+docs
+tasks
+e2e
+infra/observability
+infra/backup
+infra/supabase/volumes/db/data
+infra/supabase/volumes/storage
+infra/supabase/.env
+.env
+.env.*
+!.env.example
+customer-flow-preview.html
+prototipo-cliente.html
