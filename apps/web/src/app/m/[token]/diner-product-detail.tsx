@@ -4,19 +4,21 @@ import type { CatalogProduct, CatalogVariant } from "@platform/contracts";
 import { useEffect, useRef, useState } from "react";
 
 import {
-  catalogDescription,
-  catalogTitle,
-  formatMoney
+  formatMoney,
+  localizedDescription,
+  localizedTitle
 } from "./diner-catalog-format";
 import { DinerProductImage } from "./diner-product-image";
 
 export function DinerProductDetail({
   isAvailable,
+  language,
   onAdd,
   onClose,
   product
 }: {
   isAvailable: boolean;
+  language: string | null;
   onAdd(variantId: string | null, quantity: number): void;
   onClose(): void;
   product: CatalogProduct;
@@ -34,6 +36,8 @@ export function DinerProductDetail({
   }, []);
 
   const variants: (CatalogVariant | null)[] = [null, ...product.variants];
+  const title = localizedTitle(product.content, language);
+  const description = localizedDescription(product.content, language);
   return (
     <dialog
       aria-labelledby="product-detail-title"
@@ -53,12 +57,14 @@ export function DinerProductDetail({
       >
         ×
       </button>
-      <DinerProductImage size="hero" title={catalogTitle(product.content)} />
+      <DinerProductImage size="hero" title={title.text} />
       <p className="eyebrow">Detalle</p>
-      <h2 id="product-detail-title">{catalogTitle(product.content)}</h2>
-      {catalogDescription(product.content) ? (
-        <p className="diner-product-description">
-          {catalogDescription(product.content)}
+      <h2 id="product-detail-title" lang={title.language}>
+        {title.text}
+      </h2>
+      {description ? (
+        <p className="diner-product-description" lang={description.language}>
+          {description.text}
         </p>
       ) : null}
       {product.variants.length > 0 ? (
@@ -72,7 +78,17 @@ export function DinerProductDetail({
                 onChange={() => setVariantId(variant?.id ?? null)}
                 type="radio"
               />
-              <span>{variant ? catalogTitle(variant.content) : "Clásica"}</span>
+              <span
+                lang={
+                  variant
+                    ? localizedTitle(variant.content, language).language
+                    : "es"
+                }
+              >
+                {variant
+                  ? localizedTitle(variant.content, language).text
+                  : "Clásica"}
+              </span>
               <strong>
                 {formatMoney(
                   product.priceCents + (variant?.priceDeltaCents ?? 0)

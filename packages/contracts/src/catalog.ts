@@ -3,6 +3,11 @@ export type CatalogSectorKind = "bar" | "kitchen" | "other";
 export type LocalizedCatalogContent = {
   description: string;
   language: string;
+  /**
+   * Present only in a draft, on text a machine wrote: it stays a draft until a person
+   * approves it, and a catalog with any of it cannot be published.
+   */
+  review?: "machine";
   title: string;
 };
 
@@ -48,7 +53,8 @@ export type CatalogPublicationIssue =
   | "MISSING_CATEGORY"
   | "MISSING_LOCALIZED_CONTENT"
   | "MISSING_PRODUCT"
-  | "MISSING_SECTOR";
+  | "MISSING_SECTOR"
+  | "PENDING_TRANSLATION_REVIEW";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -92,6 +98,17 @@ function money(value: unknown): value is number {
   );
 }
 
+/** The text keys, plus the optional draft-only mark of an automatic translation. */
+function hasContentKeys(value: Record<string, unknown>): boolean {
+  if ("review" in value) {
+    return (
+      value.review === "machine" &&
+      hasExactKeys(value, ["description", "language", "review", "title"])
+    );
+  }
+  return hasExactKeys(value, ["description", "language", "title"]);
+}
+
 function parseContent(input: unknown): LocalizedCatalogContent[] | null {
   if (!Array.isArray(input) || input.length < 1 || input.length > 5) {
     return null;
@@ -101,7 +118,7 @@ function parseContent(input: unknown): LocalizedCatalogContent[] | null {
     const candidate = record(value);
     if (
       !candidate ||
-      !hasExactKeys(candidate, ["description", "language", "title"]) ||
+      !hasContentKeys(candidate) ||
       typeof candidate.language !== "string" ||
       !languagePattern.test(candidate.language) ||
       !boundedString(candidate.title, 0, 120) ||
@@ -112,6 +129,7 @@ function parseContent(input: unknown): LocalizedCatalogContent[] | null {
     parsed.push({
       description: candidate.description as string,
       language: candidate.language,
+      ...(candidate.review === "machine" ? { review: "machine" as const } : {}),
       title: candidate.title as string
     });
   }
@@ -153,6 +171,13 @@ export function catalogPublicationIssues(
   ];
   if (localizedItems.some((item) => !hasLanguages(item.content, languages))) {
     issues.push("MISSING_LOCALIZED_CONTENT");
+  }
+  if (
+    localizedItems.some((item) =>
+      item.content.some(({ review }) => review === "machine")
+    )
+  ) {
+    issues.push("PENDING_TRANSLATION_REVIEW");
   }
   return issues;
 }
@@ -432,7 +457,7 @@ export function explainCatalogDraft(input: unknown): CatalogDraftIssue[] {
         item && typeof item.language === "string" ? item.language : null;
       if (
         !item ||
-        !hasExactKeys(item, ["description", "language", "title"]) ||
+        !hasContentKeys(item) ||
         language === null ||
         !languagePattern.test(language)
       ) {

@@ -41,11 +41,15 @@ corepack pnpm demo:api
 Los nombres y descripciones de la carta se envían al proveedor para traducirse. Es
 una decisión del negocio activar la clave; sin ella nada sale de la plataforma.
 
+## Borrador hasta aprobar (T32)
+
+Lo que escribe la máquina queda marcado (`review: "machine"`) en el borrador y **no se puede publicar** hasta que el
+administrador lo apruebe («Aprobar las traducciones revisadas») o lo edite. La base lo hace cumplir
+(`PENDING_TRANSLATION_REVIEW`), de modo que lo publicado nunca lleva la marca. El comensal sólo ve idiomas aprobados y, si
+falta un texto, vuelve al idioma del negocio. Detalle en `accesibilidad-y-responsive.md`.
+
 ## Pendiente
 
-- La traducción no queda marcada como «automática» en la base: el aviso es sólo en
-  pantalla. Si hace falta distinguirla, requiere un campo nuevo en el contrato de la
-  carta y en su snapshot.
 - No hay cuota por negocio ni registro de uso del proveedor.
 - La integración con el proveedor se probó con una respuesta simulada; no se ejecutó
   contra la API real porque el entorno no tiene clave.

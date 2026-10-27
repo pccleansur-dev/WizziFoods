@@ -94,6 +94,15 @@ export function addCatalogProduct(
   };
 }
 
+/** The same text without the mark of an automatic translation. */
+function withoutReview(item: LocalizedCatalogContent): LocalizedCatalogContent {
+  return {
+    description: item.description,
+    language: item.language,
+    title: item.title
+  };
+}
+
 function localizedFallback(language: string): LocalizedCatalogContent {
   return {
     description: "",
@@ -203,9 +212,11 @@ export function updateCatalogLocalizedContent(
   value: string
 ): CatalogDraft {
   const update = (content: LocalizedCatalogContent[]) =>
-    content.map((item) =>
-      item.language === language ? { ...item, [field]: value } : item
-    );
+    content.map((item) => {
+      if (item.language !== language) return item;
+      // A person editing the text is the review: the mark goes away.
+      return { ...withoutReview(item), [field]: value };
+    });
   if (target.type === "category") {
     return {
       ...draft,
@@ -421,12 +432,16 @@ export function applyCatalogTranslations(
       ({ language }) => language === targetLanguage
     );
     const next = { ...(existing ?? localizedFallback(targetLanguage)) };
+    let wrote = false;
     for (const field of fields) {
       const translated = byKey.get(`${kind}:${id}:${field}`);
       if (translated !== undefined && !next[field].trim()) {
         next[field] = translated;
+        wrote = true;
       }
     }
+    // What a machine wrote stays a draft until a person approves it.
+    if (wrote) next.review = "machine";
     return existing
       ? content.map((item) => (item === existing ? next : item))
       : [...content, next];
@@ -443,6 +458,42 @@ export function applyCatalogTranslations(
       variants: product.variants.map((variant) => ({
         ...variant,
         content: fill("variant", variant.id, variant.content)
+      }))
+    }))
+  };
+}
+
+const localizedLists = (draft: CatalogDraft): LocalizedCatalogContent[][] => [
+  ...draft.categories.map(({ content }) => content),
+  ...draft.products.map(({ content }) => content),
+  ...draft.products.flatMap(({ variants }) =>
+    variants.map(({ content }) => content)
+  )
+];
+
+/** How many texts a machine wrote that nobody has approved yet. */
+export function pendingTranslationReviews(draft: CatalogDraft): number {
+  return localizedLists(draft)
+    .flat()
+    .filter(({ review }) => review === "machine").length;
+}
+
+/** The administrator read the automatic translations and accepts them as they are. */
+export function approveCatalogTranslations(draft: CatalogDraft): CatalogDraft {
+  const approve = (content: LocalizedCatalogContent[]) =>
+    content.map(withoutReview);
+  return {
+    ...draft,
+    categories: draft.categories.map((category) => ({
+      ...category,
+      content: approve(category.content)
+    })),
+    products: draft.products.map((product) => ({
+      ...product,
+      content: approve(product.content),
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        content: approve(variant.content)
       }))
     }))
   };

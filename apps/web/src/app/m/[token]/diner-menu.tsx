@@ -4,9 +4,9 @@ import { useRef, useState } from "react";
 import type { CatalogProduct } from "@platform/contracts";
 
 import {
-  catalogDescription,
-  catalogTitle,
-  formatMoney
+  formatMoney,
+  localizedDescription,
+  localizedTitle
 } from "./diner-catalog-format";
 import { DinerProductImage } from "./diner-product-image";
 import { DinerProductDetail } from "./diner-product-detail";
@@ -14,9 +14,11 @@ import type { PublicCatalog } from "./public-catalog";
 
 export function DinerMenu({
   catalog,
+  language,
   onAdd
 }: {
   catalog: PublicCatalog;
+  language: string | null;
   onAdd(
     product: CatalogProduct,
     variantId: string | null,
@@ -41,20 +43,27 @@ export function DinerMenu({
               aria-labelledby={`category-${category.id}`}
               key={category.id}
             >
-              <h2 id={`category-${category.id}`}>
-                {catalogTitle(category.content)}
+              <h2
+                id={`category-${category.id}`}
+                lang={localizedTitle(category.content, language).language}
+              >
+                {localizedTitle(category.content, language).text}
               </h2>
               <ul className="diner-products">
                 {products.map((product) => {
                   const isAvailable =
                     catalog.availability[product.id]?.isAvailable ?? true;
+                  const title = localizedTitle(product.content, language);
+                  const description = localizedDescription(
+                    product.content,
+                    language
+                  );
                   return (
                     <li
                       className={!isAvailable ? "is-unavailable" : ""}
                       key={product.id}
                     >
                       <button
-                        aria-label={`Ver detalle de ${catalogTitle(product.content)}`}
                         onClick={(event) => {
                           openerRef.current = event.currentTarget;
                           setSelected(product);
@@ -62,17 +71,21 @@ export function DinerMenu({
                         type="button"
                       >
                         <span className="diner-product-text">
-                          <strong>{catalogTitle(product.content)}</strong>
-                          {catalogDescription(product.content) ? (
-                            <small>{catalogDescription(product.content)}</small>
+                          <strong lang={title.language}>
+                            <span className="visually-hidden" lang="es">
+                              Ver detalle de{" "}
+                            </span>
+                            {title.text}
+                          </strong>
+                          {description ? (
+                            <small lang={description.language}>
+                              {description.text}
+                            </small>
                           ) : null}
                           {!isAvailable ? <em>No disponible</em> : null}
                           <b>{formatMoney(product.priceCents)}</b>
                         </span>
-                        <DinerProductImage
-                          size="card"
-                          title={catalogTitle(product.content)}
-                        />
+                        <DinerProductImage size="card" title={title.text} />
                       </button>
                     </li>
                   );
@@ -90,6 +103,7 @@ export function DinerMenu({
             setSelected(null);
             window.setTimeout(() => openerRef.current?.focus(), 0);
           }}
+          language={language}
           product={selected}
         />
       ) : null}

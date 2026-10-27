@@ -187,7 +187,7 @@ export function FloorPlanCanvas({
           +
         </button>
         <button
-          aria-label="Restablecer zoom"
+          aria-label="100%, restablecer zoom"
           disabled={zoom === 1}
           onClick={() => zoomTo(1)}
           type="button"

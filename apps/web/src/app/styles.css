@@ -63,7 +63,7 @@ dl {
 }
 
 dt {
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.8125rem;
 }
 
@@ -245,7 +245,7 @@ dd {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.75rem;
   text-align: center;
 }
@@ -293,7 +293,7 @@ dd {
 
 .access-help {
   margin: 2rem 0 0;
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.8125rem;
 }
 
@@ -447,7 +447,7 @@ dd {
 .panel-module-list span {
   display: block;
   margin-bottom: 0.25rem;
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.8125rem;
 }
 
@@ -501,7 +501,7 @@ dd {
 }
 
 .provisioning-form small {
-  color: #746d62;
+  color: #6b655b;
   line-height: 1.45;
 }
 
@@ -664,7 +664,7 @@ dd {
 
 .tenant-status-list li > div > span {
   margin-top: 0.25rem;
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.75rem;
   overflow-wrap: anywhere;
 }
@@ -1151,7 +1151,7 @@ dd {
 }
 
 .catalog-card__heading span {
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -1247,7 +1247,7 @@ dd {
 
 .catalog-variants p {
   margin-top: 0.25rem;
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.8rem;
 }
 
@@ -1368,7 +1368,7 @@ dd {
 }
 
 .catalog-preview__published span {
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.75rem;
 }
 
@@ -1545,7 +1545,7 @@ dd {
 .catalog-import-card > header small,
 .catalog-import-confidence,
 .catalog-import-item small {
-  color: #746d62;
+  color: #6b655b;
 }
 
 .catalog-import-review {
@@ -1644,7 +1644,7 @@ dd {
 }
 
 .staff-login-form small {
-  color: #746d62;
+  color: #6b655b;
   line-height: 1.45;
 }
 
@@ -2662,7 +2662,7 @@ dd {
 
 .onboarding-steps__summary {
   margin: 0 0 0.5rem;
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -2721,7 +2721,7 @@ dd {
 }
 
 .onboarding-step--blocked a {
-  color: #8a8377;
+  color: #6b655b;
 }
 
 .onboarding-step--current a {
@@ -2767,18 +2767,31 @@ dd {
 
 .onboarding-footer__hint {
   flex: 1;
-  color: #746d62;
+  color: #6b655b;
   font-size: 0.85rem;
   text-align: right;
 }
 
 @media (max-width: 40rem) {
+  /* Hidden to the eye, not to assistive technology: the link keeps its name. */
   .onboarding-step__title {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .onboarding-step--current .onboarding-step__title {
-    display: inline;
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
   }
 
   .onboarding-footer__hint {
@@ -2864,7 +2877,7 @@ dd {
 }
 
 .onboarding-list__item--blocked {
-  opacity: 0.75;
+  border-style: dashed;
 }
 
 .panel-header .button--secondary,
@@ -2958,7 +2971,7 @@ dd {
 }
 
 .floor-plan-tab small {
-  color: #8a8377;
+  color: #6b655b;
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -3052,7 +3065,7 @@ dd {
 }
 
 .floor-plan-view small {
-  color: #8a8377;
+  color: #6b655b;
   font-size: 0.75rem;
 }
 
@@ -3435,7 +3448,7 @@ main:has(.diner-experience) .diner-entry {
 .diner-order input {
   min-height: 2.75rem;
   width: 5rem;
-  border: 1px solid #8a8377;
+  border: 1px solid #6b655b;
   border-radius: 0.5rem;
   background: #fff;
   color: #221f1a;
@@ -3506,7 +3519,7 @@ main:has(.diner-experience) .diner-entry {
 .diner-field input {
   min-height: 2.75rem;
   padding: 0.65rem 0.75rem;
-  border: 1px solid #8a8377;
+  border: 1px solid #6b655b;
   border-radius: 0.5rem;
   background: #fff;
   color: #221f1a;
@@ -4399,7 +4412,7 @@ main:has(.diner-experience) .diner-entry {
 
 .diner-account-panel__consent small {
   display: block;
-  color: #746d62;
+  color: #6b655b;
 }
 
 .diner-account-panel__data {
@@ -4418,4 +4431,43 @@ main:has(.diner-experience) .diner-entry {
   border-color: #8a6a0a;
   background: #fbf3d6;
   color: #53400a;
+}
+
+/* Text for assistive technology only: the visible words stay part of the accessible name. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.catalog-translate__review {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.catalog-translate__review p {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+
+.catalog-localized-fields__draft {
+  color: #8a4b00;
+  font-weight: 600;
+}
+
+.diner-language {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
 }

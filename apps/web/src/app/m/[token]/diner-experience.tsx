@@ -15,7 +15,8 @@ import {
   parseStoredDraft,
   setDraftQuantity
 } from "./diner-draft";
-import { catalogTitle } from "./diner-catalog-format";
+import { availableLanguages, catalogTitle } from "./diner-catalog-format";
+import { DinerLanguagePicker, useDinerLanguage } from "./diner-language-picker";
 import { DinerMenu } from "./diner-menu";
 import { DinerOrder } from "./diner-order";
 import {
@@ -68,6 +69,17 @@ export function DinerExperience({
     [token]
   );
   const availabilitySignature = JSON.stringify(catalog?.availability ?? {});
+  const languages = useMemo(
+    () =>
+      catalog
+        ? availableLanguages([
+            ...catalog.catalog.categories.map(({ content }) => content),
+            ...catalog.catalog.products.map(({ content }) => content)
+          ])
+        : [],
+    [catalog]
+  );
+  const { choose: chooseLanguage, language } = useDinerLanguage(languages);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -154,7 +166,7 @@ export function DinerExperience({
       })
     );
     // Stay on the menu so the diner keeps browsing; just confirm what was added.
-    setAdded(`${quantity} × ${catalogTitle(product.content)}`);
+    setAdded(`${quantity} × ${catalogTitle(product.content, language)}`);
     window.clearTimeout(addedTimer.current);
     addedTimer.current = window.setTimeout(() => setAdded(null), 2500);
   };
@@ -211,6 +223,11 @@ export function DinerExperience({
   return (
     <div className="diner-experience">
       <DinerConnection />
+      <DinerLanguagePicker
+        available={languages}
+        choose={chooseLanguage}
+        language={language}
+      />
       <nav aria-label="Carta y pedido" className="diner-nav">
         <button
           aria-current={view === "menu" ? "page" : undefined}
@@ -243,7 +260,7 @@ export function DinerExperience({
         </p>
       ) : null}
       {view === "menu" ? (
-        <DinerMenu catalog={catalog} onAdd={add} />
+        <DinerMenu catalog={catalog} language={language} onAdd={add} />
       ) : view === "split" ? (
         <DinerSplit token={token} />
       ) : view === "order" ? (

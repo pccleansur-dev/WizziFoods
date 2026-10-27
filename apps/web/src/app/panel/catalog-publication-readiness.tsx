@@ -18,6 +18,10 @@ const requirements: Array<{
   {
     issue: "MISSING_LOCALIZED_CONTENT",
     label: "Nombres completos en todos los idiomas"
+  },
+  {
+    issue: "PENDING_TRANSLATION_REVIEW",
+    label: "Traducciones automáticas revisadas y aprobadas"
   }
 ];
 
