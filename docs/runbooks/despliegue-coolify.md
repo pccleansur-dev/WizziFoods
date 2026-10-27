@@ -7,13 +7,13 @@ migrar; los datos viven en volúmenes con nombre y no se pierden.
 
 ## Qué hay en el repositorio para esto
 
-| Archivo                                | Para qué                                                                                                                          |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `Dockerfile`                           | Un solo archivo, tres imágenes (`--target api`, `worker`, `web`). Sin secretos adentro.                                           |
-| `infra/deploy/docker-compose.yml`      | La pila de producción. Reutiliza (`extends`) las definiciones fijadas de `infra/supabase/docker-compose.yml`.                     |
-| `infra/deploy/migrate.sh`              | Aplica `supabase/migrations/*.sql` en orden, registra cada una con su checksum y **se niega** a seguir si una ya aplicada cambió. |
-| `packages/infra/src/production-env.ts` | `pnpm deploy:env --domain <dominio>`: genera todos los secretos y las direcciones públicas.                                       |
-| `.dockerignore`                        | Deja fuera `.env`, secretos, datos locales y todo lo que no hace falta para construir.                                            |
+| Archivo                                | Para qué                                                                                                                                                                                                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Dockerfile`                           | Un solo archivo, tres imágenes (`--target api`, `worker`, `web`). Sin secretos adentro.                                                                                                                                                                      |
+| `infra/deploy/docker-compose.yml`      | La pila de producción. Reutiliza (`extends`) las definiciones fijadas de `infra/supabase/docker-compose.yml`, salvo el gateway (sin Studio ni puerto publicado). Sin etiquetas YAML propias (`!reset`, `!override`): el analizador de Coolify no las acepta. |
+| `infra/deploy/migrate.sh`              | Aplica `supabase/migrations/*.sql` en orden, registra cada una con su checksum y **se niega** a seguir si una ya aplicada cambió.                                                                                                                            |
+| `packages/infra/src/production-env.ts` | `pnpm deploy:env --domain <dominio>`: genera todos los secretos y las direcciones públicas.                                                                                                                                                                  |
+| `.dockerignore`                        | Deja fuera `.env`, secretos, datos locales y todo lo que no hace falta para construir.                                                                                                                                                                       |
 
 ## 1. Dominio y acceso desde internet
 
