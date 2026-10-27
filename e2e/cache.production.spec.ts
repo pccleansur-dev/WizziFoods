@@ -1,6 +1,10 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
-import { adjustmentsHostname, adjustmentsPin, adjustmentsSlug } from "./adjustments-data";
+import {
+  adjustmentsHostname,
+  adjustmentsPin,
+  adjustmentsSlug
+} from "./adjustments-data";
 import {
   seedConnectivityBusiness,
   type ConnectivityBusiness
@@ -73,9 +77,9 @@ test("production: the worker caches the build and the last menu, never a private
     .toBeGreaterThan(0);
   const first = await stored(page);
   expect(first["reads-v1"]!.every((url) => url.includes("/m/"))).toBe(true);
-  expect(
-    first["shell-v1"]!.some((url) => url.includes("/_next/static/"))
-  ).toBe(true);
+  expect(first["shell-v1"]!.some((url) => url.includes("/_next/static/"))).toBe(
+    true
+  );
   expect(first["shell-v1"]!.some((url) => url.endsWith("/offline.html"))).toBe(
     true
   );
@@ -116,6 +120,8 @@ test("production: the worker caches the build and the last menu, never a private
   // Offline on a private screen: the offline page, never old private data.
   await context.setOffline(true);
   await page.reload().catch(() => undefined);
-  await expect(page.getByRole("heading", { name: "Sin conexión" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Sin conexión" })
+  ).toBeVisible();
   await context.setOffline(false);
 });

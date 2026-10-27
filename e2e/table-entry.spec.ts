@@ -164,7 +164,9 @@ test("a concurrent availability change marks the draft and blocks continuation",
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
   await page.getByRole("button", { name: /^Mi pedido/u }).click();
-  await expect(page.getByRole("button", { name: "Continuar", exact: true })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Continuar", exact: true })
+  ).toBeEnabled();
   await business.setProductAvailable(false);
   try {
     await page.clock.fastForward(16_000);

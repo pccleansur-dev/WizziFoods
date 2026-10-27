@@ -123,9 +123,9 @@ test("client → call → waiter → confirmed order, without payment or product
   await intentCard(bruno, "1", dinerName)
     .getByRole("button", { name: "Tomar llamado de mesa 1" })
     .click();
-  await expect(bruno.getByRole("alert").filter({ hasText: "Otro mozo" })).toContainText(
-    "Otro mozo ya tomó este llamado."
-  );
+  await expect(
+    bruno.getByRole("alert").filter({ hasText: "Otro mozo" })
+  ).toContainText("Otro mozo ya tomó este llamado.");
   await bruno.unroute("**/operacion/vista");
 
   await anaCard
