@@ -24,8 +24,7 @@ services:
   # ---- Supabase ---------------------------------------------------------------------------
   db:
     extends: { file: *supabase-file, service: db }
-    container_name: !reset null
-    ports: !reset []
+    container_name: wizzifoods-db
     volumes:
       - db-data:/var/lib/postgresql/data
       - ../supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:ro
@@ -39,13 +38,13 @@ services:
 
   auth:
     extends: { file: *supabase-file, service: auth }
-    container_name: !reset null
+    container_name: wizzifoods-auth
     depends_on:
       db: { condition: service_healthy }
 
   rest:
     extends: { file: *supabase-file, service: rest }
-    container_name: !reset null
+    container_name: wizzifoods-rest
     depends_on:
       db: { condition: service_healthy }
 
@@ -57,13 +56,13 @@ services:
 
   imgproxy:
     extends: { file: *supabase-file, service: imgproxy }
-    container_name: !reset null
+    container_name: wizzifoods-imgproxy
     volumes:
       - storage-data:/var/lib/storage
 
   storage:
     extends: { file: *supabase-file, service: storage }
-    container_name: !reset null
+    container_name: wizzifoods-storage
     depends_on:
       db: { condition: service_healthy }
       rest: { condition: service_started }
@@ -71,12 +70,23 @@ services:
     volumes:
       - storage-data:/var/lib/storage
 
+  # The gateway is defined here, not extended: the official definition waits for Studio (not
+  # deployed) and publishes a host port. Same image and configuration files as ../supabase.
   api-gw:
-    extends: { file: *supabase-file, service: api-gw }
-    container_name: !reset null
-    ports: !reset []
-    # The official file makes the gateway wait for Studio, which is not deployed here.
-    depends_on: !override
+    container_name: wizzifoods-api-gw
+    image: envoyproxy/envoy:v1.39.1
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - envoy
+          - kong
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/8000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
       auth: { condition: service_healthy }
       rest: { condition: service_healthy }
       storage: { condition: service_healthy }
@@ -87,9 +97,17 @@ services:
       - ../supabase/volumes/api/envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
       - ../supabase/volumes/api/envoy/docker-entrypoint.sh:/docker-entrypoint.sh:ro
     environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
       # Coolify reads this to attach the public domain of the Supabase API (the one the
       # browser uses for Auth, Storage and Realtime).
       SERVICE_FQDN_SUPABASE_8000: ""
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
 
   # ---- migrations (one-shot) ----------------------------------------------------------------
   migrate:
