@@ -27,3 +27,11 @@ export function connectionMessage(
 /** An action that changes something must not leave while the device cannot reach the server. */
 export const OFFLINE_ACTION_MESSAGE =
   "Sin conexión: no se envió nada. Volvé a intentarlo cuando vuelva la conexión.";
+
+/**
+ * The call itself failed on the way (the device lost the network, the server restarted):
+ * nobody knows whether the server did it. Repeating is safe because the same command id
+ * is kept, so the server answers with what it already did instead of doing it twice.
+ */
+export const UNKNOWN_OUTCOME_MESSAGE =
+  "No pudimos confirmar si se envió. Podés volver a intentarlo: no se repite.";

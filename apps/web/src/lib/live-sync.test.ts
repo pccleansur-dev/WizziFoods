@@ -196,6 +196,23 @@ describe("live sync", () => {
     expect(h.statuses.at(-1)).toBe("polling");
   });
 
+  it("asks a failing server again within seconds even when Realtime is up", async () => {
+    let healthy = true;
+    const h = harness({ refresh: () => Promise.resolve(healthy) });
+    h.sync.start();
+    await h.flush();
+    h.handlers[0]!.onLive(true);
+    await h.flush();
+    expect(h.statuses.at(-1)).toBe("live");
+    healthy = false;
+    h.sync.changed();
+    await h.advance(200);
+    expect(h.statuses.at(-1)).toBe("reconnecting");
+    healthy = true;
+    await h.advance(5_000);
+    expect(h.statuses.at(-1)).toBe("live");
+  });
+
   it("renews the token before it expires and keeps the connection", async () => {
     const h = harness();
     h.sync.start();

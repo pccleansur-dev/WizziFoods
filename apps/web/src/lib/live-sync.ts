@@ -110,8 +110,11 @@ export function createLiveSync(deps: LiveSyncDeps): LiveSync {
       deps.isOnline() ? deps.refresh() : Promise.resolve(false)
     ).catch(() => false);
     inFlight = false;
+    const wasOk = refreshOk;
     refreshOk = ok || !deps.isOnline();
     publish();
+    // A failing server is asked again soon, not after the minute of a healthy one.
+    if (wasOk !== refreshOk) schedule();
     if (again && running) {
       again = false;
       void run();

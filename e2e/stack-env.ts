@@ -99,6 +99,7 @@ export function stackEnv(): Record<string, string> {
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
     PLATFORM_BASE_DOMAIN: "dev.localhost",
     PAYMENT_SECRET_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    SUPABASE_JWT_SECRET: need(supabase, "JWT_SECRET"),
     STAFF_PIN_PEPPER: "e2e-pepper-with-at-least-32-characters",
     SUPABASE_SECRET_KEY: need(supabase, "SUPABASE_SECRET_KEY"),
     SUPABASE_URL: supabaseUrl,

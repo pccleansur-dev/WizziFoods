@@ -72,6 +72,7 @@ import { WaiterTables } from "./waiter-tables";
 import { ConnectionBanner } from "../../../../../lib/connection-banner";
 import { OFFLINE_ACTION_MESSAGE } from "../../../../../lib/connection-view";
 import { newId } from "../../../../../lib/new-id";
+import { settleAction } from "../../../../../lib/settle-action";
 import { useLiveSync } from "../../../../../lib/use-live-sync";
 import {
   accountBalanceLabel,
@@ -238,7 +239,7 @@ export function WaiterWorkspace({
     }
     setBusy(key);
     setNotice(null);
-    const result = await action(commandFor(key));
+    const result = await settleAction(() => action(commandFor(key)));
     if (result.status === "ok") commands.current.delete(key);
     // A definitive refusal (state conflict) must not poison a later attempt.
     if (result.status === "error" && result.code !== null) {

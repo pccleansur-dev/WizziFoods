@@ -18,6 +18,7 @@ import { advanceProductionItemAction } from "../production-actions";
 import { ConnectionBanner } from "../../../../../lib/connection-banner";
 import { OFFLINE_ACTION_MESSAGE } from "../../../../../lib/connection-view";
 import { newId } from "../../../../../lib/new-id";
+import { settleAction } from "../../../../../lib/settle-action";
 import { useLiveSync } from "../../../../../lib/use-live-sync";
 
 type Notice = { kind: "error" | "ok"; text: string };
@@ -99,11 +100,11 @@ export function ProductionBoardView({
     }
     setBusy(key);
     setNotice(null);
-    const result = await advanceProductionItemAction(
-      tenantSlug,
-      orderId,
-      item.lineId,
-      { commandId, status: target }
+    const result = await settleAction(() =>
+      advanceProductionItemAction(tenantSlug, orderId, item.lineId, {
+        commandId,
+        status: target
+      })
     );
     // A definitive answer, success or refusal, ends the command; only an
     // unknown outcome (no code) keeps it for the retry.
@@ -136,11 +137,11 @@ export function ProductionBoardView({
     }
     setBusy(key);
     setNotice(null);
-    const result = await reportProductionExceptionAction(
-      tenantSlug,
-      orderId,
-      item.lineId,
-      { commandId, reason: text }
+    const result = await settleAction(() =>
+      reportProductionExceptionAction(tenantSlug, orderId, item.lineId, {
+        commandId,
+        reason: text
+      })
     );
     if (result.status === "ok" || result.code !== null) {
       commands.current.delete(key);
