@@ -16,7 +16,7 @@ import {
   type WaiterOrdersView,
   type WaiterSalonView
 } from "@platform/contracts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import type { WaiterMenuProduct } from "../../../../../staff/waiter-view";
 import { waiterErrorMessage } from "../../../../../staff/waiter-view";
@@ -69,7 +69,10 @@ import { LoyaltySettingsPanel } from "./loyalty-settings-panel";
 import { OrdersInProgress } from "./orders-in-progress";
 import { WaiterPending } from "./waiter-pending";
 import { WaiterTables } from "./waiter-tables";
+import { ConnectionBanner } from "../../../../../lib/connection-banner";
+import { OFFLINE_ACTION_MESSAGE } from "../../../../../lib/connection-view";
 import { newId } from "../../../../../lib/new-id";
+import { useLiveSync } from "../../../../../lib/use-live-sync";
 import {
   accountBalanceLabel,
   accountForTable
@@ -78,8 +81,6 @@ import {
   attentionCount,
   differenceLabel
 } from "../../../../../staff/orders-in-progress-view";
-
-const POLL_MS = 5_000;
 
 type Notice = { kind: "error" | "ok"; text: string };
 type Tab = "caja" | "comanda" | "cuentas" | "pedidos" | "salon";
@@ -139,7 +140,9 @@ export function WaiterWorkspace({
     return created;
   }, []);
 
-  const refresh = useCallback(async () => {
+  // True when the authoritative state was fetched (or the session ended, which the
+  // screen shows by itself); false when the server could not be reached.
+  const refresh = useCallback(async (): Promise<boolean> => {
     try {
       const [
         response,
@@ -174,7 +177,7 @@ export function WaiterWorkspace({
         cashResponse?.status === 401
       ) {
         setExpired(true);
-        return;
+        return true;
       }
       if (
         !response.ok ||
@@ -205,40 +208,34 @@ export function WaiterWorkspace({
       setClosed(parsedClosed);
       setStale(false);
       setNow(Date.now());
+      return true;
     } catch {
       setStale(true);
+      return false;
     }
   }, [isManager, tenantSlug]);
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let stopped = false;
-    const schedule = () => {
-      if (!stopped) timer = setTimeout(tick, POLL_MS);
-    };
-    async function tick() {
-      if (document.visibilityState === "visible") await refresh();
-      schedule();
-    }
-    schedule();
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        if (timer) clearTimeout(timer);
-        void tick();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      stopped = true;
-      if (timer) clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [refresh]);
+  // Realtime says "something changed" and every reconnection asks again; without it the
+  // screen polls. Either way the state shown is always the server's.
+  const live = useLiveSync({
+    endpoint: `/interno/${tenantSlug}/operacion/tiempo-real`,
+    refresh
+  });
 
   async function perform<T>(
     key: string,
     action: (commandId: string) => Promise<WaiterActionResult<T>>
   ): Promise<WaiterActionResult<T>> {
+    // Nothing that changes something leaves while the device cannot reach the server:
+    // it is not queued, not shown as sent, and the same command id is kept for later.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setNotice({ kind: "error", text: OFFLINE_ACTION_MESSAGE });
+      return {
+        code: "OFFLINE",
+        message: OFFLINE_ACTION_MESSAGE,
+        status: "error"
+      };
+    }
     setBusy(key);
     setNotice(null);
     const result = await action(commandFor(key));
@@ -687,6 +684,7 @@ export function WaiterWorkspace({
 
   return (
     <div className="waiter-workspace">
+      <ConnectionBanner state={live} />
       <p aria-live="polite" className="waiter-status" role="status">
         {openCalls === 0
           ? "Sin llamados abiertos."
