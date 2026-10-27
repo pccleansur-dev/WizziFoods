@@ -92,10 +92,7 @@ import {
   DINER_QR_RESOLVER,
   DinerRealtimeController
 } from "./realtime/diner-realtime.controller.js";
-import {
-  DATABASE_PING,
-  ReadinessController
-} from "./readiness.controller.js";
+import { DATABASE_PING, ReadinessController } from "./readiness.controller.js";
 import { RealtimeController } from "./realtime/realtime.controller.js";
 import { RealtimeTokenService } from "./realtime/realtime-token.service.js";
 import { PushDinerController } from "./messaging/push-diner.controller.js";
