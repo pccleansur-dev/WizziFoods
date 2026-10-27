@@ -26,6 +26,10 @@ Cada cambio en la base se anuncia en un canal `tenant:<negocio>:location:<local>
   la sesión del personal) con el claim `channels`. La política de `realtime.messages` deja suscribirse sólo a los
   canales de ese claim. Un navegador **no puede escribir** en ningún canal (no hay política de inserción), un usuario de
   Supabase Auth sin ese claim no oye nada y un token vencido o de otra clave es rechazado.
+- **Cobertura:** un cambio que alguna pantalla lee y no anuncia tarda hasta 60 s en verse (el latido). Por eso hay
+  disparadores en 24 tablas: llamados, intenciones, pedidos, sesiones, caja, libro, plano, grupos, partes de cuenta (y quién las
+  tomó), decisiones de cuenta, ajustes, pagos online, estado de servicio y asignación de sectores. **Si una pantalla
+  nueva lee una tabla nueva, hay que agregarle su disparador** (migración + prueba pgTap).
 - Dentro de una transacción un tema se anuncia **una sola vez** y publicar nunca hace fallar la escritura (todo
   envío está protegido). Un aviso de una transacción que se revierte no sale.
 - No hay repetición: si una pantalla estuvo desconectada no recibe lo que se perdió; por eso **vuelve a consultar al

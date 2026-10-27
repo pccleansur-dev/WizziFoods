@@ -301,7 +301,7 @@ test("a diner turns the notifications of this device on and off", async ({
     .first()
     .click();
   await diner.getByLabel("Correo").fill("fake:dina@push.example");
-  await diner.getByRole("button", { name: "Continuar" }).click();
+  await diner.getByRole("button", { name: "Continuar", exact: true }).click();
   await diner.getByLabel("Tu nombre en este local").fill("Dina");
   await diner.getByRole("button", { name: "Crear mi perfil" }).click();
   await expect(diner.getByText("Hola, Dina")).toBeVisible();

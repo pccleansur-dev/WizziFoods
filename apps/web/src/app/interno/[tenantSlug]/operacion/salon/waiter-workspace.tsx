@@ -143,7 +143,11 @@ export function WaiterWorkspace({
 
   // True when the authoritative state was fetched (or the session ended, which the
   // screen shows by itself); false when the server could not be reached.
+  // Several refreshes can overlap (a push, the one after an action): only the latest
+  // one started may write, so an older answer never overwrites a newer one.
+  const latestRefresh = useRef(0);
   const refresh = useCallback(async (): Promise<boolean> => {
+    const mine = (latestRefresh.current += 1);
     try {
       const [
         response,
@@ -202,6 +206,7 @@ export function WaiterWorkspace({
         throw new Error("salon invalid");
       }
       if (cashResponse && !parsedCash) throw new Error("cash invalid");
+      if (mine !== latestRefresh.current) return true;
       if (parsedCash) setCash(parsedCash);
       setView(parsed);
       setOrders(parsedOrders);

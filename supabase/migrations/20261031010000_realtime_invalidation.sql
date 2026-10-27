@@ -83,6 +83,8 @@ declare
 begin
   if tg_op = 'DELETE' then changed := old; else changed := new; end if;
   perform private.notify_realtime(changed.tenant_id, changed.location_id, 'cash');
+  -- The waiter's screen also shows whether the register is open.
+  perform private.notify_realtime(changed.tenant_id, changed.location_id, 'salon');
   return null;
 end;
 $$;
@@ -127,6 +129,29 @@ begin
 end;
 $$;
 
+-- The shares of a split carry no business or location of their own: their split does.
+create function private.rt_split_part()
+returns trigger
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  changed record;
+  owner record;
+begin
+  if tg_op = 'DELETE' then changed := old; else changed := new; end if;
+  select s.tenant_id, s.location_id into owner
+  from private.account_splits s
+  where s.id = changed.split_id;
+  if found then
+    perform private.notify_realtime(owner.tenant_id, owner.location_id, 'salon');
+  end if;
+  return null;
+end;
+$$;
+
 create trigger waiter_calls_realtime
 after insert or update or delete on private.waiter_calls
 for each row execute function private.rt_salon();
@@ -151,6 +176,36 @@ for each row execute function private.rt_salon();
 create trigger account_entries_realtime
 after insert or update or delete on private.account_entries
 for each row execute function private.rt_ledger();
+create trigger account_splits_realtime
+after insert or update or delete on private.account_splits
+for each row execute function private.rt_salon();
+create trigger account_decisions_realtime
+after insert or update or delete on private.account_decisions
+for each row execute function private.rt_salon();
+create trigger order_adjustments_realtime
+after insert or update or delete on private.order_adjustments
+for each row execute function private.rt_salon();
+create trigger online_payments_realtime
+after insert or update or delete on private.online_payments
+for each row execute function private.rt_salon();
+create trigger floor_table_service_states_realtime
+after insert or update or delete on private.floor_table_service_states
+for each row execute function private.rt_salon();
+create trigger floor_groups_realtime
+after insert or update or delete on private.floor_groups
+for each row execute function private.rt_salon();
+create trigger floor_group_members_realtime
+after insert or update or delete on private.floor_group_members
+for each row execute function private.rt_salon();
+create trigger staff_sector_assignments_realtime
+after insert or update or delete on private.staff_sector_assignments
+for each row execute function private.rt_salon();
+create trigger account_split_shares_realtime
+after insert or update or delete on private.account_split_shares
+for each row execute function private.rt_split_part();
+create trigger account_split_assignments_realtime
+after insert or update or delete on private.account_split_assignments
+for each row execute function private.rt_split_part();
 create trigger cash_shifts_realtime
 after insert or update or delete on private.cash_shifts
 for each row execute function private.rt_cash();
@@ -163,7 +218,7 @@ for each row execute function private.rt_production();
 
 revoke all on function
   private.notify_realtime(uuid, uuid, text),
-  private.rt_salon(), private.rt_cash(), private.rt_ledger(), private.rt_production()
+  private.rt_salon(), private.rt_cash(), private.rt_ledger(), private.rt_production(), private.rt_split_part()
 from public, anon, authenticated, authenticator;
 
 commit;

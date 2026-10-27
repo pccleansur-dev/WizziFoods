@@ -99,8 +99,9 @@ select is(
   (select count(*) from pg_trigger where tgname in (
     'production_items_realtime', 'waiter_calls_realtime', 'order_intents_realtime', 'confirmed_orders_realtime',
     'table_sessions_realtime', 'cashier_requests_realtime', 'account_entries_realtime', 'cash_shifts_realtime',
-    'cash_movements_realtime', 'floor_tables_realtime', 'table_group_events_realtime')),
-  11::bigint, 'every table the screens read announces its changes');
+    'cash_movements_realtime', 'floor_tables_realtime', 'account_splits_realtime', 'account_decisions_realtime', 'order_adjustments_realtime', 'online_payments_realtime', 'floor_table_service_states_realtime', 'floor_groups_realtime', 'floor_group_members_realtime', 'staff_sector_assignments_realtime', 'account_split_shares_realtime', 'account_split_assignments_realtime',
+    'table_group_events_realtime')),
+  21::bigint, 'every table the screens read announces its changes');
 
 select * from finish();
 rollback;

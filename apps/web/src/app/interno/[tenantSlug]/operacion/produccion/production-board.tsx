@@ -54,7 +54,10 @@ export function ProductionBoardView({
   // reconnection reuses it, so the server answers with the stored result.
   const commands = useRef(new Map<string, string>());
 
+  // Only the latest refresh started may write: an older answer never overwrites a newer one.
+  const latestRefresh = useRef(0);
   const refresh = useCallback(async (): Promise<boolean> => {
+    const mine = (latestRefresh.current += 1);
     try {
       const response = await fetch(
         `/interno/${tenantSlug}/operacion/produccion/vista`,
@@ -67,6 +70,7 @@ export function ProductionBoardView({
       if (!response.ok) throw new Error("board unavailable");
       const parsed = parseProductionBoard(await response.json());
       if (!parsed) throw new Error("board invalid");
+      if (mine !== latestRefresh.current) return true;
       setBoard(parsed);
       setStale(false);
       setNow(Date.now());
