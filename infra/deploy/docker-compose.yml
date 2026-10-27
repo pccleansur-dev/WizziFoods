@@ -22,24 +22,42 @@ x-supabase-file: &supabase-file ../supabase/docker-compose.yml
 
 services:
   # ---- Supabase ---------------------------------------------------------------------------
+  # Defined here (not extended): the official definition mounts the initialisation scripts from
+  # the repository, and Coolify turns those mounts into empty folders. The `db` image of the
+  # Dockerfile carries the scripts instead.
   db:
-    extends: { file: *supabase-file, service: db }
     container_name: wizzifoods-db
+    build:
+      context: ../..
+      target: db
+    image: wizzifoods-db:local
+    restart: unless-stopped
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ../supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:ro
-      - ../supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:ro
-      - ../supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
-      - ../supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
-      - ../supabase/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:ro
-      - ../supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:ro
-      - ../supabase/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:ro
       - db-config:/etc/postgresql-custom
-    # The first start initialises the database (roles, extensions): on a busy machine (images
-    # being built at the same time) that takes longer than the official 50 s of retries.
     healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      # The first start initialises the database (roles, extensions): on a busy machine (images
+      # being built at the same time) that takes longer than the official 50 s of retries.
       start_period: 120s
       retries: 20
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: ${POSTGRES_PORT}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_DB}
+      JWT_EXP: ${JWT_EXPIRY}
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - log_min_messages=fatal
 
   auth:
     extends: { file: *supabase-file, service: auth }
@@ -85,7 +103,10 @@ services:
   # deployed) and publishes a host port. Same image and configuration files as ../supabase.
   api-gw:
     container_name: wizzifoods-api-gw
-    image: envoyproxy/envoy:v1.39.1
+    build:
+      context: ../..
+      target: gateway
+    image: wizzifoods-gateway:local
     restart: unless-stopped
     networks:
       default:
@@ -102,11 +123,6 @@ services:
       rest: { condition: service_healthy }
       storage: { condition: service_healthy }
       realtime: { condition: service_healthy }
-    volumes:
-      - ../supabase/volumes/api/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ../supabase/volumes/api/envoy/cds.yaml:/etc/envoy/cds.yaml:ro
-      - ../supabase/volumes/api/envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
-      - ../supabase/volumes/api/envoy/docker-entrypoint.sh:/docker-entrypoint.sh:ro
     environment:
       ANON_KEY: ${ANON_KEY}
       SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
@@ -118,11 +134,13 @@ services:
       # Coolify reads this to attach the public domain of the Supabase API (the one the
       # browser uses for Auth, Storage and Realtime).
       SERVICE_FQDN_SUPABASE_8000: ""
-    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
 
   # ---- migrations (one-shot) ----------------------------------------------------------------
   migrate:
-    image: postgres:17-alpine
+    build:
+      context: ../..
+      target: migrate
+    image: wizzifoods-migrate:local
     restart: "no"
     # The migrations use schemas that Auth, Storage and Realtime create when THEY start
     # (auth.sessions, storage.objects, realtime.messages), so wait for all three.
@@ -133,11 +151,6 @@ services:
       realtime: { condition: service_healthy }
     environment:
       MIGRATION_DATABASE_URL: postgres://supabase_admin:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-postgres}
-      MIGRATIONS_DIR: /migrations
-    volumes:
-      - ../../supabase/migrations:/migrations:ro
-      - ./migrate.sh:/migrate.sh:ro
-    command: ["sh", "/migrate.sh"]
 
   # ---- applications -----------------------------------------------------------------------
   api:
