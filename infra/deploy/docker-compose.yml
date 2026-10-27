@@ -1,0 +1,213 @@
+# Production stack for Coolify (Docker Compose resource from this repository).
+#
+#   Base directory:        /infra/deploy
+#   Docker Compose file:   docker-compose.yml
+#
+# One project with: the Supabase services the platform uses (db, auth, rest, realtime,
+# storage, imgproxy and the gateway), a one-shot `migrate`, and the three applications
+# (`api`, `worker`, `web`). Supabase services are not copied: they `extends` the official
+# definitions pinned in ../supabase/docker-compose.yml, so upgrading that file upgrades this.
+#
+# What changes here compared to the local stack:
+#   - data lives in NAMED volumes (db-data, storage-data): they survive redeploys, unlike a
+#     folder inside the checked-out repository;
+#   - Studio, the SQL meta service, edge functions and the pooler are not started (the apps
+#     connect straight to Postgres inside the project network);
+#   - no ports are published: Coolify's proxy routes the domains you assign to `api-gw`
+#     (8000), `web` (3000) and `api` (3001);
+#   - every secret is a variable (see docs/runbooks/despliegue-coolify.md); none is stored here.
+name: platform
+
+x-supabase-file: &supabase-file ../supabase/docker-compose.yml
+
+services:
+  # ---- Supabase ---------------------------------------------------------------------------
+  db:
+    extends: { file: *supabase-file, service: db }
+    container_name: !reset null
+    ports: !reset []
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ../supabase/volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:ro
+      - ../supabase/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:ro
+      - ../supabase/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+      - ../supabase/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
+      - ../supabase/volumes/db/_supabase.sql:/docker-entrypoint-initdb.d/migrations/97-_supabase.sql:ro
+      - ../supabase/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:ro
+      - ../supabase/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:ro
+      - db-config:/etc/postgresql-custom
+
+  auth:
+    extends: { file: *supabase-file, service: auth }
+    container_name: !reset null
+    depends_on:
+      db: { condition: service_healthy }
+
+  rest:
+    extends: { file: *supabase-file, service: rest }
+    container_name: !reset null
+    depends_on:
+      db: { condition: service_healthy }
+
+  realtime:
+    # Realtime derives its tenant id from this exact name, so it is the one fixed name.
+    extends: { file: *supabase-file, service: realtime }
+    depends_on:
+      db: { condition: service_healthy }
+
+  imgproxy:
+    extends: { file: *supabase-file, service: imgproxy }
+    container_name: !reset null
+    volumes:
+      - storage-data:/var/lib/storage
+
+  storage:
+    extends: { file: *supabase-file, service: storage }
+    container_name: !reset null
+    depends_on:
+      db: { condition: service_healthy }
+      rest: { condition: service_started }
+      imgproxy: { condition: service_started }
+    volumes:
+      - storage-data:/var/lib/storage
+
+  api-gw:
+    extends: { file: *supabase-file, service: api-gw }
+    container_name: !reset null
+    ports: !reset []
+    # The official file makes the gateway wait for Studio, which is not deployed here.
+    depends_on: !override
+      auth: { condition: service_healthy }
+      rest: { condition: service_healthy }
+      storage: { condition: service_healthy }
+      realtime: { condition: service_healthy }
+    volumes:
+      - ../supabase/volumes/api/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ../supabase/volumes/api/envoy/cds.yaml:/etc/envoy/cds.yaml:ro
+      - ../supabase/volumes/api/envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
+      - ../supabase/volumes/api/envoy/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+    environment:
+      # Coolify reads this to attach the public domain of the Supabase API (the one the
+      # browser uses for Auth, Storage and Realtime).
+      SERVICE_FQDN_SUPABASE_8000: ""
+
+  # ---- migrations (one-shot) ----------------------------------------------------------------
+  migrate:
+    image: postgres:17-alpine
+    restart: "no"
+    # The migrations use schemas that Auth, Storage and Realtime create when THEY start
+    # (auth.sessions, storage.objects, realtime.messages), so wait for all three.
+    depends_on:
+      db: { condition: service_healthy }
+      auth: { condition: service_healthy }
+      storage: { condition: service_healthy }
+      realtime: { condition: service_healthy }
+    environment:
+      MIGRATION_DATABASE_URL: postgres://supabase_admin:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-postgres}
+      MIGRATIONS_DIR: /migrations
+    volumes:
+      - ../../supabase/migrations:/migrations:ro
+      - ./migrate.sh:/migrate.sh:ro
+    command: ["sh", "/migrate.sh"]
+
+  # ---- applications -----------------------------------------------------------------------
+  api:
+    build:
+      context: ../..
+      target: api
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
+      api-gw: { condition: service_healthy }
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      API_PORT: "3001"
+      API_METRICS_PORT: "9464"
+      # The applications connect as `authenticator` (it switches role per request, as in
+      # development), straight to Postgres inside the project network.
+      DATABASE_URL: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-postgres}
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
+      SUPABASE_JWT_SECRET: ${JWT_SECRET}
+      STAFF_PIN_PEPPER: ${STAFF_PIN_PEPPER:?set STAFF_PIN_PEPPER}
+      PAYMENT_SECRET_KEY: ${PAYMENT_SECRET_KEY:-}
+      PLATFORM_BASE_DOMAIN: ${PLATFORM_BASE_DOMAIN:?set PLATFORM_BASE_DOMAIN}
+      ADMIN_INVITE_REDIRECT_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL}/auth/callback?next=/acceso/continuar
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      MERCADO_PAGO_MODE: ${MERCADO_PAGO_MODE:-off}
+      MERCADO_PAGO_CLIENT_ID: ${MERCADO_PAGO_CLIENT_ID:-}
+      MERCADO_PAGO_CLIENT_SECRET: ${MERCADO_PAGO_CLIENT_SECRET:-}
+      MERCADO_PAGO_REDIRECT_URI: ${MERCADO_PAGO_REDIRECT_URI:-}
+      MERCADO_PAGO_RETURN_URL: ${MERCADO_PAGO_RETURN_URL:-}
+      MERCADO_PAGO_WEBHOOK_SECRET: ${MERCADO_PAGO_WEBHOOK_SECRET:-}
+      DINER_AUTH_MODE: ${DINER_AUTH_MODE:-off}
+      DINER_AUTH_STATE_SECRET: ${DINER_AUTH_STATE_SECRET:-}
+      DINER_SUB_PEPPER: ${DINER_SUB_PEPPER:-}
+      GOOGLE_DINER_CLIENT_ID: ${GOOGLE_DINER_CLIENT_ID:-}
+      GOOGLE_DINER_CLIENT_SECRET: ${GOOGLE_DINER_CLIENT_SECRET:-}
+      DINER_AUTH_REDIRECT_URI: ${DINER_AUTH_REDIRECT_URI:-}
+      WEB_PUSH_MODE: ${WEB_PUSH_MODE:-off}
+      WEB_PUSH_PUBLIC_KEY: ${WEB_PUSH_PUBLIC_KEY:-}
+      WHATSAPP_MODE: ${WHATSAPP_MODE:-off}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_GRAPH_VERSION: ${WHATSAPP_GRAPH_VERSION:-}
+      SERVICE_FQDN_API_3001: ""
+
+  worker:
+    build:
+      context: ../..
+      target: worker
+    restart: unless-stopped
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      db: { condition: service_healthy }
+      api-gw: { condition: service_healthy }
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      WORKER_HEARTBEAT_MS: "60000"
+      WORKER_METRICS_PORT: "9465"
+      WORKER_POLL_MS: "1000"
+      WORKER_VISIBILITY_TIMEOUT_SECONDS: "120"
+      DATABASE_URL: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-postgres}
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
+      PAYMENT_SECRET_KEY: ${PAYMENT_SECRET_KEY:-}
+      WEB_PUSH_MODE: ${WEB_PUSH_MODE:-off}
+      WEB_PUSH_PUBLIC_KEY: ${WEB_PUSH_PUBLIC_KEY:-}
+      WEB_PUSH_PRIVATE_KEY: ${WEB_PUSH_PRIVATE_KEY:-}
+      WEB_PUSH_SUBJECT: ${WEB_PUSH_SUBJECT:-}
+      WHATSAPP_MODE: ${WHATSAPP_MODE:-off}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+
+  web:
+    build:
+      context: ../..
+      target: web
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?set NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?set SUPABASE_PUBLISHABLE_KEY}
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      WEB_METRICS_PORT: "9466"
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      # The server side of the web reaches the API inside the project network.
+      API_URL: http://api:3001
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+      SERVICE_FQDN_WEB_3000: ""
+
+volumes:
+  db-config:
+  db-data:
+  storage-data:

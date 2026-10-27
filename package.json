@@ -28,7 +28,8 @@
     "e2e:production": "tsx e2e/build-production.ts && playwright test -c e2e/playwright.production.config.ts",
     "security:secrets": "tsx packages/infra/src/secret-scan.ts",
     "security:gate": "tsx packages/infra/src/security-gate.ts",
-    "load:smoke": "tsx e2e/load-smoke.ts"
+    "load:smoke": "tsx e2e/load-smoke.ts",
+    "deploy:env": "tsx packages/infra/src/production-env.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

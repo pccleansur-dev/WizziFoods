@@ -20,6 +20,14 @@ const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "")
 
 const nextConfig: NextConfig = {
   allowedDevOrigins,
+  // The container image runs the traced standalone server (see the Dockerfile); everywhere
+  // else (`next dev`, `next start`, the E2E) the normal output is kept.
+  ...(process.env.NEXT_STANDALONE === "1"
+    ? {
+        output: "standalone" as const,
+        outputFileTracingRoot: resolve(import.meta.dirname, "../..")
+      }
+    : {}),
   env: {
     NEXT_PUBLIC_API_URL: runtimeConfig.apiUrl
   },

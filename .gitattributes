@@ -1,0 +1,9 @@
+# Files that are executed or whose exact bytes matter keep LF on every machine: SQL
+# migrations patch function bodies by exact text, shell scripts and Dockerfiles run on Linux.
+*.sql text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+infra/deploy/*.yml text eol=lf
+infra/observability/**/*.yml text eol=lf
+infra/backup/*.conf text eol=lf
