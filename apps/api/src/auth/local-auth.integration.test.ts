@@ -67,6 +67,7 @@ describeWithLocalStack("administrative API with local Supabase", () => {
       logLevel: "error",
       metricsPort: 9464,
       platformBaseDomain: "plataforma.test",
+      platformTenantHostTemplate: "{slug}.{domain}",
       port: 3001,
       paymentSecretKey: null,
       staffPinPepper: "test-pepper-with-at-least-32-characters",

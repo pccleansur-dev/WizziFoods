@@ -204,6 +204,7 @@ describeWithStack("private Realtime channels against local Supabase", () => {
       metricsPort: 9464,
       paymentSecretKey: null,
       platformBaseDomain: "plataforma.test",
+      platformTenantHostTemplate: "{slug}.{domain}",
       port: 3001,
       realtimeJwtSecret: jwtSecret ?? null,
       staffPinPepper: pepper,

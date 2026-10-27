@@ -42,6 +42,24 @@ describe("production environment", () => {
     expect(env.PLATFORM_BASE_DOMAIN).toBe("midominio.com");
   });
 
+  it("with a suffix, names everything one level under the domain", () => {
+    const flat = parse(
+      createProductionEnvironment(template, {
+        ...options,
+        domain: "wizzi.com.ar",
+        suffix: "carta"
+      })
+    );
+    expect(flat.NEXT_PUBLIC_APP_URL).toBe("https://app-carta.wizzi.com.ar");
+    expect(flat.NEXT_PUBLIC_API_URL).toBe("https://api-carta.wizzi.com.ar");
+    expect(flat.NEXT_PUBLIC_SUPABASE_URL).toBe(
+      "https://supabase-carta.wizzi.com.ar"
+    );
+    expect(flat.PLATFORM_BASE_DOMAIN).toBe("wizzi.com.ar");
+    expect(flat.PLATFORM_TENANT_HOST_TEMPLATE).toBe("{slug}-carta.{domain}");
+    expect(env.PLATFORM_TENANT_HOST_TEMPLATE).toBe("{slug}.{domain}");
+  });
+
   it("keeps nothing of the local machine", () => {
     const text = Object.values(env).join("\n");
     expect(text).not.toContain("localhost");

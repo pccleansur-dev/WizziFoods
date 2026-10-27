@@ -3,6 +3,7 @@ import {
   Injectable,
   UnauthorizedException
 } from "@nestjs/common";
+import { defaultTenantHostTemplate, tenantHostname } from "@platform/config";
 import type {
   CreateTenantProvisioningRequest,
   TenantProvisioningView
@@ -23,7 +24,8 @@ export class TenantProvisioningService {
     private readonly provisioningRepository: TenantProvisioningRepository,
     private readonly invitationGateway: TenantAdminInvitationGateway,
     private readonly invitationRedirectUrl: string,
-    private readonly platformBaseDomain: string
+    private readonly platformBaseDomain: string,
+    private readonly hostTemplate: string = defaultTenantHostTemplate
   ) {}
 
   async create(
@@ -55,7 +57,11 @@ export class TenantProvisioningService {
     let provisioning = await this.provisioningRepository.begin({
       actorUserId: identity.userId,
       idempotencyKey,
-      platformHostname: `${request.slug}.${this.platformBaseDomain}`,
+      platformHostname: tenantHostname(
+        this.hostTemplate,
+        request.slug,
+        this.platformBaseDomain
+      ),
       request
     });
     if (provisioning.status === "pending_invitation") {

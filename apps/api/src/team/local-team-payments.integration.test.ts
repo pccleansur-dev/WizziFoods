@@ -113,6 +113,7 @@ describeWithLocalStack("team and payments with local Supabase", () => {
       metricsPort: 9464,
       paymentSecretKey: paymentKey,
       platformBaseDomain: "plataforma.test",
+      platformTenantHostTemplate: "{slug}.{domain}",
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: supabaseSecretKey ?? "",

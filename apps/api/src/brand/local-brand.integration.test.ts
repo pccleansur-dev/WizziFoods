@@ -121,6 +121,7 @@ describeWithLocalStack("public brand with local Supabase", () => {
       metricsPort: 9464,
       paymentSecretKey: null,
       platformBaseDomain: "plataforma.test",
+      platformTenantHostTemplate: "{slug}.{domain}",
       port: 3001,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: supabaseSecretKey ?? "",

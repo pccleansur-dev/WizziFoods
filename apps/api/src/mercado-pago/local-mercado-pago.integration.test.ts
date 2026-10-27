@@ -430,6 +430,7 @@ describeWithLocalStack("Mercado Pago with local Supabase", () => {
       // this test sends the signed notifications itself.
       paymentSecretKey: Buffer.alloc(32, 7),
       platformBaseDomain: "plataforma.test",
+      platformTenantHostTemplate: "{slug}.{domain}",
       port: 39_001,
       staffPinPepper: pepper,
       supabaseSecretKey: supabaseSecretKey ?? "",

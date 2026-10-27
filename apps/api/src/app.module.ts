@@ -351,7 +351,8 @@ export class AppModule {
                 config.supabaseSecretKey
               ),
               config.adminInviteRedirectUrl,
-              config.platformBaseDomain
+              config.platformBaseDomain,
+              config.platformTenantHostTemplate
             )
         },
         {

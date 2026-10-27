@@ -21,3 +21,8 @@ export {
   webSecurityHeaders,
   type CspSources
 } from "./security-headers.js";
+export {
+  defaultTenantHostTemplate,
+  tenantHostname,
+  validateTenantHostTemplate
+} from "./tenant-hostname.js";
