@@ -8,6 +8,8 @@ import {
   addCatalogVariant,
   createEmptyCatalogDraft,
   applyCatalogTranslations,
+  approveCatalogTranslations,
+  pendingTranslationReviews,
   collectMissingTranslations,
   formatPrice,
   trimCatalogText,
@@ -303,6 +305,31 @@ describe("catalog translation helpers", () => {
         ?.title
     ).toBe("Double");
     expect(base.categories[0]?.content[1]?.title).toBe("");
+  });
+
+  it("marks what it wrote as an automatic translation to review, and only that", () => {
+    const written = JSON.parse(JSON.stringify(base));
+    written.products[0].content[1].title = "Milanese";
+    const result = applyCatalogTranslations(written, "en", [
+      { key: `product:${productId}:title`, text: "SHOULD NOT OVERWRITE" },
+      { key: `product:${productId}:description`, text: "With fries" }
+    ]);
+    // The person's own title stays theirs; the description the machine wrote is flagged.
+    expect(result.products[0]?.content[1]?.title).toBe("Milanese");
+    expect(result.products[0]?.content[1]?.review).toBe("machine");
+    expect(result.products[0]?.content[0]?.review).toBeUndefined();
+    expect(result.products[0]?.priceCents).toBe(written.products[0].priceCents);
+  });
+
+  it("clears the mark when a person edits or approves the text", () => {
+    const translated = applyCatalogTranslations(base, "en", [
+      { key: `product:${productId}:title`, text: "Milanese" }
+    ]);
+    expect(pendingTranslationReviews(translated)).toBe(1);
+    const approved = approveCatalogTranslations(translated);
+    expect(pendingTranslationReviews(approved)).toBe(0);
+    expect(approved.products[0]?.content[1]?.title).toBe("Milanese");
+    expect(translated.products[0]?.content[1]?.review).toBe("machine");
   });
 
   it("ignores keys that do not belong to the draft", () => {

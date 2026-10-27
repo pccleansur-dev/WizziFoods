@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { NextConfig } from "next";
-import { readWebConfig } from "@platform/config";
+import { readWebConfig, webSecurityHeaders } from "@platform/config";
 
 const localEnvironmentPath = resolve(import.meta.dirname, "../../.env");
 if (existsSync(localEnvironmentPath)) {
@@ -27,6 +27,18 @@ const nextConfig: NextConfig = {
     // The dev server prints Server Function arguments, which here include PINs
     // and provider credentials. Never log them.
     serverFunctions: false
+  },
+  async headers() {
+    return [
+      {
+        headers: webSecurityHeaders({
+          apiUrl: runtimeConfig.apiUrl,
+          development: process.env.NODE_ENV !== "production",
+          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+        }),
+        source: "/:path*"
+      }
+    ];
   },
   experimental: {
     cpus: 1,

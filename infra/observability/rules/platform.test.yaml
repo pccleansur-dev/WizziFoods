@@ -1,0 +1,129 @@
+# promtool test rules infra/observability/rules/platform.test.yaml
+# Proves each alert fires when it should and stays quiet when it should.
+rule_files:
+  - platform.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    name: api down pages after a minute, healthy api does not
+    input_series:
+      - series: 'up{job="platform", service="api"}'
+        values: "1 1 1 0 0 0 0"
+      - series: 'up{job="platform", service="web"}'
+        values: "1x6"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: ApiDown
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: ApiDown
+        exp_alerts:
+          - exp_labels: { severity: critical, service: api, job: platform }
+            exp_annotations:
+              summary: The API does not answer its metrics port
+              runbook: docs/runbooks/incidentes.md#api-caida
+      - eval_time: 6m
+        alertname: WebDown
+        exp_alerts: []
+
+  - interval: 1m
+    name: server errors above 5 percent for 5 minutes
+    input_series:
+      - series: 'platform_http_server_requests_total{service="api", status_class="5xx"}'
+        values: "0+10x15"
+      - series: 'platform_http_server_requests_total{service="api", status_class="2xx"}'
+        values: "0+90x15"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ApiErrorRateHigh
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: ApiErrorRateHigh
+        exp_alerts:
+          - exp_labels: { severity: critical, service: api }
+            exp_annotations:
+              summary: More than 5 % of the API requests fail with a server error
+              runbook: docs/runbooks/incidentes.md#api-caida
+
+  - interval: 1m
+    name: a payment notification left unprocessed pages
+    input_series:
+      - series: "platform_payment_webhooks_unprocessed_over_5m"
+        values: "0 0 1 1 1 1 1 1 1"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: PaymentNotificationsNotProcessed
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: PaymentNotificationsNotProcessed
+        exp_alerts:
+          - exp_labels: { severity: critical, service: payments }
+            exp_annotations:
+              summary: Mercado Pago notified a payment and the platform has not processed it
+              runbook: docs/runbooks/incidentes.md#pagos
+
+  - interval: 1m
+    name: worker alive but silent
+    input_series:
+      - series: 'up{job="platform", service="worker"}'
+        values: "1x30"
+      - series: 'platform_operations_total{service="worker", operation="worker.heartbeat"}'
+        values: "0+1x10 10x20"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: WorkerHeartbeatMissing
+        exp_alerts: []
+      - eval_time: 28m
+        alertname: WorkerHeartbeatMissing
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: critical,
+                service: worker,
+                operation: worker.heartbeat
+              }
+            exp_annotations:
+              summary: The worker is up but has not beaten its heart for 10 minutes
+              runbook: docs/runbooks/incidentes.md#jobs-detenidos
+
+  - interval: 1m
+    name: a certificate that expires in ten days warns, not pages
+    input_series:
+      - series: 'probe_ssl_earliest_cert_expiry{job="probe-http", instance="https://app.example.com/acceso"}'
+        values: "864000x120"
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: CertificateExpiresSoon
+        exp_alerts:
+          - exp_labels:
+              {
+                severity: warning,
+                service: external,
+                job: probe-http,
+                instance: "https://app.example.com/acceso"
+              }
+            exp_annotations:
+              summary: "The certificate of https://app.example.com/acceso expires in less than 21 days"
+              runbook: docs/runbooks/incidentes.md#certificados
+      - eval_time: 90m
+        alertname: CertificateExpiresVerySoon
+        exp_alerts: []
+
+  - interval: 1m
+    name: a backup that stopped is noticed
+    input_series:
+      - series: 'platform_backup_last_success_timestamp_seconds{kind="database"}'
+        values: "0x1700"
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: BackupTooOld
+        exp_alerts: []
+      - eval_time: 1650m
+        alertname: BackupTooOld
+        exp_alerts:
+          - exp_labels: { severity: critical, service: backup, kind: database }
+            exp_annotations:
+              summary: The last good database backup is more than 26 hours old
+              runbook: docs/runbooks/incidentes.md#copias-y-restauracion

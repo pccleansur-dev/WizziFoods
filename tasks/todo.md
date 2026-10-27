@@ -972,20 +972,22 @@ sesión y liberar la mesa (T26).
 
 **Tamaño:** M.
 
-### T32. Completar accesibilidad, responsive e idiomas
+### T32. Completar accesibilidad, responsive e idiomas — completada (matriz manual pendiente de firma)
 
 **Descripción:** Cerrar la experiencia en teléfonos, tablets y escritorio con contenido traducido sólo después de aprobación.
 
 **Criterios de aceptación:**
 
-- [ ] Flujos críticos cumplen WCAG 2.2 AA verificable y navegación por teclado.
-- [ ] No hay texto operativo ilegible ni controles sin nombre accesible.
-- [ ] Traducciones automáticas son borrador, tienen fallback y no alteran precios/disponibilidad.
+- [x] Flujos críticos cumplen WCAG 2.2 AA verificable y navegación por teclado.
+- [x] No hay texto operativo ilegible ni controles sin nombre accesible.
+- [x] Traducciones automáticas son borrador, tienen fallback y no alteran precios/disponibilidad.
 
 **Verificación:**
 
-- [ ] axe, contraste, zoom, teclado y lector de pantalla en recorridos clave.
-- [ ] Matriz manual de tamaños/dispositivos e idiomas.
+- [x] axe (WCAG 2.2 AA), contraste, zoom/reflow y teclado en recorridos clave (`e2e/accessibility.spec.ts`, móvil y escritorio).
+- [ ] Matriz manual de tamaños/dispositivos, lector de pantalla e idiomas: preparada en `docs/runbooks/accesibilidad-y-responsive.md`, la completa una persona.
+
+**Resultado:** suite axe sobre comensal, mozo, cocina, barra, caja, mensajería, panel del administrador (con segundo factor real) y páginas públicas; encontró y corrigió contraste (`#6b655b`), nombres accesibles que no contenían el texto visible, enlaces del alta sin nombre en teléfono y la vista previa de marca. Reflujo de 320 a 1440 px sin scroll lateral ni texto menor a 12 px; teclado en la carta (diálogo con foco y Escape). Traducciones: lo que escribe la máquina queda marcado `review: "machine"` en el borrador, el editor pide aprobarlo, la base bloquea la publicación (`PENDING_TRANSLATION_REVIEW`, migración `20261101010000`) y el comensal elige idioma con fallback por campo al idioma del negocio, sin mostrar nunca un borrador. Runbook: `docs/runbooks/accesibilidad-y-responsive.md`.
 
 **Dependencias:** T15–T31.
 
@@ -993,20 +995,22 @@ sesión y liberar la mesa (T26).
 
 **Tamaño:** M.
 
-### T33. Verificar seguridad, copias y lanzamiento
+### T33. Verificar seguridad, copias y lanzamiento — técnica completa, firma de Valentín pendiente
 
 **Descripción:** Ejecutar las puertas de producción, restaurar copias y realizar un piloto controlado con rollback.
 
 **Criterios de aceptación:**
 
-- [ ] Paneles, alertas y runbooks cubren API, jobs, pagos, base, disco, certificados y copias.
-- [ ] PITR y Storage se restauran en un entorno aislado con evidencia.
-- [ ] Pruebas E2E, seguridad, RLS, carga mínima y rollback pasan antes de producción.
+- [x] Paneles, alertas y runbooks cubren API, jobs, pagos, base, disco, certificados y copias (`infra/observability/`, `docs/runbooks/incidentes.md`, `observabilidad-produccion.md`).
+- [x] PITR y Storage se restauran en un entorno aislado con evidencia (`docs/evidence/`). Pendiente: repetirlo desde el destino externo de copias, que todavía no está elegido.
+- [x] Pruebas E2E, seguridad, RLS, carga mínima y rollback pasan antes de producción (`docs/runbooks/lanzamiento.md`, sección 1).
 
 **Verificación:**
 
-- [ ] Simulacro de incidente, recuperación y despliegue fallido.
-- [ ] Checklist de lanzamiento firmado por Valentín.
+- [x] Simulacro de incidente (API caída → alerta recibida → resuelta), recuperación (restauración y PITR) y despliegue fallido (`/ready`).
+- [ ] Checklist de lanzamiento firmado por Valentín: preparado en `docs/runbooks/lanzamiento.md`; la sección 2 (destino externo de copias, monitor externo, secretos y credenciales reales, Mercado Pago/Meta/push reales, RTO medido en producción) y la firma las cierra una persona.
+
+**Resultado:** stack Prometheus + Alertmanager + Grafana + sondas + exportador de Postgres con 25 alertas probadas con `promtool test rules` y un simulacro real; copias físicas con archivo de WAL, restauración aislada y PITR con evidencia; `GET /ready` para que el despliegue no cambie tráfico a una versión sin base; encabezados de seguridad (CSP, `nosniff`, `frame-ancestors`) en web y API; `security:gate` (1480 aserciones de base incluida la postura RLS/permisos, encabezados, auditoría de dependencias, secretos); `load:smoke`; `rollback-drill`. Hallazgos corregidos: la web no enviaba encabezados de seguridad; cuatro funciones disparadoras de `private` seguían ejecutables por PUBLIC (migración `20261101020000`); la base no tenía regla de replicación para copias físicas ni archivado de WAL.
 
 **Dependencias:** T01–T32.
 

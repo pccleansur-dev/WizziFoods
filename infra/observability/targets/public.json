@@ -1,0 +1,14 @@
+[
+  {
+    "targets": ["https://app.example.com/acceso"],
+    "labels": { "surface": "web", "service": "web" }
+  },
+  {
+    "targets": ["https://api.example.com/health"],
+    "labels": { "surface": "api", "service": "api" }
+  },
+  {
+    "targets": ["https://supabase.example.com/auth/v1/health"],
+    "labels": { "surface": "auth", "service": "supabase" }
+  }
+]

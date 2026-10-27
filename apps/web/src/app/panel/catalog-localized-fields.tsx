@@ -36,7 +36,15 @@ export function CatalogLocalizedFields({
         const localized = content.find((item) => item.language === language);
         return (
           <div className="catalog-localized-fields__language" key={language}>
-            <strong>{catalogLanguageName(language)}</strong>
+            <strong>
+              {catalogLanguageName(language)}
+              {localized?.review === "machine" ? (
+                <span className="catalog-localized-fields__draft">
+                  {" "}
+                  · traducción automática, sin revisar
+                </span>
+              ) : null}
+            </strong>
             <label className="field-group">
               <span>Nombre</span>
               <input

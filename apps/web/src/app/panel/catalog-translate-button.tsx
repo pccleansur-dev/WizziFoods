@@ -5,7 +5,9 @@ import { useState, useTransition } from "react";
 
 import {
   applyCatalogTranslations,
-  collectMissingTranslations
+  approveCatalogTranslations,
+  collectMissingTranslations,
+  pendingTranslationReviews
 } from "./catalog-editor-state";
 import { catalogLanguageName } from "./catalog-localized-fields";
 import type { TranslateActionState } from "./translate-actions";
@@ -31,6 +33,7 @@ export function CatalogTranslateButton({
   const [pending, startTransition] = useTransition();
   const [source, ...targets] = languages;
   if (!source || targets.length === 0) return null;
+  const pendingReviews = pendingTranslationReviews(draft);
 
   function run() {
     startTransition(async () => {
@@ -75,6 +78,28 @@ export function CatalogTranslateButton({
       >
         {pending ? "Traduciendo…" : "Traducir lo que falta"}
       </button>
+      {pendingReviews > 0 ? (
+        <div className="catalog-translate__review">
+          <p role="status">
+            {pendingReviews === 1
+              ? "Hay 1 texto con traducción automática sin revisar."
+              : `Hay ${pendingReviews} textos con traducción automática sin revisar.`}{" "}
+            No se puede publicar hasta que los apruebes; si editás un texto, se
+            da por revisado.
+          </p>
+          <button
+            className="button button--secondary"
+            onClick={() => {
+              change(approveCatalogTranslations);
+              setFailed(false);
+              setMessage("Aprobaste las traducciones automáticas.");
+            }}
+            type="button"
+          >
+            Aprobar las traducciones revisadas
+          </button>
+        </div>
+      ) : null}
       {message ? (
         <p
           className={

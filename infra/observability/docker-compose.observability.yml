@@ -1,0 +1,94 @@
+# Monitoring stack of the platform: Prometheus + Alertmanager + Grafana, a black-box prober
+# (availability and certificate expiry from outside), a Postgres exporter with the business
+# queries and the host exporter (disk, memory, backup age).
+#
+#   docker compose -f infra/observability/docker-compose.observability.yml --profile host up -d
+#
+# Everything binds to localhost; in production put it behind the reverse proxy with its own
+# login. Secrets come from the environment, never from this file.
+name: platform-observability
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    volumes:
+      - ${PROMETHEUS_CONFIG:-./prometheus.yml}:/etc/prometheus/prometheus.yml:ro
+      - ./rules:/etc/prometheus/rules:ro
+      - ./targets:/etc/prometheus/targets:ro
+      - prometheus-data:/prometheus
+    ports:
+      - 127.0.0.1:9090:9090
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ${ALERT_SECRETS_DIR:-./secrets}:/etc/alertmanager/secrets:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - 127.0.0.1:9093:9093
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.27.0
+    restart: unless-stopped
+    command: [--config.file=/etc/blackbox/blackbox.yml]
+    volumes:
+      - ./blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    restart: unless-stopped
+    environment:
+      # A read-only role for monitoring (see docs/runbooks/observabilidad-produccion.md).
+      DATA_SOURCE_NAME: ${MONITORING_DATABASE_URL:?set MONITORING_DATABASE_URL}
+      PG_EXPORTER_EXTEND_QUERY_PATH: /queries.yaml
+    volumes:
+      - ./postgres-queries.yaml:/queries.yaml:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
+
+  # Host metrics (disk, memory, backup age). Linux hosts only: start with `--profile host`.
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    profiles: [host]
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
+    volumes:
+      - /:/host:ro,rslave
+      - ./textfile:/textfile:ro
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - 127.0.0.1:3030:3000
+
+volumes:
+  alertmanager-data:
+  grafana-data:
+  prometheus-data:

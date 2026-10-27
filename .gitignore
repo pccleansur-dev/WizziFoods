@@ -34,3 +34,8 @@ Thumbs.db
 # Playwright
 test-results/
 playwright-report/
+
+# Backups and monitoring textfiles are operational data, never source
+/backups/
+/infra/observability/textfile/*.prom
+/infra/observability/secrets/

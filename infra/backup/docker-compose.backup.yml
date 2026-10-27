@@ -1,0 +1,34 @@
+# Turns on what backups need in the Supabase database service:
+#   - WAL archiving (archive_mode), the base of point-in-time recovery;
+#   - a pg_hba with one local replication rule, for pg_basebackup.
+#
+#   docker compose --project-directory infra/supabase --env-file infra/supabase/.env \
+#     -f infra/supabase/docker-compose.yml -f infra/supabase/docker-compose.local.yml \
+#     -f infra/backup/docker-compose.backup.yml up -d db
+#
+# `archive_command` here copies each finished WAL segment to a separate volume. In
+# production replace it with the upload to the OFF-SERVER destination chosen for the
+# copies (object storage, another host): a WAL archive on the same disk protects against a
+# dropped table, not against losing the server. See docs/runbooks/copias-y-restauracion.md.
+services:
+  db:
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/postgresql.conf
+      - -c
+      - log_min_messages=fatal
+      - -c
+      - hba_file=/etc/postgresql-backup/pg_hba.conf
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_timeout=300
+      - -c
+      - archive_command=test ! -f /wal-archive/%f && cp %p /wal-archive/%f
+    volumes:
+      - ${BACKUP_CONF_DIR:-../backup}/pg_hba.conf:/etc/postgresql-backup/pg_hba.conf:ro
+      - wal-archive:/wal-archive
+
+volumes:
+  wal-archive:

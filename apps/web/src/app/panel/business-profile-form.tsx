@@ -271,7 +271,12 @@ export function BusinessProfileForm({
             color: preview.visual.primaryColor
           }}
         >
-          <span style={{ color: preview.visual.accentColor }}>
+          <span
+            style={{
+              borderBottom: `3px solid ${preview.visual.accentColor}`,
+              paddingBottom: "0.2rem"
+            }}
+          >
             Carta del restaurante
           </span>
           <h3

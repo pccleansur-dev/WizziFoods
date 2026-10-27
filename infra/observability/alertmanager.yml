@@ -1,0 +1,24 @@
+# Where the alerts go. The webhook address is a secret and lives in a file outside the repo
+# (`url_file`): mount it at /etc/alertmanager/secrets/webhook_url. Nothing secret is kept here.
+route:
+  receiver: team
+  group_by: [alertname, service]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [severity="critical"]
+      receiver: team
+      repeat_interval: 1h
+
+receivers:
+  - name: team
+    webhook_configs:
+      - url_file: /etc/alertmanager/secrets/webhook_url
+        send_resolved: true
+
+inhibit_rules:
+  # If the whole API is down, its latency and error alerts add nothing.
+  - source_matchers: [alertname="ApiDown"]
+    target_matchers: [service="api"]
+    equal: [service]

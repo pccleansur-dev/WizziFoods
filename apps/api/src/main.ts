@@ -8,7 +8,7 @@ import {
   FastifyAdapter,
   type NestFastifyApplication
 } from "@nestjs/platform-fastify";
-import { readApiConfig } from "@platform/config";
+import { apiSecurityHeaders, readApiConfig } from "@platform/config";
 import {
   initializeTelemetry,
   resolveRequestId,
@@ -58,6 +58,18 @@ async function bootstrap(): Promise<void> {
     });
     reply.header("x-request-id", operation.requestId);
     reply.header("x-trace-id", operation.traceId);
+    done();
+  });
+
+  // Hardening headers on every answer; a route that sets its own (the public brand icon is
+  // cacheable on purpose) keeps its value.
+  const hardening = apiSecurityHeaders({
+    production: config.environment === "production"
+  });
+  server.addHook("onSend", (_request, reply, _payload, done) => {
+    for (const [name, value] of Object.entries(hardening)) {
+      if (!reply.hasHeader(name)) reply.header(name, value);
+    }
     done();
   });
 

@@ -112,6 +112,58 @@ describe("catalog draft contract", () => {
   });
 });
 
+describe("automatic translations stay drafts until a person approves them", () => {
+  const english = (title: string) => ({
+    description: "",
+    language: "en",
+    title
+  });
+  const bilingual: CatalogDraft = {
+    ...validDraft,
+    categories: validDraft.categories.map((category) => ({
+      ...category,
+      content: [...category.content, english("Main dishes")]
+    })),
+    products: validDraft.products.map((product) => ({
+      ...product,
+      content: [...product.content, english("Milanese")],
+      variants: product.variants.map((variant) => ({
+        ...variant,
+        content: [...variant.content, english("Neapolitan")]
+      }))
+    }))
+  };
+  const machine: CatalogDraft = {
+    ...bilingual,
+    products: bilingual.products.map((product) => ({
+      ...product,
+      content: product.content.map((item) =>
+        item.language === "en" ? { ...item, review: "machine" as const } : item
+      )
+    }))
+  };
+
+  it("accepts the marker in a draft and keeps it", () => {
+    expect(parseCatalogDraft(machine)).toEqual(machine);
+  });
+
+  it("rejects any other value or key in the content", () => {
+    const bad = JSON.parse(JSON.stringify(machine));
+    bad.products[0].content[1].review = "approved";
+    expect(parseCatalogDraft(bad)).toBeNull();
+    const extra = JSON.parse(JSON.stringify(bilingual));
+    extra.products[0].content[0].price = 1;
+    expect(parseCatalogDraft(extra)).toBeNull();
+  });
+
+  it("blocks publication while a machine translation is unreviewed", () => {
+    expect(catalogPublicationIssues(bilingual, ["es", "en"])).toEqual([]);
+    expect(catalogPublicationIssues(machine, ["es", "en"])).toEqual([
+      "PENDING_TRANSLATION_REVIEW"
+    ]);
+  });
+});
+
 describe("catalog publication readiness", () => {
   it("explains every missing structural requirement without blocking saves", () => {
     expect(
