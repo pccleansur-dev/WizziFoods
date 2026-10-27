@@ -4,6 +4,15 @@ import { pathToFileURL } from "node:url";
 import { readWorkerConfig } from "@platform/config";
 import { createServiceStatus, type ServiceStatus } from "@platform/contracts";
 import { createTenantDatabase } from "@platform/database";
+import {
+  MetaWhatsappProvider,
+  PaymentSecretSealer,
+  SimulatedWebPushProvider,
+  SimulatedWhatsappProvider,
+  VapidWebPushProvider,
+  type WebPushProvider,
+  type WhatsappProvider
+} from "@platform/integrations";
 import { initializeTelemetry, startOperation } from "@platform/observability";
 
 import { createBusinessMediaJobObserver } from "./business-media-observer.js";
@@ -16,6 +25,10 @@ import {
   CatalogImportJobRetryError,
   runCatalogImportIteration
 } from "./catalog-import-worker.js";
+import {
+  runAutomationsIteration,
+  runMessagingIteration
+} from "./messaging-worker.js";
 import { startPollingLoop } from "./polling-loop.js";
 
 export function getWorkerStatus(): ServiceStatus {
@@ -99,6 +112,79 @@ function startWorker(): void {
     pollMs: config.pollMs
   });
 
+  // Messaging is optional: with WHATSAPP_MODE and WEB_PUSH_MODE off (the default)
+  // nothing is polled. Each channel is delivered only if its own mode is on.
+  const loops = [mediaPolling, importPolling];
+  const whatsapp =
+    config.whatsapp.mode !== "off" && config.paymentSecretKey
+      ? {
+          provider: (config.whatsapp.mode === "simulated"
+            ? new SimulatedWhatsappProvider(config.environment)
+            : new MetaWhatsappProvider({
+                graphVersion: config.whatsapp.graphVersion
+              })) as WhatsappProvider,
+          sealer: new PaymentSecretSealer(config.paymentSecretKey)
+        }
+      : null;
+  const webPush: WebPushProvider | null =
+    config.webPush.mode === "off" || !config.webPush.privateKey
+      ? null
+      : config.webPush.mode === "simulated"
+        ? new SimulatedWebPushProvider(config.environment)
+        : new VapidWebPushProvider({
+            privateKey: config.webPush.privateKey,
+            publicKey: config.webPush.publicKey,
+            subject: config.webPush.subject
+          });
+  if (whatsapp || webPush) {
+    loops.push(
+      startPollingLoop({
+        iteration: async () => {
+          const summary = await runMessagingIteration({
+            leaseSeconds: config.visibilityTimeoutSeconds,
+            limit: 20,
+            repository: database.messagingRepository,
+            webPush,
+            whatsapp
+          });
+          if (
+            summary.sent + summary.blocked + summary.failed + summary.retried >
+            0
+          ) {
+            telemetry.logger.info("messaging_iteration", {
+              entryPoint: "queue",
+              requestId: randomUUID(),
+              ...summary
+            });
+          }
+        },
+        onError: () => {
+          telemetry.logger.warn("messaging_queue_retry", {
+            entryPoint: "queue",
+            reason: "queue_unavailable",
+            requestId: randomUUID()
+          });
+        },
+        pollMs: config.pollMs
+      }),
+      startPollingLoop({
+        iteration: async () => {
+          await runAutomationsIteration({
+            repository: database.messagingRepository
+          });
+        },
+        onError: () => {
+          telemetry.logger.warn("messaging_automations_retry", {
+            entryPoint: "scheduler",
+            reason: "queue_unavailable",
+            requestId: randomUUID()
+          });
+        },
+        pollMs: 60_000
+      })
+    );
+  }
+
   let shutdownPromise: Promise<void> | undefined;
   const shutdown = (signal: "SIGINT" | "SIGTERM") => {
     shutdownPromise ??= (async () => {
@@ -108,7 +194,7 @@ function startWorker(): void {
         signal
       });
       clearInterval(heartbeatTimer);
-      await Promise.all([mediaPolling.stop(), importPolling.stop()]);
+      await Promise.all(loops.map((loop) => loop.stop()));
       await database.close();
       await telemetry.sdk.shutdown();
     })();

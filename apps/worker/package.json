@@ -15,12 +15,14 @@
     "@platform/config": "workspace:*",
     "@platform/contracts": "workspace:*",
     "@platform/database": "workspace:*",
+    "@platform/integrations": "workspace:*",
     "@platform/observability": "workspace:*",
     "@supabase/supabase-js": "2.90.1",
     "read-excel-file": "9.3.12",
     "sharp": "0.35.5"
   },
   "devDependencies": {
+    "postgres": "3.4.9",
     "tsx": "4.23.15"
   }
 }

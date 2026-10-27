@@ -99,10 +99,18 @@ export function stackEnv(): Record<string, string> {
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
     PLATFORM_BASE_DOMAIN: "dev.localhost",
     PAYMENT_SECRET_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    SUPABASE_JWT_SECRET: need(supabase, "JWT_SECRET"),
     STAFF_PIN_PEPPER: "e2e-pepper-with-at-least-32-characters",
     SUPABASE_SECRET_KEY: need(supabase, "SUPABASE_SECRET_KEY"),
     SUPABASE_URL: supabaseUrl,
-    WEB_METRICS_PORT: "9576"
+    WEB_METRICS_PORT: "9576",
+    WEB_PUSH_MODE: "simulated",
+    WEB_PUSH_PUBLIC_KEY:
+      "BMlDa8DcTc3p9yv7qTj2gWvUe8kP6ObioTuBVw8u9bGaQ_YY4IwAIig94fR5A4m2Izt7gN3fLe7CMvGbwK7-Ll0",
+    WEB_PUSH_SUBJECT: "mailto:e2e@plataforma.test",
+    WHATSAPP_APP_SECRET: "e2e-whatsapp-app-secret-with-16-plus",
+    WHATSAPP_MODE: "simulated",
+    WHATSAPP_VERIFY_TOKEN: "e2e-whatsapp-verify-token-16-plus"
   };
 }
 

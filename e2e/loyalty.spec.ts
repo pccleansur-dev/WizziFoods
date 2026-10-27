@@ -92,7 +92,7 @@ test("completes the goal and uses the reward in the same purchase", async ({
     .first()
     .click();
   await diner.getByLabel("Correo").fill("fake:ana@loyalty.example");
-  await diner.getByRole("button", { name: "Continuar" }).click();
+  await diner.getByRole("button", { name: "Continuar", exact: true }).click();
   await diner.getByLabel("Tu nombre en este local").fill("Ana");
   await diner.getByRole("button", { name: "Crear mi perfil" }).click();
   await expect(diner.getByText("Hola, Ana")).toBeVisible();

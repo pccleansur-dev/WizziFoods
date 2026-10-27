@@ -168,6 +168,21 @@ export {
   type DinerIdentityRepository
 } from "./diner-identity-repository.js";
 export {
+  createBrandRepository,
+  type BrandRepository
+} from "./brand-repository.js";
+export {
   createLoyaltyRepository,
   type LoyaltyRepository
 } from "./loyalty-repository.js";
+export {
+  createMessagingRepository,
+  type ClaimedMessage,
+  type DeliveryOutcome,
+  type MessagingRepository,
+  type OptOutOutcome,
+  type SealedWhatsappCredential,
+  type MessagingWebhookClaim,
+  type MessagingWebhookOutcome,
+  type WhatsappCredentials
+} from "./messaging-repository.js";

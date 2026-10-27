@@ -18,8 +18,9 @@ son de T22**: esta etapa no mueve dinero ni toca un pedido confirmado.
   confirma (intención o comanda manual). Una intención `awaiting_waiter` o
   `payment_pending` no genera nada.
 - Orden: pendientes primero, del más antiguo al más nuevo; los terminados quedan al
-  final (se conservan los 10 más recientes). Se actualiza por polling cada 5 s
-  mientras la pestaña es visible; Realtime queda para T31.
+  final (se conservan los 10 más recientes). Se actualiza cuando Realtime avisa
+  (canal `production-kitchen` o `production-bar`) y, sin Realtime, por polling cada 5 s
+  mientras la pestaña es visible (ver `pwa-y-tiempo-real.md`).
 - Mozo, Encargado y personal de otro negocio reciben 403 (`PT200` en SQL).
 
 ## Estados e ítems
@@ -82,7 +83,7 @@ para los estados y su historial; sólo antes de operar de verdad).
 
 - «Entregado», faltantes, reemplazos y cancelaciones llegaron con T21.
 - Los sectores `other` no tienen pantalla; el Encargado no ve ni mueve producción.
-- Polling cada 5 s; Realtime y reconexión avanzada son de T31.
+- Realtime, reconexión y escrituras sin duplicar son de T31 (`pwa-y-tiempo-real.md`).
 - Los tests de integración que apagan los triggers append-only de otras tablas deben
   hacerlo sólo en su sesión (`session_replication_role = replica` dentro de una
   transacción); apagarlos con `ALTER TABLE` rompe a otros archivos que corren en

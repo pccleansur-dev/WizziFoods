@@ -94,7 +94,7 @@ test("an order with a kitchen and a bar item reaches each screen, step by step",
     await diner.getByRole("button", { name: "Agregar a Mi pedido" }).click();
   }
   await diner.getByRole("button", { name: /^Mi pedido/u }).click();
-  await diner.getByRole("button", { name: "Continuar" }).click();
+  await diner.getByRole("button", { name: "Continuar", exact: true }).click();
   await diner.getByLabel("Tu nombre").fill("Valentín");
   await diner.getByRole("button", { name: "Enviar pedido" }).click();
   await expect(

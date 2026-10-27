@@ -70,7 +70,7 @@ test("a registered diner keeps the menu, creates a profile and manages separate 
     page.getByRole("heading", { name: "Google (simulado)" })
   ).toBeVisible();
   await page.getByLabel("Correo").fill(`fake:${email}`);
-  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
 
   // Back on the menu, still usable while the profile is pending.
   await expect(page).toHaveURL(

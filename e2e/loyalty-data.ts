@@ -32,6 +32,11 @@ async function cleanupLoyalty(owner: postgres.Sql) {
       { account_id: string }[]
     >`select account_id from private.diner_profile_links where tenant_id = ${tenant.id}`;
     for (const table of [
+      "messaging_events",
+      "messaging_outbox",
+      "messaging_automations",
+      "whatsapp_templates",
+      "whatsapp_connections",
       "loyalty_visits",
       "loyalty_rewards",
       "diner_birthdays",

@@ -39,7 +39,7 @@ export default async function TableEntryPage({
             paymentMethods={paymentMethods}
             token={token}
           />
-          <EntryRefresh />
+          <EntryRefresh token={token} />
         </>
       ) : null}
     </main>

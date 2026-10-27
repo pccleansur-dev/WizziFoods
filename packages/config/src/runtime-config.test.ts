@@ -1,3 +1,5 @@
+import { createECDH } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -49,9 +51,12 @@ describe("runtime configuration", () => {
       platformBaseDomain: "plataforma.example.test",
       paymentSecretKey: null,
       port: 3001,
+      realtimeJwtSecret: null,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
       supabaseSecretKey: "sb_secret_server-only-example",
-      supabaseUrl: "http://supabase.local:8000"
+      supabaseUrl: "http://supabase.local:8000",
+      webPush: { mode: "off" },
+      whatsapp: { mode: "off" }
     });
   });
 
@@ -295,11 +300,129 @@ describe("runtime configuration", () => {
       heartbeatMs: 60_000,
       logLevel: "info",
       metricsPort: 9465,
+      paymentSecretKey: null,
       pollMs: 1_000,
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000",
-      visibilityTimeoutSeconds: 120
+      visibilityTimeoutSeconds: 120,
+      webPush: { mode: "off" },
+      whatsapp: { mode: "off" }
     });
+  });
+
+  it("reads the Supabase JWT secret only when it is long enough to be one", () => {
+    const api = {
+      ...baseEnvironment,
+      ADMIN_INVITE_REDIRECT_URL:
+        "https://app.example.test/auth/callback?next=/acceso/continuar",
+      API_METRICS_PORT: "9464",
+      API_PORT: "3001",
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      PLATFORM_BASE_DOMAIN: "plataforma.example.test",
+      STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+      SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+      SUPABASE_URL: "http://supabase.local:8000"
+    };
+    expect(readApiConfig(api).realtimeJwtSecret).toBeNull();
+    expect(
+      readApiConfig({ ...api, SUPABASE_JWT_SECRET: "x".repeat(40) })
+        .realtimeJwtSecret
+    ).toBe("x".repeat(40));
+    expect(() =>
+      readApiConfig({ ...api, SUPABASE_JWT_SECRET: "short" })
+    ).toThrow("SUPABASE_JWT_SECRET must have at least 32 characters");
+  });
+
+  it("keeps Web Push off unless asked and checks the VAPID keys", () => {
+    const keys = createECDH("prime256v1");
+    keys.generateKeys();
+    const push = {
+      WEB_PUSH_MODE: "live",
+      WEB_PUSH_PRIVATE_KEY: keys.getPrivateKey().toString("base64url"),
+      WEB_PUSH_PUBLIC_KEY: keys.getPublicKey().toString("base64url"),
+      WEB_PUSH_SUBJECT: "mailto:soporte@plataforma.test"
+    };
+    const worker = {
+      ...baseEnvironment,
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+      SUPABASE_URL: "http://supabase.local:8000",
+      WORKER_METRICS_PORT: "9465",
+      WORKER_HEARTBEAT_MS: "60000",
+      WORKER_POLL_MS: "1000",
+      WORKER_VISIBILITY_TIMEOUT_SECONDS: "120"
+    };
+    expect(readWorkerConfig({ ...worker, ...push }).webPush).toEqual({
+      mode: "live",
+      privateKey: push.WEB_PUSH_PRIVATE_KEY,
+      publicKey: push.WEB_PUSH_PUBLIC_KEY,
+      subject: push.WEB_PUSH_SUBJECT
+    });
+    expect(() =>
+      readWorkerConfig({
+        ...worker,
+        ...push,
+        APP_ENV: "production",
+        WEB_PUSH_MODE: "simulated"
+      })
+    ).toThrow("WEB_PUSH_MODE simulated is not allowed in production");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_PUBLIC_KEY: "AAAA" })
+    ).toThrow("WEB_PUSH_PUBLIC_KEY must be an uncompressed P-256 key");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_PRIVATE_KEY: "AAAA" })
+    ).toThrow("WEB_PUSH_PRIVATE_KEY must be 32 bytes");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_SUBJECT: "soporte" })
+    ).toThrow("WEB_PUSH_SUBJECT must be a mailto: or https: contact");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...push, WEB_PUSH_MODE: "maybe" })
+    ).toThrow("WEB_PUSH_MODE must be off, simulated or live");
+  });
+
+  it("keeps WhatsApp off unless asked and refuses the simulator in production", () => {
+    const worker = {
+      ...baseEnvironment,
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
+      SUPABASE_URL: "http://supabase.local:8000",
+      WORKER_METRICS_PORT: "9465",
+      WORKER_HEARTBEAT_MS: "60000",
+      WORKER_POLL_MS: "1000",
+      WORKER_VISIBILITY_TIMEOUT_SECONDS: "120"
+    };
+    const whatsapp = {
+      PAYMENT_SECRET_KEY: Buffer.alloc(32, 7).toString("base64"),
+      WHATSAPP_APP_SECRET: "an-app-secret-of-16+",
+      WHATSAPP_MODE: "simulated",
+      WHATSAPP_VERIFY_TOKEN: "a-verify-token-16+"
+    };
+    expect(readWorkerConfig({ ...worker, ...whatsapp }).whatsapp).toEqual({
+      appSecret: "an-app-secret-of-16+",
+      graphVersion: "v21.0",
+      mode: "simulated",
+      verifyToken: "a-verify-token-16+"
+    });
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, APP_ENV: "production" })
+    ).toThrow("WHATSAPP_MODE simulated is not allowed in production");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, PAYMENT_SECRET_KEY: "" })
+    ).toThrow("PAYMENT_SECRET_KEY is required for WhatsApp");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, WHATSAPP_APP_SECRET: "short" })
+    ).toThrow("at least 16 characters");
+    expect(() =>
+      readWorkerConfig({ ...worker, ...whatsapp, WHATSAPP_MODE: "live" })
+    ).toThrow("WHATSAPP_MODE must be off, simulated or meta");
+    expect(
+      readWorkerConfig({
+        ...worker,
+        ...whatsapp,
+        WHATSAPP_GRAPH_VERSION: "v22.0",
+        WHATSAPP_MODE: "meta"
+      }).whatsapp
+    ).toMatchObject({ graphVersion: "v22.0", mode: "meta" });
   });
 
   it("rejects an unsafe worker secret", () => {

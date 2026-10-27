@@ -28,6 +28,8 @@ import {
   type OrderIntentPaymentMethod
 } from "./order-intent";
 import type { PublicCatalog } from "./public-catalog";
+import { DinerConnection } from "../../../lib/diner-connection";
+import { OFFLINE_ACTION_MESSAGE } from "../../../lib/connection-view";
 import { newId } from "../../../lib/new-id";
 import { DinerSplit } from "./diner-split";
 import { OnlinePaymentCheckout } from "./online-payment-checkout";
@@ -159,6 +161,11 @@ export function DinerExperience({
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const submitIntent = (value: DinerCheckoutValue) => {
     if (!quote?.canConfirm || submitting) return;
+    // Nothing is sent, or shown as sent, while the device cannot reach the server.
+    if (!navigator.onLine) {
+      setCheckoutError(OFFLINE_ACTION_MESSAGE);
+      return;
+    }
     const stablePayload = JSON.stringify({
       attribution: value.attribution,
       dinerName: value.dinerName,
@@ -203,6 +210,7 @@ export function DinerExperience({
   if (accepted) return <DinerIntentAccepted status={accepted.status} />;
   return (
     <div className="diner-experience">
+      <DinerConnection />
       <nav aria-label="Carta y pedido" className="diner-nav">
         <button
           aria-current={view === "menu" ? "page" : undefined}

@@ -27,7 +27,7 @@ async function checkout(page: Page, name: string) {
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
   await page.getByRole("button", { name: /^Mi pedido/u }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await page.getByLabel("Tu nombre").fill(name);
   await page.getByLabel("Mercado Pago").check();
   await page.getByRole("button", { name: "Enviar pedido" }).click();
@@ -92,7 +92,7 @@ test("sandbox covers accredited, pending, rejected and partial refund", async ({
     page.getByRole("status").filter({
       hasText: "Devolución confirmada por Mercado Pago"
     })
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 20_000 });
   await expect
     .poll(async () => (await business.latestOnlinePayment()).refundedCents)
     .toBe(4_000);

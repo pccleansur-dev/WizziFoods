@@ -67,7 +67,7 @@ async function dinerSends(
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
   await page.getByRole("button", { name: /^Mi pedido/u }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await page.getByLabel("Tu nombre").fill(dinerName);
   if (method === "Mercado Pago") await page.getByLabel("Mercado Pago").check();
   await page.getByRole("button", { name: "Enviar pedido" }).click();
@@ -111,6 +111,9 @@ test("client → call → waiter → confirmed order, without payment or product
   await expect(anaCard).toContainText("Cuenta general");
   await expect(anaCard).toContainText("Sin atender");
 
+  // Realtime would tell the second waiter at once; to play the race, their screen cannot
+  // reach the server for a moment, as on a flaky connection.
+  await bruno.route("**/operacion/vista", (route) => route.abort());
   await anaCard
     .getByRole("button", { name: "Tomar llamado de mesa 1" })
     .click();
@@ -120,9 +123,10 @@ test("client → call → waiter → confirmed order, without payment or product
   await intentCard(bruno, "1", dinerName)
     .getByRole("button", { name: "Tomar llamado de mesa 1" })
     .click();
-  await expect(bruno.locator(".waiter-notice--error")).toContainText(
-    "Otro mozo ya tomó este llamado."
-  );
+  await expect(
+    bruno.getByRole("alert").filter({ hasText: "Otro mozo" })
+  ).toContainText("Otro mozo ya tomó este llamado.");
+  await bruno.unroute("**/operacion/vista");
 
   await anaCard
     .getByRole("button", { name: "Confirmar pedido de mesa 1" })

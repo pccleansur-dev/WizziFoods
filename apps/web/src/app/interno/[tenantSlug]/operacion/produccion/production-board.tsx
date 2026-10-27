@@ -5,7 +5,7 @@ import {
   type ProductionBoard,
   type ProductionTicketItem
 } from "@platform/contracts";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import {
   nextProductionStep,
@@ -15,9 +15,11 @@ import {
 import { waiterErrorMessage } from "../../../../../staff/waiter-view";
 import { reportProductionExceptionAction } from "../order-adjustment-actions";
 import { advanceProductionItemAction } from "../production-actions";
+import { ConnectionBanner } from "../../../../../lib/connection-banner";
+import { OFFLINE_ACTION_MESSAGE } from "../../../../../lib/connection-view";
 import { newId } from "../../../../../lib/new-id";
-
-const POLL_MS = 5_000;
+import { settleAction } from "../../../../../lib/settle-action";
+import { useLiveSync } from "../../../../../lib/use-live-sync";
 
 type Notice = { kind: "error" | "ok"; text: string };
 
@@ -52,7 +54,10 @@ export function ProductionBoardView({
   // reconnection reuses it, so the server answers with the stored result.
   const commands = useRef(new Map<string, string>());
 
-  const refresh = useCallback(async () => {
+  // Only the latest refresh started may write: an older answer never overwrites a newer one.
+  const latestRefresh = useRef(0);
+  const refresh = useCallback(async (): Promise<boolean> => {
+    const mine = (latestRefresh.current += 1);
     try {
       const response = await fetch(
         `/interno/${tenantSlug}/operacion/produccion/vista`,
@@ -60,43 +65,26 @@ export function ProductionBoardView({
       );
       if (response.status === 401) {
         setExpired(true);
-        return;
+        return true;
       }
       if (!response.ok) throw new Error("board unavailable");
       const parsed = parseProductionBoard(await response.json());
       if (!parsed) throw new Error("board invalid");
+      if (mine !== latestRefresh.current) return true;
       setBoard(parsed);
       setStale(false);
       setNow(Date.now());
+      return true;
     } catch {
       setStale(true);
+      return false;
     }
   }, [tenantSlug]);
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let stopped = false;
-    const schedule = () => {
-      if (!stopped) timer = setTimeout(tick, POLL_MS);
-    };
-    async function tick() {
-      if (document.visibilityState === "visible") await refresh();
-      schedule();
-    }
-    schedule();
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        if (timer) clearTimeout(timer);
-        void tick();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      stopped = true;
-      if (timer) clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [refresh]);
+  const live = useLiveSync({
+    endpoint: `/interno/${tenantSlug}/operacion/tiempo-real`,
+    refresh
+  });
 
   async function advance(
     orderId: string,
@@ -104,6 +92,11 @@ export function ProductionBoardView({
     target: "preparing" | "ready"
   ) {
     const key = `${item.lineId}:${target}`;
+    // Nothing leaves while the device cannot reach the server; the command id is kept.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setNotice({ kind: "error", text: OFFLINE_ACTION_MESSAGE });
+      return;
+    }
     let commandId = commands.current.get(key);
     if (!commandId) {
       commandId = newId();
@@ -111,11 +104,11 @@ export function ProductionBoardView({
     }
     setBusy(key);
     setNotice(null);
-    const result = await advanceProductionItemAction(
-      tenantSlug,
-      orderId,
-      item.lineId,
-      { commandId, status: target }
+    const result = await settleAction(() =>
+      advanceProductionItemAction(tenantSlug, orderId, item.lineId, {
+        commandId,
+        status: target
+      })
     );
     // A definitive answer, success or refusal, ends the command; only an
     // unknown outcome (no code) keeps it for the retry.
@@ -148,11 +141,11 @@ export function ProductionBoardView({
     }
     setBusy(key);
     setNotice(null);
-    const result = await reportProductionExceptionAction(
-      tenantSlug,
-      orderId,
-      item.lineId,
-      { commandId, reason: text }
+    const result = await settleAction(() =>
+      reportProductionExceptionAction(tenantSlug, orderId, item.lineId, {
+        commandId,
+        reason: text
+      })
     );
     if (result.status === "ok" || result.code !== null) {
       commands.current.delete(key);
@@ -193,6 +186,7 @@ export function ProductionBoardView({
 
   return (
     <div className="waiter-workspace">
+      <ConnectionBanner state={live} />
       <h1>{sectorTitles[board.sector]}</h1>
       <p aria-live="polite" className="waiter-status" role="status">
         {active === 0

@@ -919,20 +919,22 @@ sesión y liberar la mesa (T26).
 
 **Tamaño:** M.
 
-### T30. Conectar WhatsApp y automatizaciones básicas
+### T30. Conectar WhatsApp y automatizaciones básicas — completada
 
 **Descripción:** Vincular la cuenta de Meta de cada restaurante y enviar avisos aprobados respetando consentimiento y frecuencia.
 
 **Criterios de aceptación:**
 
-- [ ] Número, plantillas, costos y tokens están aislados por tenant.
-- [ ] Automatizaciones permanentes requieren aprobación inicial; eventos puntuales requieren confirmación.
-- [ ] Horarios, topes, opt-out e inactividad bloquean mensajes cuando corresponde.
+- [x] Número, plantillas, costos y tokens están aislados por tenant.
+- [x] Automatizaciones permanentes requieren aprobación inicial; eventos puntuales requieren confirmación.
+- [x] Horarios, topes, opt-out e inactividad bloquean mensajes cuando corresponde.
 
 **Verificación:**
 
-- [ ] Pruebas con proveedor simulado para límites, reintentos y baja.
-- [ ] Integración sandbox con webhook y plantilla aprobada.
+- [x] Pruebas con proveedor simulado para límites, reintentos y baja.
+- [ ] Integración sandbox con webhook y plantilla aprobada — diferida: el webhook firmado y la plantilla aprobada se probaron con el simulador; el sandbox real de Meta queda pendiente.
+
+**Resultado:** cada restaurante conecta su número (ID, cuenta y token cargados a mano en el panel «Mensajería»; el token queda sellado con `PaymentSecretSealer` y nunca vuelve al navegador). Una sola función de base decide si un mensaje sale y, ante cualquier duda, lo bloquea: consentimiento vigente leído del historial (promocional exige `marketing` y número verificado; operativo, `whatsapp_verified`), horario de 10 a 20 h en la zona del local (fuera de horario se pospone), tope de 2 por semana y 8 por mes por persona, 12 meses sin actividad y perfil anonimizado; los operativos salen enseguida y no gastan cupo. La respuesta BAJA revoca `marketing` con origen propio y bloquea al instante lo que esperaba. Las automatizaciones permanentes (premio ganado, por vencer, cumpleaños, inactividad) se aprueban una vez; los eventos puntuales se preparan y se confirman cada vez. La cola reintenta con espera creciente (5 intentos), nunca reenvía un mensaje cuyo resultado se perdió y deduplica el webhook firmado. Verificado con 173 aserciones pgTap (dos tenants, WhatsApp y push), rollback aplicar → revertir → reaplicar, carreras reales (confirmar 8 veces, el mismo evento 8 veces, dos y tres workers, seis promocionales contra el tope), worker con proveedor simulado (límites, reintentos, baja, horario), API con webhook firmado y un Playwright (móvil y escritorio, 3100/3101). Los envíos reales siguen apagados por defecto. Se agregó un segundo canal, los avisos de la PWA (Web Push, sin costo ni cuenta de Meta), sobre la misma política, cola y panel. Runbooks: `docs/runbooks/whatsapp.md` y `docs/runbooks/avisos-pwa.md`. Pendientes: verificación del número del comensal (tarea aparte), sandbox real de Meta, costos facturables, OAuth/Embedded Signup.
 
 **Dependencias:** T28, T29.
 
@@ -947,20 +949,22 @@ sesión y liberar la mesa (T26).
 
 ## Fase 10 — Preparación para lanzamiento
 
-### T31. Completar PWA, reconexión y Realtime
+### T31. Completar PWA, reconexión y Realtime — completada
 
 **Descripción:** Hacer visible y recuperable la conectividad deficiente sin afirmar escrituras no confirmadas.
 
 **Criterios de aceptación:**
 
-- [ ] Shell/lecturas permitidas funcionan según política de caché; escrituras críticas esperan ACK.
-- [ ] Reconexión invalida caché y consulta estado autoritativo.
-- [ ] Duplicar/reintentar una acción crítica mantiene idempotencia.
+- [x] Shell/lecturas permitidas funcionan según política de caché; escrituras críticas esperan ACK.
+- [x] Reconexión invalida caché y consulta estado autoritativo.
+- [x] Duplicar/reintentar una acción crítica mantiene idempotencia.
 
 **Verificación:**
 
-- [ ] Playwright con red offline/lenta y reconexiones repetidas.
-- [ ] Pruebas de carga de canales privados Realtime.
+- [x] Playwright con red offline/lenta y reconexiones repetidas.
+- [x] Pruebas de carga de canales privados Realtime.
+
+**Resultado:** el salón y la producción se actualizan por Supabase Realtime en canales privados que sólo avisan «algo cambió» (sin datos): la pantalla vuelve a pedir el estado a la API y lo hace de nuevo tras cada reconexión; sin Realtime sigue el sondeo de 5 s. Un token de 10 minutos firmado por la API con los canales del rol (`salon`, `cash`, `production-kitchen`, `production-bar`) es toda la autorización; la política de `realtime.messages` lo hace cumplir y ningún navegador puede escribir. Sin conexión la pantalla lo dice, muestra la última información con su hora y bloquea lo que cambia datos; al volver olvida la caché y consulta al servidor (cinco ciclos en pruebas, tres en E2E). Si una llamada se corta en el camino el resultado es _desconocido_: se conserva el `commandId` y el reintento no repite nada (antes dejaba la pantalla ocupada). El service worker guarda la página sin conexión, los archivos con hash y la última carta del comensal (sólo en producción, sólo si falla la red) y jamás una pantalla privada ni un POST. Verificado con 13 aserciones pgTap, 5 pruebas de integración contra Realtime real (aislamiento, token vencido, sin repetición y 120 oyentes de dos negocios; la pila local rechaza ~300), la máquina de estados con reloj simulado, el service worker y 6 recorridos Playwright (móvil y escritorio): Realtime en segundos, tres ciclos sin conexión, servidor 503 y lento, respuesta perdida reintentada con una sola transición en la base, recarga sin conexión y el pedido del comensal que sale una sola vez. Runbook: `docs/runbooks/pwa-y-tiempo-real.md`. El comensal escucha el canal de su mesa (token acotado por QR), el service worker se probó contra `next start` (`pnpm e2e:production`) y los límites de Realtime se dimensionaron y probaron con 900 oyentes (`packages/infra/src/realtime-limits.ts`). Pendiente sólo lo que exige cuentas reales: push del navegador real, API de Meta y fijar los límites en el proyecto de producción.
 
 **Dependencias:** T20, T24, T30.
 

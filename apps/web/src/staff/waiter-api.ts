@@ -13,7 +13,7 @@ export type WaiterApiResponse =
  */
 export async function callStaffApi(
   tenantSlug: string,
-  method: "GET" | "POST" | "PUT",
+  method: "DELETE" | "GET" | "POST" | "PUT",
   path: string,
   payload?: unknown
 ): Promise<WaiterApiResponse> {

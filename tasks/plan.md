@@ -160,11 +160,11 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 - [x] T28. Registrar clientes con Google y consentimientos separados.
 - [x] T29. Acreditar visitas y administrar premios de fidelización.
-- [ ] T30. Conectar WhatsApp por tenant y ejecutar automatizaciones básicas.
+- [x] T30. Conectar WhatsApp por tenant y ejecutar automatizaciones básicas (envíos reales apagados hasta la revisión del Checkpoint 9; sandbox real de Meta diferido).
 
 ### Fase 10 — Preparación para lanzamiento
 
-- [ ] T31. Completar PWA, reconexión y consistencia Realtime.
+- [x] T31. Completar PWA, reconexión y consistencia Realtime.
 - [ ] T32. Completar accesibilidad, responsive e idiomas aprobables.
 - [ ] T33. Verificar seguridad, copias, observabilidad y piloto de lanzamiento.
 

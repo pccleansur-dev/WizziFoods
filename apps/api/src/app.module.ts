@@ -12,6 +12,9 @@ import { AppController } from "./app.controller.js";
 import { AdminAuthGuard } from "./auth/admin-auth.guard.js";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { SupabaseJwtVerifier } from "./auth/supabase-jwt.verifier.js";
+import { BrandController } from "./brand/brand.controller.js";
+import { createBrandLogoStorage } from "./brand/brand-logo-storage.js";
+import { BrandService } from "./brand/brand.service.js";
 import { BusinessMediaController } from "./business-media/business-media.controller.js";
 import { createBusinessMediaStorageGateway } from "./business-media/business-media-storage.gateway.js";
 import { BusinessMediaService } from "./business-media/business-media.service.js";
@@ -34,6 +37,11 @@ import { TableEntryController } from "./table-entry/table-entry.controller.js";
 import { TableEntryService } from "./table-entry/table-entry.service.js";
 import { PaymentMethodsAdminController } from "./payment-methods/payment-methods.controller.js";
 import { PaymentMethodsService } from "./payment-methods/payment-methods.service.js";
+import {
+  MetaWhatsappProvider,
+  SimulatedWhatsappProvider
+} from "@platform/integrations";
+
 import { PaymentSecretSealer } from "./payment-methods/payment-secret-sealer.js";
 import { ReadinessAdminController } from "./readiness/readiness.controller.js";
 import { ReadinessService } from "./readiness/readiness.service.js";
@@ -78,6 +86,16 @@ import { TableAccountsService } from "./table-accounts/table-accounts.service.js
 import { LoyaltyDinerController } from "./loyalty/loyalty-diner.controller.js";
 import { LoyaltyStaffController } from "./loyalty/loyalty-staff.controller.js";
 import { LoyaltyService } from "./loyalty/loyalty.service.js";
+import { MessagingStaffController } from "./messaging/messaging-staff.controller.js";
+import { MessagingService } from "./messaging/messaging.service.js";
+import {
+  DINER_QR_RESOLVER,
+  DinerRealtimeController
+} from "./realtime/diner-realtime.controller.js";
+import { RealtimeController } from "./realtime/realtime.controller.js";
+import { RealtimeTokenService } from "./realtime/realtime-token.service.js";
+import { PushDinerController } from "./messaging/push-diner.controller.js";
+import { WhatsappWebhookController } from "./messaging/whatsapp-webhook.controller.js";
 import { TableClosingController } from "./table-closing/table-closing.controller.js";
 import { TableClosingService } from "./table-closing/table-closing.service.js";
 import { TableRegroupingController } from "./table-regrouping/table-regrouping.controller.js";
@@ -171,6 +189,12 @@ export class AppModule {
         TableAccountsController,
         LoyaltyDinerController,
         LoyaltyStaffController,
+        MessagingStaffController,
+        BrandController,
+        RealtimeController,
+        DinerRealtimeController,
+        WhatsappWebhookController,
+        PushDinerController,
         TableClosingController,
         TableRegroupingController,
         ProductionController,
@@ -386,6 +410,64 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: DINER_QR_RESOLVER,
+          useFactory: (database: TenantDatabase) => database.floorPlanRepository
+        },
+        {
+          provide: RealtimeTokenService,
+          useValue: new RealtimeTokenService(config.realtimeJwtSecret ?? null)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: BrandService,
+          useFactory: (database: TenantDatabase) =>
+            new BrandService(
+              database.brandRepository,
+              createBrandLogoStorage(
+                config.supabaseUrl,
+                config.supabaseSecretKey
+              )
+            )
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: MessagingService,
+          useFactory: (database: TenantDatabase) => {
+            const whatsapp = config.whatsapp ?? { mode: "off" as const };
+            const pushPublicKey =
+              config.webPush && config.webPush.mode !== "off"
+                ? config.webPush.publicKey
+                : null;
+            if (whatsapp.mode === "off") {
+              return new MessagingService(
+                database.messagingRepository,
+                null,
+                null,
+                null,
+                pushPublicKey
+              );
+            }
+            return new MessagingService(
+              database.messagingRepository,
+              config.paymentSecretKey
+                ? new PaymentSecretSealer(config.paymentSecretKey)
+                : null,
+              // The simulator refuses to exist in production.
+              whatsapp.mode === "simulated"
+                ? new SimulatedWhatsappProvider(config.environment)
+                : new MetaWhatsappProvider({
+                    graphVersion: whatsapp.graphVersion
+                  }),
+              {
+                appSecret: whatsapp.appSecret,
+                verifyToken: whatsapp.verifyToken
+              },
+              pushPublicKey
+            );
+          }
         },
         {
           inject: [TENANT_DATABASE],

@@ -325,4 +325,7 @@ export * from "./table-closing.js";
 export * from "./table-regrouping.js";
 
 export * from "./diner-identity.js";
+export * from "./brand.js";
+export * from "./realtime.js";
 export * from "./loyalty.js";
+export * from "./messaging.js";

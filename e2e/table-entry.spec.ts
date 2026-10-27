@@ -164,13 +164,15 @@ test("a concurrent availability change marks the draft and blocks continuation",
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
   await page.getByRole("button", { name: /^Mi pedido/u }).click();
-  await expect(page.getByRole("button", { name: "Continuar" })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Continuar", exact: true })
+  ).toBeEnabled();
   await business.setProductAvailable(false);
   try {
     await page.clock.fastForward(16_000);
     await expect(page.getByText("No está disponible ahora.")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Continuar" })
+      page.getByRole("button", { name: "Continuar", exact: true })
     ).toBeDisabled();
   } finally {
     await business.setProductAvailable(true);
@@ -182,7 +184,7 @@ async function addMilanesa(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
   await page.getByRole("button", { name: "Agregar a Mi pedido" }).click();
   await page.getByRole("button", { name: /^Mi pedido/u }).click();
-  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
 }
 
 test("the general account creates one in-person waiter call", async ({
