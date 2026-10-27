@@ -15,12 +15,12 @@ próximo sondeo o la próxima reconexión lo repara.
 Cada cambio en la base se anuncia en un canal `tenant:<negocio>:location:<local>:<tema>` (migración
 `20261031010000_realtime_invalidation.sql`, rollback probado, pgTap `realtime_invalidation.test.sql`):
 
-| Tema                 | Lo escuchan                                              | Lo disparan                                                                                       |
-| -------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `salon`              | quien atiende, valida o cobra (mozo, Encargado)          | llamados, intenciones, pedidos confirmados, sesiones, pedidos de caja, plano, grupos, el libro    |
-| `cash`               | el Encargado (`operations.approve`)                      | turnos y movimientos de caja, el libro                                                            |
-| `production-kitchen` | Cocina                                                   | ítems de producción de sectores de cocina                                                         |
-| `production-bar`     | Barra                                                    | ítems de producción de sectores de barra                                                          |
+| Tema                 | Lo escuchan                                     | Lo disparan                                                                                    |
+| -------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `salon`              | quien atiende, valida o cobra (mozo, Encargado) | llamados, intenciones, pedidos confirmados, sesiones, pedidos de caja, plano, grupos, el libro |
+| `cash`               | el Encargado (`operations.approve`)             | turnos y movimientos de caja, el libro                                                         |
+| `production-kitchen` | Cocina                                          | ítems de producción de sectores de cocina                                                      |
+| `production-bar`     | Barra                                           | ítems de producción de sectores de barra                                                       |
 
 - **Quién puede oír qué** lo decide un token de 10 minutos que firma la API (`POST /v1/staff/realtime/token`, con
   la sesión del personal) con el claim `channels`. La política de `realtime.messages` deja suscribirse sólo a los
@@ -64,7 +64,7 @@ estados degradados muestran texto.
 - Sin conexión **nada sale**: ni se encola ni se muestra como enviado. Mozo/Cocina/Barra muestran «Sin conexión: no se
   envió nada…» y el comensal no puede enviar el pedido.
 - Con conexión, el resultado es lo que contesta el servidor (nunca una confirmación optimista).
-- Si la llamada **falla en el camino** (se cortó la red, se perdió la respuesta) el resultado es *desconocido*
+- Si la llamada **falla en el camino** (se cortó la red, se perdió la respuesta) el resultado es _desconocido_
   (`settleAction`): se avisa «No pudimos confirmar si se envió. Podés volver a intentarlo: no se repite.» y se **conserva el
   `commandId`**. Reintentar manda el mismo comando y el servidor devuelve lo que ya hizo. Antes, una llamada cortada dejaba
   la pantalla «ocupada» para siempre.
