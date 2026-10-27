@@ -10,6 +10,8 @@ import { ownerDatabaseUrl } from "./stack-env";
 export type ConnectivityBusiness = AdjustmentsBusiness & {
   /** Status of every production item of the business, oldest first. */
   itemStatuses(): Promise<string[]>;
+  /** How many orders the diners have sent for confirmation. */
+  intents(): Promise<number>;
   /** How many times an item moved forward, and with how many different commands. */
   transitions(): Promise<{ commands: number; events: number }>;
 };
@@ -29,6 +31,12 @@ export async function seedConnectivityBusiness(): Promise<ConnectivityBusiness> 
     async close() {
       await owner.end();
       await base.close();
+    },
+    async intents() {
+      const [row] = await owner<{ total: number }[]>`
+        select count(*)::int as total from private.order_intents
+        where tenant_id = ${tenantId}`;
+      return row!.total;
     },
     async itemStatuses() {
       const rows = await owner<{ status: string }[]>`

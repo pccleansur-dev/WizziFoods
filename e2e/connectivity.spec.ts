@@ -217,3 +217,69 @@ test("a lost answer is retried with the same command and nothing happens twice",
     events: before.events + 1
   });
 });
+
+test("reloading with no connection shows the offline page, and the page comes back by itself", async ({
+  browser
+}) => {
+  const page = await kitchen(browser);
+  const context = page.context();
+  // The worker takes control of the page on the next load.
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.reload();
+  await expect
+    .poll(() =>
+      page.evaluate(() => Boolean(navigator.serviceWorker.controller))
+    )
+    .toBe(true);
+
+  await context.setOffline(true);
+  await page.reload().catch(() => undefined);
+  await expect(
+    page.getByRole("heading", { name: "Sin conexión" })
+  ).toBeVisible();
+  await expect(page.getByText("nada se da por hecho")).toBeVisible();
+
+  await context.setOffline(false);
+  await expect(page.getByRole("heading", { name: "Cocina" })).toBeVisible({
+    timeout: 20_000
+  });
+});
+
+test("a diner offline sees the menu is old, cannot send, and the order goes out once when the connection returns", async ({
+  browser
+}) => {
+  const context = await browser.newContext({
+    ...contextOptions(test.info().project.use),
+    baseURL: origin
+  });
+  contexts.push(context);
+  const diner = await context.newPage();
+  await diner.goto(`${origin}/m/${business.token}`);
+  await diner.getByRole("button", { name: "Carta", exact: true }).click();
+  await diner.getByRole("button", { name: "Ver detalle de Milanesa" }).click();
+  await diner.getByRole("button", { name: "Agregar a Mi pedido" }).click();
+  await diner.getByRole("button", { name: /^Mi pedido/u }).click();
+  await diner.getByRole("button", { name: "Continuar", exact: true }).click();
+  await diner.getByLabel("Tu nombre").fill("Valentina");
+  const before = await business.intents();
+
+  await context.setOffline(true);
+  await expect(
+    diner.getByText(/^Sin conexión\. Lo que ves puede estar desactualizado/u)
+  ).toBeVisible();
+  const send = diner.getByRole("button", { name: "Enviar pedido" });
+  await hydrated(send);
+  await send.click();
+  await expect(
+    diner.getByText(/^Sin conexión: no se envió nada\./u)
+  ).toBeVisible();
+  expect(await business.intents()).toBe(before);
+
+  await context.setOffline(false);
+  await expect(diner.getByText(/^Sin conexión\./u)).toHaveCount(0);
+  await send.click();
+  await expect(
+    diner.getByRole("heading", { name: "Ya avisamos al mozo" })
+  ).toBeVisible({ timeout: 20_000 });
+  expect(await business.intents()).toBe(before + 1);
+});
