@@ -949,20 +949,22 @@ sesión y liberar la mesa (T26).
 
 ## Fase 10 — Preparación para lanzamiento
 
-### T31. Completar PWA, reconexión y Realtime
+### T31. Completar PWA, reconexión y Realtime — completada
 
 **Descripción:** Hacer visible y recuperable la conectividad deficiente sin afirmar escrituras no confirmadas.
 
 **Criterios de aceptación:**
 
-- [ ] Shell/lecturas permitidas funcionan según política de caché; escrituras críticas esperan ACK.
-- [ ] Reconexión invalida caché y consulta estado autoritativo.
-- [ ] Duplicar/reintentar una acción crítica mantiene idempotencia.
+- [x] Shell/lecturas permitidas funcionan según política de caché; escrituras críticas esperan ACK.
+- [x] Reconexión invalida caché y consulta estado autoritativo.
+- [x] Duplicar/reintentar una acción crítica mantiene idempotencia.
 
 **Verificación:**
 
-- [ ] Playwright con red offline/lenta y reconexiones repetidas.
-- [ ] Pruebas de carga de canales privados Realtime.
+- [x] Playwright con red offline/lenta y reconexiones repetidas.
+- [x] Pruebas de carga de canales privados Realtime.
+
+**Resultado:** el salón y la producción se actualizan por Supabase Realtime en canales privados que sólo avisan «algo cambió» (sin datos): la pantalla vuelve a pedir el estado a la API y lo hace de nuevo tras cada reconexión; sin Realtime sigue el sondeo de 5 s. Un token de 10 minutos firmado por la API con los canales del rol (`salon`, `cash`, `production-kitchen`, `production-bar`) es toda la autorización; la política de `realtime.messages` lo hace cumplir y ningún navegador puede escribir. Sin conexión la pantalla lo dice, muestra la última información con su hora y bloquea lo que cambia datos; al volver olvida la caché y consulta al servidor (cinco ciclos en pruebas, tres en E2E). Si una llamada se corta en el camino el resultado es *desconocido*: se conserva el `commandId` y el reintento no repite nada (antes dejaba la pantalla ocupada). El service worker guarda la página sin conexión, los archivos con hash y la última carta del comensal (sólo en producción, sólo si falla la red) y jamás una pantalla privada ni un POST. Verificado con 13 aserciones pgTap, 5 pruebas de integración contra Realtime real (aislamiento, token vencido, sin repetición y 120 oyentes de dos negocios; la pila local rechaza ~300), la máquina de estados con reloj simulado, el service worker y 6 recorridos Playwright (móvil y escritorio): Realtime en segundos, tres ciclos sin conexión, servidor 503 y lento, respuesta perdida reintentada con una sola transición en la base, recarga sin conexión y el pedido del comensal que sale una sola vez. Runbook: `docs/runbooks/pwa-y-tiempo-real.md`. Pendientes: Realtime para el comensal, E2E contra `next start` con la caché activa y dimensionar el Realtime de producción.
 
 **Dependencias:** T20, T24, T30.
 

@@ -164,7 +164,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 ### Fase 10 — Preparación para lanzamiento
 
-- [ ] T31. Completar PWA, reconexión y consistencia Realtime.
+- [x] T31. Completar PWA, reconexión y consistencia Realtime.
 - [ ] T32. Completar accesibilidad, responsive e idiomas aprobables.
 - [ ] T33. Verificar seguridad, copias, observabilidad y piloto de lanzamiento.
 

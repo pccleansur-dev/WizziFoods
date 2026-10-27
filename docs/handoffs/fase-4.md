@@ -588,3 +588,7 @@ El logo se lee del perfil del negocio; el bucket sigue privado.
 
 Fuera de alcance, a propósito: verificación del número del comensal, integración con el sandbox real de Meta (se probó con el simulador y con
 el adaptador de Meta sobre un `fetch` falso), costos facturables (el costo por mensaje es una estimación cargada a mano) y OAuth/Embedded Signup.
+
+## Estado de T31 — PWA, reconexión y Realtime
+
+Completada. Realtime (canales privados, sólo invalidación) para salón, caja y producción; máquina de estados de conexión (`live-sync`), escrituras que esperan al servidor con `commandId` estable (`settleAction`), service worker con política de caché y página sin conexión. Detalle, límites medidos (~200 oyentes en la pila local) y pendientes en `docs/runbooks/pwa-y-tiempo-real.md`. Requiere `SUPABASE_JWT_SECRET` en la API; sin él todo cae al sondeo de 5 s.

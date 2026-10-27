@@ -28,9 +28,10 @@ no cobra**. Desde T20 el pedido confirmado llega a Cocina y Barra
 ## Vista viva
 
 `private.waiter_salon_view` devuelve plantas, unidades (mesa o grupo), llamados abiertos o
-tomados e intenciones `awaiting_waiter`. La web consulta cada 5 s mientras la pestaña es
-visible y al volver a ella (`/interno/<tenant>/operacion/vista`); es polling autoritativo,
-Realtime queda para T31. Un fallo de red conserva la última lectura y lo dice.
+tomados e intenciones `awaiting_waiter`. La web la consulta (`/interno/<tenant>/operacion/vista`)
+cuando Realtime avisa que algo cambió y después de cada reconexión; si Realtime no está,
+cada 5 s mientras la pestaña es visible. Un fallo de red conserva la última lectura y lo dice
+(ver `pwa-y-tiempo-real.md`).
 
 - **Grupos:** se muestran como una sola unidad («Mesas 2 + 3») con un solo estado
   (ocupada > pendiente de limpieza > fuera de servicio > disponible). El grupo aparece si
@@ -121,4 +122,4 @@ Migración `20261024090000_create_waiter_operations.sql`; se aplica con `supabas
   único llamado es `order_validation` de T18.
 - Con stock en cero la confirmación se rechaza, pero no se apaga la disponibilidad del
   producto (esa tabla exige un miembro administrador como autor).
-- La vista se actualiza por polling cada 5 s; Realtime es de T31.
+- La vista se actualiza por Realtime (T31) con polling de respaldo cada 5 s.
