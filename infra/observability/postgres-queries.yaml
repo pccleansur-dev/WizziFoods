@@ -1,0 +1,72 @@
+# Business-level questions the exporter asks the database every scrape. They read only
+# counts and ages, never people, amounts or messages. Run them as a read-only role.
+platform_messaging_outbox:
+  query: |
+    select
+      count(*) filter (where status = 'queued')::float as queued,
+      coalesce(extract(epoch from now() - min(next_attempt_at) filter (where status = 'queued')), 0)::float as oldest_queued_seconds,
+      count(*) filter (where status = 'failed' and updated_at > now() - interval '1 hour')::float as failed_last_hour,
+      count(*) filter (where status = 'sending' and locked_until < now())::float as stuck_sending
+    from private.messaging_outbox
+  metrics:
+    - queued: { usage: GAUGE, description: Messages waiting to be sent }
+    - oldest_queued_seconds: { usage: GAUGE, description: Age of the oldest message due }
+    - failed_last_hour: { usage: GAUGE, description: Messages that failed in the last hour }
+    - stuck_sending: { usage: GAUGE, description: Messages whose send lease expired }
+
+platform_payments:
+  query: |
+    select
+      count(*) filter (where status in ('created', 'pending') and created_at < now() - interval '15 minutes')::float as stale_pending,
+      count(*) filter (where status = 'approved' and updated_at > now() - interval '1 hour')::float as approved_last_hour,
+      count(*) filter (where status = 'rejected' and updated_at > now() - interval '1 hour')::float as rejected_last_hour
+    from private.online_payments
+  metrics:
+    - stale_pending: { usage: GAUGE, description: Online payments pending for more than 15 minutes }
+    - approved_last_hour: { usage: GAUGE, description: Online payments approved in the last hour }
+    - rejected_last_hour: { usage: GAUGE, description: Online payments rejected in the last hour }
+
+platform_payment_webhooks:
+  query: |
+    select
+      count(*) filter (where processed_at is null and received_at < now() - interval '5 minutes')::float as unprocessed_over_5m,
+      coalesce(max(attempts), 0)::float as max_attempts
+    from private.mp_webhook_events
+    where received_at > now() - interval '1 day'
+  metrics:
+    - unprocessed_over_5m: { usage: GAUGE, description: Payment notifications received and not processed after 5 minutes }
+    - max_attempts: { usage: GAUGE, description: Most attempts any recent payment notification needed }
+
+platform_job_queues:
+  query: |
+    select 'business_media' as queue, count(*)::float as depth,
+      coalesce(extract(epoch from now() - min(enqueued_at)), 0)::float as oldest_seconds
+    from pgmq.q_business_media_processing
+    union all
+    select 'catalog_import', count(*)::float,
+      coalesce(extract(epoch from now() - min(enqueued_at)), 0)::float
+    from pgmq.q_catalog_import_processing
+  metrics:
+    - queue: { usage: LABEL, description: Queue name }
+    - depth: { usage: GAUGE, description: Jobs waiting }
+    - oldest_seconds: { usage: GAUGE, description: Age of the oldest waiting job }
+
+platform_database_size:
+  query: |
+    select
+      pg_database_size(current_database())::float as bytes,
+      (select count(*) from pg_stat_activity where datname = current_database())::float as connections,
+      (select setting::float from pg_settings where name = 'max_connections') as max_connections
+  metrics:
+    - bytes: { usage: GAUGE, description: Size of the database }
+    - connections: { usage: GAUGE, description: Open connections }
+    - max_connections: { usage: GAUGE, description: Connection limit }
+
+platform_replication_and_wal:
+  query: |
+    select
+      (select count(*) from pg_stat_archiver where failed_count > 0 and last_failed_time > coalesce(last_archived_time, 'epoch'))::float as archiver_failing,
+      coalesce(extract(epoch from now() - (select last_archived_time from pg_stat_archiver)), 999999)::float as seconds_since_last_wal_archived
+  metrics:
+    - archiver_failing: { usage: GAUGE, description: 1 when the last WAL archive attempt failed }
+    - seconds_since_last_wal_archived: { usage: GAUGE, description: Seconds since a WAL segment reached the archive }

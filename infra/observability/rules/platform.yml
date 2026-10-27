@@ -1,0 +1,209 @@
+# Alerts of the platform. Each one names the runbook section that says what to do.
+# Severity: critical = someone is woken up; warning = looked at in the next working hours.
+# `for` keeps one bad scrape from paging anybody.
+groups:
+  - name: api
+    rules:
+      - alert: ApiDown
+        expr: up{job="platform", service="api"} == 0
+        for: 1m
+        labels: { severity: critical, service: api }
+        annotations:
+          summary: The API does not answer its metrics port
+          runbook: docs/runbooks/incidentes.md#api-caida
+      - alert: ApiErrorRateHigh
+        expr: |
+          sum(rate(platform_http_server_requests_total{service="api", status_class="5xx"}[5m]))
+            / clamp_min(sum(rate(platform_http_server_requests_total{service="api"}[5m])), 1) > 0.05
+        for: 5m
+        labels: { severity: critical, service: api }
+        annotations:
+          summary: More than 5 % of the API requests fail with a server error
+          runbook: docs/runbooks/incidentes.md#api-caida
+      - alert: ApiSlow
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(platform_http_server_duration_bucket{service="api"}[5m]))) > 1500
+        for: 10m
+        labels: { severity: warning, service: api }
+        annotations:
+          summary: The 95th percentile of the API is over 1.5 seconds
+          runbook: docs/runbooks/incidentes.md#api-lenta
+      - alert: WebDown
+        expr: up{job="platform", service="web"} == 0
+        for: 1m
+        labels: { severity: critical, service: web }
+        annotations:
+          summary: The web does not answer its metrics port
+          runbook: docs/runbooks/incidentes.md#api-caida
+
+  - name: jobs
+    rules:
+      - alert: WorkerDown
+        expr: up{job="platform", service="worker"} == 0
+        for: 2m
+        labels: { severity: critical, service: worker }
+        annotations:
+          summary: The worker is down (images, imports and messages stop)
+          runbook: docs/runbooks/incidentes.md#jobs-detenidos
+      - alert: WorkerHeartbeatMissing
+        expr: |
+          increase(platform_operations_total{service="worker", operation="worker.heartbeat"}[10m]) == 0
+          and on() up{job="platform", service="worker"} == 1
+        for: 5m
+        labels: { severity: critical, service: worker }
+        annotations:
+          summary: The worker is up but has not beaten its heart for 10 minutes
+          runbook: docs/runbooks/incidentes.md#jobs-detenidos
+      - alert: JobQueueBacklog
+        expr: platform_job_queues_oldest_seconds > 900
+        for: 5m
+        labels: { severity: warning, service: worker }
+        annotations:
+          summary: "A background job has waited more than 15 minutes ({{ $labels.queue }})"
+          runbook: docs/runbooks/incidentes.md#jobs-detenidos
+      - alert: MessagingOutboxStuck
+        expr: platform_messaging_outbox_oldest_queued_seconds > 1800 or platform_messaging_outbox_stuck_sending > 0
+        for: 10m
+        labels: { severity: warning, service: worker }
+        annotations:
+          summary: Messages are due and not leaving (WhatsApp or push)
+          runbook: docs/runbooks/incidentes.md#mensajes-que-no-salen
+      - alert: MessagingFailuresHigh
+        expr: platform_messaging_outbox_failed_last_hour > 20
+        for: 10m
+        labels: { severity: warning, service: worker }
+        annotations:
+          summary: More than 20 messages failed in the last hour
+          runbook: docs/runbooks/incidentes.md#mensajes-que-no-salen
+
+  - name: payments
+    rules:
+      - alert: PaymentNotificationsNotProcessed
+        expr: platform_payment_webhooks_unprocessed_over_5m > 0
+        for: 5m
+        labels: { severity: critical, service: payments }
+        annotations:
+          summary: Mercado Pago notified a payment and the platform has not processed it
+          runbook: docs/runbooks/incidentes.md#pagos
+      - alert: PaymentsStuckPending
+        expr: platform_payments_stale_pending > 3
+        for: 15m
+        labels: { severity: warning, service: payments }
+        annotations:
+          summary: Several online payments have been pending for more than 15 minutes
+          runbook: docs/runbooks/incidentes.md#pagos
+      - alert: PaymentsRejectedSpike
+        expr: |
+          platform_payments_rejected_last_hour > 10
+            and platform_payments_rejected_last_hour > 2 * platform_payments_approved_last_hour
+        for: 15m
+        labels: { severity: warning, service: payments }
+        annotations:
+          summary: Rejected payments outnumber approved ones
+          runbook: docs/runbooks/incidentes.md#pagos
+
+  - name: database
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels: { severity: critical, service: database }
+        annotations:
+          summary: Postgres does not answer
+          runbook: docs/runbooks/incidentes.md#base-de-datos
+      - alert: PostgresConnectionsNearLimit
+        expr: platform_database_size_connections / platform_database_size_max_connections > 0.8
+        for: 10m
+        labels: { severity: warning, service: database }
+        annotations:
+          summary: More than 80 % of the Postgres connections are in use
+          runbook: docs/runbooks/incidentes.md#base-de-datos
+      - alert: WalArchiveFailing
+        expr: platform_replication_and_wal_archiver_failing == 1 or platform_replication_and_wal_seconds_since_last_wal_archived > 900
+        for: 5m
+        labels: { severity: critical, service: backup }
+        annotations:
+          summary: WAL segments are not reaching the archive (point-in-time recovery is at risk)
+          runbook: docs/runbooks/incidentes.md#copias-y-restauracion
+
+  - name: host
+    rules:
+      - alert: DiskAlmostFull
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) < 0.15
+        for: 10m
+        labels: { severity: warning, service: host }
+        annotations:
+          summary: "A disk has less than 15 % free ({{ $labels.mountpoint }})"
+          runbook: docs/runbooks/incidentes.md#disco-lleno
+      - alert: DiskFillingFast
+        expr: predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[1h], 6 * 3600) < 0
+        for: 30m
+        labels: { severity: critical, service: host }
+        annotations:
+          summary: "At this pace the disk fills within 6 hours ({{ $labels.mountpoint }})"
+          runbook: docs/runbooks/incidentes.md#disco-lleno
+      - alert: MemoryLow
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+        for: 10m
+        labels: { severity: warning, service: host }
+        annotations:
+          summary: Less than 10 % of memory is available
+          runbook: docs/runbooks/incidentes.md#disco-lleno
+
+  - name: external
+    rules:
+      - alert: PublicEndpointDown
+        expr: probe_success{job="probe-http"} == 0
+        for: 2m
+        labels: { severity: critical, service: external }
+        annotations:
+          summary: "{{ $labels.instance }} does not answer from outside"
+          runbook: docs/runbooks/incidentes.md#api-caida
+      - alert: CertificateExpiresSoon
+        expr: (probe_ssl_earliest_cert_expiry{job="probe-http"} - time()) / 86400 < 21
+        for: 1h
+        labels: { severity: warning, service: external }
+        annotations:
+          summary: "The certificate of {{ $labels.instance }} expires in less than 21 days"
+          runbook: docs/runbooks/incidentes.md#certificados
+      - alert: CertificateExpiresVerySoon
+        expr: (probe_ssl_earliest_cert_expiry{job="probe-http"} - time()) / 86400 < 5
+        for: 10m
+        labels: { severity: critical, service: external }
+        annotations:
+          summary: "The certificate of {{ $labels.instance }} expires in less than 5 days"
+          runbook: docs/runbooks/incidentes.md#certificados
+
+  - name: backups
+    rules:
+      - alert: BackupTooOld
+        expr: time() - platform_backup_last_success_timestamp_seconds{kind="database"} > 26 * 3600
+        for: 10m
+        labels: { severity: critical, service: backup }
+        annotations:
+          summary: The last good database backup is more than 26 hours old
+          runbook: docs/runbooks/incidentes.md#copias-y-restauracion
+      - alert: StorageBackupTooOld
+        expr: time() - platform_backup_last_success_timestamp_seconds{kind="storage"} > 26 * 3600
+        for: 10m
+        labels: { severity: critical, service: backup }
+        annotations:
+          summary: The last good backup of the uploaded files is more than 26 hours old
+          runbook: docs/runbooks/incidentes.md#copias-y-restauracion
+      - alert: RestoreDrillOverdue
+        expr: time() - platform_backup_last_restore_drill_timestamp_seconds > 35 * 86400
+        for: 1h
+        labels: { severity: warning, service: backup }
+        annotations:
+          summary: No restore drill in 35 days (a backup nobody restored is not a backup)
+          runbook: docs/runbooks/incidentes.md#copias-y-restauracion
+      - alert: BackupMetricMissing
+        expr: absent(platform_backup_last_success_timestamp_seconds{kind="database"})
+        for: 1h
+        labels: { severity: warning, service: backup }
+        annotations:
+          summary: Nobody reports database backups (the job is not running)
+          runbook: docs/runbooks/incidentes.md#copias-y-restauracion

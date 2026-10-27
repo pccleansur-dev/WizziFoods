@@ -1,0 +1,12 @@
+public.tenants
+public.tenant_memberships
+public.locations
+public.staff_members
+private.catalog_drafts
+private.published_catalogs
+private.confirmed_orders
+private.account_entries
+private.online_payments
+private.audit_events
+private.messaging_outbox
+private.diner_accounts
