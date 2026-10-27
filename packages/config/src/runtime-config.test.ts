@@ -49,6 +49,7 @@ describe("runtime configuration", () => {
       mercadoPago: { mode: "off" },
       metricsPort: 9464,
       platformBaseDomain: "plataforma.example.test",
+      platformTenantHostTemplate: "{slug}.{domain}",
       paymentSecretKey: null,
       port: 3001,
       realtimeJwtSecret: null,

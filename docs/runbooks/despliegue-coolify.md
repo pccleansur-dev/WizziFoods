@@ -17,28 +17,30 @@ migrar; los datos viven en volúmenes con nombre y no se pierden.
 
 ## 1. Dominio y acceso desde internet
 
-El plan usa un dominio propio con tres nombres públicos y un comodín para los negocios:
+Esquema de nombres de **un solo nivel** bajo un dominio que ya está en Cloudflare (acá `wizzi.com.ar`, sufijo `carta`). Un solo
+certificado comodín gratuito de Cloudflare (`*.wizzi.com.ar`) los cubre a todos:
 
-| Nombre                  | Va a                   | Para qué                                                                       |
-| ----------------------- | ---------------------- | ------------------------------------------------------------------------------ |
-| `app.<dominio>`         | `web` (puerto 3000)    | Panel del administrador y pantallas del personal                               |
-| `api.<dominio>`         | `api` (puerto 3001)    | Webhooks (Mercado Pago, WhatsApp) y callbacks de ingreso                       |
-| `supabase.<dominio>`    | `api-gw` (puerto 8000) | Auth, Storage y Realtime que usa el navegador                                  |
-| `*.<dominio>` (comodín) | `web` (puerto 3000)    | Un subdominio por negocio (`<slug>.<dominio>`): carta del comensal y operación |
+| Nombre                         | Va a                   | Para qué                                                 |
+| ------------------------------ | ---------------------- | -------------------------------------------------------- |
+| `app-carta.wizzi.com.ar`       | `web` (puerto 3000)    | Panel del administrador y pantallas del personal         |
+| `api-carta.wizzi.com.ar`       | `api` (puerto 3001)    | Webhooks (Mercado Pago, WhatsApp) y callbacks de ingreso |
+| `supabase-carta.wizzi.com.ar`  | `api-gw` (puerto 8000) | Auth, Storage y Realtime que usa el navegador            |
+| `<negocio>-carta.wizzi.com.ar` | `web` (puerto 3000)    | Un nombre por negocio: carta del comensal y operación    |
 
-Esta computadora ya tiene **Cloudflare Tunnel** (`cloudflared`) delante de Coolify: en el panel de Cloudflare agregá a
-ese túnel los nombres de arriba (incluido el comodín) apuntando al proxy de Coolify. Cloudflare pone el HTTPS; no hace falta abrir
-puertos en el router. Si no usás el túnel, el dominio tiene que resolver a esta máquina y los puertos 80 y 443 deben llegar al proxy.
+Cada negocio nuevo recibe `<slug>-carta.wizzi.com.ar` (plantilla `PLATFORM_TENANT_HOST_TEMPLATE`). **Cambiar de esquema mañana**
+(un dominio propio del producto, o el dominio propio de un cliente con un CNAME) es cambiar esa variable o registrar otra dirección
+del negocio (`tenant_domains`, tipo `custom`); no hay que tocar código.
 
-> El comodín exige que los subdominios de los negocios (`<slug>.<dominio>`) existan como dominios del negocio en la plataforma
-> (`public.tenant_domains`); eso lo hace el alta de negocios.
+Esta computadora ya tiene **Cloudflare Tunnel** (`cloudflared`) delante de Coolify: en Cloudflare Zero Trust → Tunnels → _Public
+hostnames_ agregá cada nombre de arriba apuntando al proxy de Coolify (`http://localhost:80`). Para los negocios, agregá un nombre
+por negocio (o el comodín `*-carta.wizzi.com.ar` si Cloudflare lo permite en tu plan). Cloudflare pone el HTTPS; no hace falta abrir puertos en el router.
 
 ## 2. Variables
 
 En esta máquina, desde la raíz del repositorio:
 
 ```bash
-corepack pnpm deploy:env --domain midominio.com        # --app app --api api --supabase supabase (opcionales)
+corepack pnpm deploy:env --domain wizzi.com.ar --suffix carta     # sin --suffix: app.<dominio>, <negocio>.<dominio>
 ```
 
 Escribe `deploy-secrets/production.env` (solo para vos, ignorado por Git) con secretos nuevos y las direcciones

@@ -2,7 +2,7 @@
  * Builds the environment of a production deployment: fresh random secrets for Supabase and
  * for the applications, and the public addresses derived from your domain.
  *
- *   pnpm deploy:env --domain example.com [--app app] [--api api] [--supabase supabase]
+ *   pnpm deploy:env --domain example.com [--suffix carta] [--app app] [--api api] [--supabase supabase]
  *
  * Writes deploy-secrets/production.env (owner-only, ignored by Git) and prints NOTHING
  * secret. Paste its content into Coolify (Environment Variables -> Developer view). It
@@ -20,6 +20,11 @@ export type ProductionEnvOptions = {
   app: string;
   domain: string;
   supabase: string;
+  /**
+   * When set, every name is ONE level under the domain: app-<suffix>.<domain>, and a business
+   * is <slug>-<suffix>.<domain>. One wildcard certificate (*.<domain>) then covers them all.
+   */
+  suffix?: string;
 };
 
 const hostPattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/u;
@@ -47,9 +52,14 @@ export function createProductionEnvironment(
   if (!domainPattern.test(options.domain)) {
     throw new Error(`"${options.domain}" is not a valid domain`);
   }
-  const appUrl = `https://${options.app}.${options.domain}`;
-  const apiUrl = `https://${options.api}.${options.domain}`;
-  const supabaseUrl = `https://${options.supabase}.${options.domain}`;
+  if (options.suffix !== undefined && !hostPattern.test(options.suffix)) {
+    throw new Error(`"${options.suffix}" is not a valid host label`);
+  }
+  const named = (label: string) =>
+    options.suffix ? `${label}-${options.suffix}` : label;
+  const appUrl = `https://${named(options.app)}.${options.domain}`;
+  const apiUrl = `https://${named(options.api)}.${options.domain}`;
+  const supabaseUrl = `https://${named(options.supabase)}.${options.domain}`;
 
   let text = createSupabaseEnvironment(template, now);
   const set = (key: string, value: string) => {
@@ -78,6 +88,10 @@ export function createProductionEnvironment(
   set("NEXT_PUBLIC_API_URL", apiUrl);
   set("NEXT_PUBLIC_SUPABASE_URL", supabaseUrl);
   set("PLATFORM_BASE_DOMAIN", options.domain);
+  set(
+    "PLATFORM_TENANT_HOST_TEMPLATE",
+    options.suffix ? `{slug}-${options.suffix}.{domain}` : "{slug}.{domain}"
+  );
   set("STAFF_PIN_PEPPER", randomBytes(32).toString("base64"));
   set("PAYMENT_SECRET_KEY", randomBytes(32).toString("base64"));
   set("DINER_AUTH_STATE_SECRET", randomBytes(32).toString("base64"));
@@ -130,6 +144,7 @@ export function createProductionEnvironment(
     "PGRST_DB_MAX_ROWS",
     "PGRST_DB_SCHEMAS",
     "PLATFORM_BASE_DOMAIN",
+    "PLATFORM_TENANT_HOST_TEMPLATE",
     "POSTGRES_DB",
     "POSTGRES_HOST",
     "POSTGRES_PASSWORD",
@@ -176,7 +191,8 @@ function main(): void {
     api: option("api", "api") ?? "api",
     app: option("app", "app") ?? "app",
     domain,
-    supabase: option("supabase", "supabase") ?? "supabase"
+    supabase: option("supabase", "supabase") ?? "supabase",
+    ...(option("suffix", null) ? { suffix: option("suffix", null)! } : {})
   };
   const directory = path.resolve(process.cwd(), "deploy-secrets");
   const target = path.join(directory, "production.env");

@@ -1,3 +1,8 @@
+import {
+  defaultTenantHostTemplate,
+  validateTenantHostTemplate
+} from "./tenant-hostname.js";
+
 export type AppEnvironment = "development" | "test" | "production";
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -92,6 +97,8 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   mercadoPago?: MercadoPagoConfig;
   metricsPort: number;
   platformBaseDomain: string;
+  /** How a new business is named under the base domain: see tenant-hostname.ts. */
+  platformTenantHostTemplate: string;
   port: number;
   paymentSecretKey: Buffer | null;
   staffPinPepper: string;
@@ -498,6 +505,9 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       source,
       "PLATFORM_BASE_DOMAIN"
     );
+    const platformTenantHostTemplate = validateTenantHostTemplate(
+      source.PLATFORM_TENANT_HOST_TEMPLATE?.trim() || defaultTenantHostTemplate
+    );
     const supabaseSecretKey = required(source, "SUPABASE_SECRET_KEY");
     if (!supabaseSecretKey.startsWith("sb_secret_")) {
       throw new Error("SUPABASE_SECRET_KEY must be a server secret key");
@@ -533,6 +543,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       ),
       metricsPort,
       platformBaseDomain,
+      platformTenantHostTemplate,
       port,
       paymentSecretKey,
       staffPinPepper,

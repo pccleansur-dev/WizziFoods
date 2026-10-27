@@ -144,4 +144,28 @@ describe("TenantProvisioningService", () => {
       status: 401
     });
   });
+
+  it("names the business after the configured template", async () => {
+    const begin = vi.fn(async () => ({
+      ...pending,
+      status: "invited" as const
+    }));
+    const service = new TenantProvisioningService(
+      { resolveForIdentity: async () => ({ type: "platform_superadmin" }) },
+      { activateForIdentity: async () => false, begin, complete: vi.fn() },
+      { invite: vi.fn() },
+      "https://app.example.test/auth/callback",
+      "wizzi.com.ar",
+      "{slug}-carta.{domain}"
+    );
+    await service.create(identity, "request-2", {
+      ...request,
+      slug: "donjuan"
+    });
+    expect(begin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platformHostname: "donjuan-carta.wizzi.com.ar"
+      })
+    );
+  });
 });

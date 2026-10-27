@@ -255,6 +255,7 @@ describeWithLocalStack("messaging API with local Supabase", () => {
       metricsPort: 9464,
       paymentSecretKey: Buffer.alloc(32, 3),
       platformBaseDomain: "plataforma.test",
+      platformTenantHostTemplate: "{slug}.{domain}",
       port: 3001,
       staffPinPepper: pepper,
       supabaseSecretKey: supabaseSecretKey ?? "",
