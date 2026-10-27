@@ -10,9 +10,12 @@ platform_messaging_outbox:
     from private.messaging_outbox
   metrics:
     - queued: { usage: GAUGE, description: Messages waiting to be sent }
-    - oldest_queued_seconds: { usage: GAUGE, description: Age of the oldest message due }
-    - failed_last_hour: { usage: GAUGE, description: Messages that failed in the last hour }
-    - stuck_sending: { usage: GAUGE, description: Messages whose send lease expired }
+    - oldest_queued_seconds:
+        { usage: GAUGE, description: Age of the oldest message due }
+    - failed_last_hour:
+        { usage: GAUGE, description: Messages that failed in the last hour }
+    - stuck_sending:
+        { usage: GAUGE, description: Messages whose send lease expired }
 
 platform_payments:
   query: |
@@ -22,9 +25,15 @@ platform_payments:
       count(*) filter (where status = 'rejected' and updated_at > now() - interval '1 hour')::float as rejected_last_hour
     from private.online_payments
   metrics:
-    - stale_pending: { usage: GAUGE, description: Online payments pending for more than 15 minutes }
-    - approved_last_hour: { usage: GAUGE, description: Online payments approved in the last hour }
-    - rejected_last_hour: { usage: GAUGE, description: Online payments rejected in the last hour }
+    - stale_pending:
+        {
+          usage: GAUGE,
+          description: Online payments pending for more than 15 minutes
+        }
+    - approved_last_hour:
+        { usage: GAUGE, description: Online payments approved in the last hour }
+    - rejected_last_hour:
+        { usage: GAUGE, description: Online payments rejected in the last hour }
 
 platform_payment_webhooks:
   query: |
@@ -34,8 +43,16 @@ platform_payment_webhooks:
     from private.mp_webhook_events
     where received_at > now() - interval '1 day'
   metrics:
-    - unprocessed_over_5m: { usage: GAUGE, description: Payment notifications received and not processed after 5 minutes }
-    - max_attempts: { usage: GAUGE, description: Most attempts any recent payment notification needed }
+    - unprocessed_over_5m:
+        {
+          usage: GAUGE,
+          description: Payment notifications received and not processed after 5 minutes
+        }
+    - max_attempts:
+        {
+          usage: GAUGE,
+          description: Most attempts any recent payment notification needed
+        }
 
 platform_job_queues:
   query: |
@@ -49,7 +66,8 @@ platform_job_queues:
   metrics:
     - queue: { usage: LABEL, description: Queue name }
     - depth: { usage: GAUGE, description: Jobs waiting }
-    - oldest_seconds: { usage: GAUGE, description: Age of the oldest waiting job }
+    - oldest_seconds:
+        { usage: GAUGE, description: Age of the oldest waiting job }
 
 platform_database_size:
   query: |
@@ -68,5 +86,13 @@ platform_replication_and_wal:
       (select count(*) from pg_stat_archiver where failed_count > 0 and last_failed_time > coalesce(last_archived_time, 'epoch'))::float as archiver_failing,
       coalesce(extract(epoch from now() - (select last_archived_time from pg_stat_archiver)), 999999)::float as seconds_since_last_wal_archived
   metrics:
-    - archiver_failing: { usage: GAUGE, description: 1 when the last WAL archive attempt failed }
-    - seconds_since_last_wal_archived: { usage: GAUGE, description: Seconds since a WAL segment reached the archive }
+    - archiver_failing:
+        {
+          usage: GAUGE,
+          description: 1 when the last WAL archive attempt failed
+        }
+    - seconds_since_last_wal_archived:
+        {
+          usage: GAUGE,
+          description: Seconds since a WAL segment reached the archive
+        }

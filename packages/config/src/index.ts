@@ -14,3 +14,10 @@ export {
   type WhatsappConfig,
   type WorkerRuntimeConfig
 } from "./runtime-config.js";
+
+export {
+  apiSecurityHeaders,
+  contentSecurityPolicy,
+  webSecurityHeaders,
+  type CspSources
+} from "./security-headers.js";

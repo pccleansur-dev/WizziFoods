@@ -1,8 +1,7 @@
 # Observabilidad y correlación
 
 Esta etapa deja una base común para `web`, `api` y `worker`. Cada proceso emite
-logs JSON, operaciones trazables y métricas Prometheus. Los paneles de Grafana,
-Loki y Tempo se incorporarán con la infraestructura de producción; la aplicación
+logs JSON, operaciones trazables y métricas Prometheus. El stack de paneles y alertas está descrito en `observabilidad-produccion.md`; Loki y Tempo se incorporarán con la infraestructura de producción; la aplicación
 ya usa identificadores y formatos que permiten conectarlos sin cambiar la lógica
 de negocio.
 

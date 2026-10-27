@@ -92,6 +92,10 @@ import {
   DINER_QR_RESOLVER,
   DinerRealtimeController
 } from "./realtime/diner-realtime.controller.js";
+import {
+  DATABASE_PING,
+  ReadinessController
+} from "./readiness.controller.js";
 import { RealtimeController } from "./realtime/realtime.controller.js";
 import { RealtimeTokenService } from "./realtime/realtime-token.service.js";
 import { PushDinerController } from "./messaging/push-diner.controller.js";
@@ -191,6 +195,7 @@ export class AppModule {
         LoyaltyStaffController,
         MessagingStaffController,
         BrandController,
+        ReadinessController,
         RealtimeController,
         DinerRealtimeController,
         WhatsappWebhookController,
@@ -410,6 +415,11 @@ export class AppModule {
           provide: TableAccountsService,
           useFactory: (database: TenantDatabase) =>
             new TableAccountsService(database.tableAccountsRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: DATABASE_PING,
+          useFactory: (database: TenantDatabase) => database
         },
         {
           inject: [TENANT_DATABASE],

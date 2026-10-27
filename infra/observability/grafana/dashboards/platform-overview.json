@@ -1,9 +1,7 @@
 {
   "uid": "platform-overview",
   "title": "Plataforma — visión general",
-  "tags": [
-    "platform"
-  ],
+  "tags": ["platform"],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,

@@ -152,7 +152,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 
 ### Fase 8 — Mesa y cobros avanzados
 
-- [ ] T25. Cobrar importes parciales y dividir saldo con concurrencia segura.
+- [x] T25. Cobrar importes parciales y dividir saldo con concurrencia segura.
 - [x] T26. Cerrar cuenta, limpiar, habilitar y emitir comprobante no fiscal.
 - [x] T27. Unir/separar mesas sin mover deuda ni perder historia.
 
@@ -165,7 +165,7 @@ La lista operativa y sus criterios verificables están en `tasks/todo.md`.
 ### Fase 10 — Preparación para lanzamiento
 
 - [x] T31. Completar PWA, reconexión y consistencia Realtime.
-- [ ] T32. Completar accesibilidad, responsive e idiomas aprobables.
+- [x] T32. Completar accesibilidad, responsive e idiomas aprobables.
 - [ ] T33. Verificar seguridad, copias, observabilidad y piloto de lanzamiento.
 
 ## Estrategia de verificación

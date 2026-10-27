@@ -158,6 +158,8 @@ export type TenantDatabase = {
   catalogImportRepository: CatalogImportRepository;
   catalogRepository: CatalogRepository;
   close(): Promise<void>;
+  /** A cheap round trip to the database, for the readiness check. */
+  ping(): Promise<void>;
   floorPlanRepository: FloorPlanRepository;
   identityAccessRepository: IdentityAccessRepository;
   orderIntentRepository: OrderIntentRepository;
@@ -250,6 +252,9 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     catalogImportRepository: createCatalogImportRepository(client),
     catalogRepository: createCatalogRepository(client),
     close: async () => client.end(),
+    ping: async () => {
+      await client`select 1`;
+    },
     floorPlanRepository: createFloorPlanRepository(client),
     orderIntentRepository: createOrderIntentRepository(client),
     orderAdjustmentsRepository: createOrderAdjustmentsRepository(client),

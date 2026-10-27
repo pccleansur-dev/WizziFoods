@@ -78,7 +78,12 @@ tests:
       - eval_time: 28m
         alertname: WorkerHeartbeatMissing
         exp_alerts:
-          - exp_labels: { severity: critical, service: worker, operation: worker.heartbeat }
+          - exp_labels:
+              {
+                severity: critical,
+                service: worker,
+                operation: worker.heartbeat
+              }
             exp_annotations:
               summary: The worker is up but has not beaten its heart for 10 minutes
               runbook: docs/runbooks/incidentes.md#jobs-detenidos
@@ -92,7 +97,13 @@ tests:
       - eval_time: 90m
         alertname: CertificateExpiresSoon
         exp_alerts:
-          - exp_labels: { severity: warning, service: external, job: probe-http, instance: "https://app.example.com/acceso" }
+          - exp_labels:
+              {
+                severity: warning,
+                service: external,
+                job: probe-http,
+                instance: "https://app.example.com/acceso"
+              }
             exp_annotations:
               summary: "The certificate of https://app.example.com/acceso expires in less than 21 days"
               runbook: docs/runbooks/incidentes.md#certificados

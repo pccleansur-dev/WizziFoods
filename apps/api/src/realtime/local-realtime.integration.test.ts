@@ -73,6 +73,7 @@ describeWithStack("private Realtime channels against local Supabase", () => {
     for (const fixture of [one, two]) {
       await admin.begin(async (tx) => {
         await tx`set local session_replication_role = replica`;
+        await tx`delete from private.floor_table_service_states where tenant_id = ${fixture.tenantId}`;
         await tx`delete from private.floor_tables where tenant_id = ${fixture.tenantId}`;
         await tx`delete from private.floor_plans where tenant_id = ${fixture.tenantId}`;
       });
