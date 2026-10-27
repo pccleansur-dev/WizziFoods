@@ -4,6 +4,8 @@ import {
   type DinerPushConfig
 } from "@platform/contracts";
 
+import { registerServiceWorker } from "../../lib/pwa";
+
 const jsonHeaders = { "content-type": "application/json" };
 
 export type PushSupport =
@@ -97,9 +99,7 @@ export type EnableOutcome = "denied" | "failed" | "ok";
 /** Asks permission, subscribes this browser and tells the server. Always the diner's act. */
 export async function enablePush(publicKey: string): Promise<EnableOutcome> {
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js", {
-      scope: "/"
-    });
+    const registration = await registerServiceWorker();
     await navigator.serviceWorker.ready;
     const permission = await Notification.requestPermission();
     if (permission !== "granted") return "denied";
