@@ -108,6 +108,7 @@ export function createProductionEnvironment(
   const keep = new Set([
     "ADDITIONAL_REDIRECT_URLS",
     "ANON_KEY",
+    "ANON_KEY_ASYMMETRIC",
     "API_EXTERNAL_URL",
     "AUTH_AUDIT_LOG_DISABLE_POSTGRES",
     "DINER_AUTH_MODE",
@@ -155,6 +156,7 @@ export function createProductionEnvironment(
     "S3_PROTOCOL_ACCESS_KEY_SECRET",
     "SECRET_KEY_BASE",
     "SERVICE_ROLE_KEY",
+    "SERVICE_ROLE_KEY_ASYMMETRIC",
     "SITE_URL",
     "SMTP_ADMIN_EMAIL",
     "SMTP_HOST",

@@ -84,6 +84,9 @@ describe("production environment", () => {
       expect(other[key]).not.toBe(env[key]);
     }
     expect(env.SUPABASE_SECRET_KEY).toMatch(/^sb_secret_/u);
+    // The gateway needs these to turn the opaque keys into signed tokens.
+    expect(env.ANON_KEY_ASYMMETRIC).toMatch(/^eyJ/u);
+    expect(env.SERVICE_ROLE_KEY_ASYMMETRIC).toMatch(/^eyJ/u);
     expect(env.SUPABASE_PUBLISHABLE_KEY).toMatch(/^sb_publishable_/u);
   });
 

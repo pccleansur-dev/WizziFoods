@@ -45,7 +45,17 @@ if [ -n "$existing" ]; then
   echo "the account already exists; its password is NOT changed"
   NEW=0
 else
-  response=$(curl -sS -m 30 -X POST "$SUPABASE_URL/auth/v1/admin/users" \
+  # LOCAL_PROXY=1 talks to the proxy on this machine with the public name as the Host header:
+  # useful before the DNS / tunnel for that name exists.
+  if [ "${LOCAL_PROXY:-0}" = "1" ]; then
+    public_host=${SUPABASE_URL#https://}
+    endpoint="http://127.0.0.1/auth/v1/admin/users"
+    host_header=(-H "Host: ${public_host%%/*}")
+  else
+    endpoint="$SUPABASE_URL/auth/v1/admin/users"
+    host_header=()
+  fi
+  response=$(curl -sS -m 30 -X POST "$endpoint" "${host_header[@]}" \
     -H "apikey: $SECRET_KEY" -H "Authorization: Bearer $SECRET_KEY" \
     -H "Content-Type: application/json" -d "$BODY")
   USER_ID=$(printf '%s' "$response" | sed -n 's/.*"id":"\([0-9a-f-]\{36\}\)".*/\1/p' | head -1)
