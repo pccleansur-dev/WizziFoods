@@ -107,6 +107,9 @@ services:
       context: ../..
       target: gateway
     image: wizzifoods-gateway:local
+    # Coolify routes the domain to the port a service exposes; without this it assumes 80.
+    expose:
+      - "8000"
     restart: unless-stopped
     networks:
       default:
