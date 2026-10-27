@@ -164,4 +164,19 @@ describe("production environment", () => {
       createProductionEnvironment(template, { ...options, app: "a b" })
     ).toThrow(/host label/u);
   });
+
+  it("mounts nothing from the repository: Coolify turns such mounts into empty folders", () => {
+    const compose = readFileSync(
+      path.join(root, "infra/deploy/docker-compose.yml"),
+      "utf8"
+    );
+    const code = compose
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("#"))
+      .join("\n");
+    expect(code).not.toMatch(/^\s*-\s*\.{1,2}\//mu);
+    expect(code).not.toMatch(/^\s*-\s*\/[^:]+:/mu);
+    expect(code).not.toContain("!reset");
+    expect(code).not.toContain("!override");
+  });
 });

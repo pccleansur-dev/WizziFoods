@@ -87,3 +87,29 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
   CMD node -e "fetch('http://127.0.0.1:3000/acceso').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/web/server.js"]
+
+# ---- database, gateway and migrations: the repository files are BAKED IN ---------------
+# Coolify rewrites the host side of relative bind mounts, so a compose that mounts files from
+# the repository would get empty folders instead of the initialisation scripts. These three
+# images carry their files instead; nothing depends on where the repository was checked out.
+FROM supabase/postgres:17.6.1.136 AS db
+COPY infra/supabase/volumes/db/_supabase.sql /docker-entrypoint-initdb.d/migrations/97-_supabase.sql
+COPY infra/supabase/volumes/db/realtime.sql /docker-entrypoint-initdb.d/migrations/99-realtime.sql
+COPY infra/supabase/volumes/db/logs.sql /docker-entrypoint-initdb.d/migrations/99-logs.sql
+COPY infra/supabase/volumes/db/pooler.sql /docker-entrypoint-initdb.d/migrations/99-pooler.sql
+COPY infra/supabase/volumes/db/webhooks.sql /docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql
+COPY infra/supabase/volumes/db/roles.sql /docker-entrypoint-initdb.d/init-scripts/99-roles.sql
+COPY infra/supabase/volumes/db/jwt.sql /docker-entrypoint-initdb.d/init-scripts/99-jwt.sql
+
+FROM envoyproxy/envoy:v1.39.1 AS gateway
+COPY infra/supabase/volumes/api/envoy/envoy.yaml /etc/envoy/envoy.yaml
+COPY infra/supabase/volumes/api/envoy/cds.yaml /etc/envoy/cds.yaml
+COPY infra/supabase/volumes/api/envoy/lds.template.yaml /etc/envoy/lds.template.yaml
+COPY infra/supabase/volumes/api/envoy/docker-entrypoint.sh /docker-entrypoint.sh
+ENTRYPOINT ["/bin/sh", "/docker-entrypoint.sh"]
+
+FROM postgres:17-alpine AS migrate
+COPY supabase/migrations /migrations
+COPY infra/deploy/migrate.sh /migrate.sh
+ENV MIGRATIONS_DIR=/migrations
+CMD ["sh", "/migrate.sh"]
