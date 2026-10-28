@@ -79,7 +79,7 @@ export function createProductionEnvironment(
   set("SMTP_USER", "");
   set("SMTP_PASS", "");
   set("SMTP_ADMIN_EMAIL", `no-reply@${options.domain}`);
-  set("SMTP_SENDER_NAME", "La plataforma");
+  set("SMTP_SENDER_NAME", "Wizzi Foods");
   // The gateway refuses to start without a user/password for its (undeployed) Studio route.
   set("DASHBOARD_USERNAME", "admin");
 

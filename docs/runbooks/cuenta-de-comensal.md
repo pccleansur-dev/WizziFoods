@@ -8,7 +8,7 @@ consulta de identidad: la barra de cuenta se carga después, desde el navegador.
 
 | Quién            | Sabe                                                                                                                   | No sabe                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| La plataforma    | La cuenta global (`private.diner_accounts`): hash con pepper del `sub` de Google y el correo                           | —                                                                 |
+| Wizzi Foods      | La cuenta global (`private.diner_accounts`): hash con pepper del `sub` de Google y el correo                           | —                                                                 |
 | Cada restaurante | Sólo el **perfil** que ese comensal creó con él (`private.diner_profiles`): nombre, teléfono opcional, consentimientos | El correo, el `account_id`, ni los perfiles de otros restaurantes |
 
 La única tabla que une cuenta y perfil es `private.diner_profile_links`; ninguna función que

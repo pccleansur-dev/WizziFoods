@@ -4,20 +4,20 @@ import { LegalPage } from "../legal-page";
 
 export const metadata: Metadata = {
   description:
-    "Condiciones aplicables al acceso y uso de la plataforma gastronómica WizziFoods.",
-  title: "Condiciones del Servicio | WizziFoods"
+    "Condiciones aplicables al acceso y uso de la plataforma gastronómica Wizzi Foods.",
+  title: "Condiciones del Servicio | Wizzi Foods"
 };
 
 export default function TermsPage() {
   return (
     <LegalPage
-      description="Estas condiciones regulan el acceso y uso de WizziFoods por negocios gastronómicos, su personal y los comensales."
+      description="Estas condiciones regulan el acceso y uso de Wizzi Foods por negocios gastronómicos, su personal y los comensales."
       title="Condiciones del Servicio"
     >
       <section aria-labelledby="terms-acceptance">
         <h2 id="terms-acceptance">1. Aceptación</h2>
         <p>
-          Al acceder o utilizar WizziFoods aceptás estos términos y nuestra
+          Al acceder o utilizar Wizzi Foods aceptás estos términos y nuestra
           Política de Privacidad. Si actuás en nombre de un negocio, declarás
           tener autorización suficiente para vincularlo a estas condiciones.
         </p>
@@ -26,7 +26,7 @@ export default function TermsPage() {
       <section aria-labelledby="terms-service">
         <h2 id="terms-service">2. El servicio</h2>
         <p>
-          WizziFoods ofrece herramientas para administrar cartas digitales,
+          Wizzi Foods ofrece herramientas para administrar cartas digitales,
           salón, cocina, caja, pagos, fidelización y comunicaciones. Algunas
           funciones dependen de integraciones o planes específicos y pueden no
           estar disponibles en todos los casos.
@@ -49,7 +49,7 @@ export default function TermsPage() {
         <p>
           El negocio es responsable de la exactitud de su carta, precios,
           disponibilidad, información comercial, obligaciones fiscales,
-          bromatológicas, laborales y de atención al consumidor. WizziFoods no
+          bromatológicas, laborales y de atención al consumidor. Wizzi Foods no
           reemplaza sus sistemas contables ni el asesoramiento profesional que
           corresponda.
         </p>
@@ -69,9 +69,9 @@ export default function TermsPage() {
         <h2 id="terms-integrations">6. Integraciones de terceros</h2>
         <p>
           Google, proveedores de pagos, WhatsApp, notificaciones y otros
-          servicios externos tienen sus propios términos y políticas. WizziFoods
-          facilita la integración, pero no controla la disponibilidad ni las
-          decisiones de esos proveedores.
+          servicios externos tienen sus propios términos y políticas. Wizzi
+          Foods facilita la integración, pero no controla la disponibilidad ni
+          las decisiones de esos proveedores.
         </p>
       </section>
 
@@ -110,7 +110,7 @@ export default function TermsPage() {
       <section aria-labelledby="terms-liability">
         <h2 id="terms-liability">10. Responsabilidad</h2>
         <p>
-          En la máxima medida permitida por la ley, WizziFoods no responde por
+          En la máxima medida permitida por la ley, Wizzi Foods no responde por
           decisiones comerciales del negocio, contenido cargado por usuarios,
           interrupciones de terceros ni daños indirectos. Nada en estos términos
           limita derechos irrenunciables reconocidos por la legislación

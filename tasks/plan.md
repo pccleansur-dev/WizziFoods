@@ -1,4 +1,4 @@
-# Plan de implementación: la plataforma
+# Plan de implementación: Wizzi Foods
 
 Estado: propuesto para revisión humana antes de iniciar código.
 

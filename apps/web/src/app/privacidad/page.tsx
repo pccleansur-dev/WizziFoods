@@ -4,20 +4,20 @@ import { LegalPage } from "../legal-page";
 
 export const metadata: Metadata = {
   description:
-    "Cómo WizziFoods recopila, utiliza, conserva y protege la información de sus usuarios.",
-  title: "Política de Privacidad | WizziFoods"
+    "Cómo Wizzi Foods recopila, utiliza, conserva y protege la información de sus usuarios.",
+  title: "Política de Privacidad | Wizzi Foods"
 };
 
 export default function PrivacyPage() {
   return (
     <LegalPage
-      description="Esta política explica qué información trata WizziFoods, para qué la usa y qué opciones tienen las personas que utilizan la plataforma."
+      description="Esta política explica qué información trata Wizzi Foods, para qué la usa y qué opciones tienen las personas que utilizan la plataforma."
       title="Política de Privacidad"
     >
       <section aria-labelledby="privacy-scope">
         <h2 id="privacy-scope">1. Alcance y responsable</h2>
         <p>
-          WizziFoods es una plataforma tecnológica para negocios gastronómicos.
+          Wizzi Foods es una plataforma tecnológica para negocios gastronómicos.
           Esta política se aplica a sus sitios, paneles de administración,
           accesos del personal, cartas digitales y funciones para comensales.
         </p>
@@ -69,8 +69,8 @@ export default function PrivacyPage() {
         <p>
           Si elegís continuar con Google, recibimos de Google la información
           básica autorizada para identificar tu cuenta, como correo electrónico,
-          nombre e identificador de usuario. WizziFoods no recibe ni almacena tu
-          contraseña de Google. Podés revisar o revocar este acceso desde la
+          nombre e identificador de usuario. Wizzi Foods no recibe ni almacena
+          tu contraseña de Google. Podés revisar o revocar este acceso desde la
           configuración de tu cuenta de Google.
         </p>
       </section>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
         </p>
         <p>
           No vendemos datos personales ni los compartimos con fines de
-          publicidad ajenos a WizziFoods.
+          publicidad ajenos a Wizzi Foods.
         </p>
       </section>
 

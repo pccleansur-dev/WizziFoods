@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <main>
       <section aria-labelledby="page-title">
-        <p className="eyebrow">La plataforma</p>
+        <p className="eyebrow">Wizzi Foods</p>
         <h1 id="page-title">Base técnica lista</h1>
         <p>
           El frontend ya comparte contratos con la API y el worker. El próximo
