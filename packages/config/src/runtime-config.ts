@@ -102,6 +102,8 @@ export type ApiRuntimeConfig = BaseRuntimeConfig & {
   port: number;
   paymentSecretKey: Buffer | null;
   staffPinPepper: string;
+  /** Present in parsed runtime config; optional for manually constructed test fixtures. */
+  supabaseJwtIssuer?: string;
   supabaseSecretKey: string;
   supabaseUrl: string;
   /** Absent (or off) means no message is ever sent. */
@@ -474,6 +476,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       "API_PORT",
       "API_METRICS_PORT",
       "DATABASE_URL",
+      "SUPABASE_PUBLIC_URL",
       "SUPABASE_URL",
       "SUPABASE_SECRET_KEY",
       "ADMIN_INVITE_REDIRECT_URL",
@@ -492,6 +495,12 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
     const supabaseUrl = readUrl(
       source,
       "SUPABASE_URL",
+      ["http:", "https:"],
+      "an absolute HTTP(S) URL"
+    );
+    const supabasePublicUrl = readUrl(
+      source,
+      "SUPABASE_PUBLIC_URL",
       ["http:", "https:"],
       "an absolute HTTP(S) URL"
     );
@@ -547,6 +556,7 @@ export function readApiConfig(source: EnvironmentSource): ApiRuntimeConfig {
       port,
       paymentSecretKey,
       staffPinPepper,
+      supabaseJwtIssuer: `${supabasePublicUrl}/auth/v1`,
       supabaseSecretKey,
       supabaseUrl,
       realtimeJwtSecret: readRealtimeJwtSecret(source),
