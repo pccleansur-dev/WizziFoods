@@ -297,6 +297,27 @@ dd {
   font-size: 0.8125rem;
 }
 
+.access-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ded9d0;
+}
+
+.access-legal a {
+  color: #345b4b;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.access-legal a:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 3px;
+}
+
 @media (min-width: 56rem) {
   .access-shell {
     grid-template-columns: minmax(24rem, 1fr) minmax(30rem, 1fr);
@@ -4470,4 +4491,101 @@ main:has(.diner-experience) .diner-entry {
   gap: 0.5rem;
   align-items: center;
   margin-bottom: 0.75rem;
+}
+
+.legal-shell {
+  display: block;
+  min-height: 100vh;
+  padding: 0;
+  background: #f5f3ee;
+}
+
+.legal-header {
+  padding: clamp(2rem, 7vw, 5rem) max(1.25rem, calc((100vw - 52rem) / 2));
+  background: #253b32;
+  color: #fffdf8;
+}
+
+.legal-header .eyebrow {
+  margin-top: clamp(3rem, 8vw, 6rem);
+  color: #d8c6a8;
+}
+
+.legal-header h1 {
+  max-width: 13ch;
+  font-size: clamp(2.5rem, 9vw, 5rem);
+}
+
+.legal-lead {
+  margin: 1.5rem 0 0;
+  color: #e7e1d7;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+}
+
+.legal-updated {
+  margin: 2rem 0 0;
+  color: #c8d3cd;
+  font-size: 0.875rem;
+}
+
+.legal-document {
+  width: min(calc(100% - 2.5rem), 52rem);
+  margin: 0 auto;
+  padding: clamp(2.5rem, 7vw, 5rem) 0;
+}
+
+.legal-document section {
+  width: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.legal-document section + section {
+  margin-top: 2.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid #d8d2c7;
+}
+
+.legal-document h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  letter-spacing: -0.02em;
+}
+
+.legal-document p,
+.legal-document li {
+  color: #4f4941;
+}
+
+.legal-document ul {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.legal-document a,
+.legal-navigation a {
+  color: #345b4b;
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.legal-document a:focus-visible,
+.legal-navigation a:focus-visible,
+.legal-header a:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 3px;
+}
+
+.legal-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  justify-content: center;
+  padding: 1.5rem max(1.25rem, calc((100vw - 52rem) / 2));
+  border-top: 1px solid #d8d2c7;
+  background: #fffdf8;
 }

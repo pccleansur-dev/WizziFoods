@@ -37,6 +37,10 @@ export default function AccessPage() {
           ¿Todavía no recibiste tu acceso? Contactá al responsable que dio de
           alta el negocio.
         </p>
+        <nav className="access-legal" aria-label="Información legal">
+          <Link href="/Politicas-de-Privacidad">Política de privacidad</Link>
+          <Link href="/Condiciones-de-Servicio">Condiciones del servicio</Link>
+        </nav>
       </section>
     </main>
   );
