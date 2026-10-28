@@ -25,7 +25,7 @@ export async function OnboardingShell({
   return (
     <main className="panel-shell">
       <header className="panel-header">
-        <span className="platform-wordmark">La plataforma</span>
+        <span className="platform-wordmark">Wizzi Foods</span>
         <Link className="button button--secondary" href="/panel">
           Volver al inicio
         </Link>

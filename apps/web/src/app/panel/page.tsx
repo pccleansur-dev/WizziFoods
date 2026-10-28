@@ -27,7 +27,7 @@ export default async function PanelPage() {
   return (
     <main className="panel-shell">
       <header className="panel-header">
-        <span className="platform-wordmark">La plataforma</span>
+        <span className="platform-wordmark">Wizzi Foods</span>
         <form action={signOutAction}>
           <button className="button button--secondary" type="submit">
             Cerrar sesión

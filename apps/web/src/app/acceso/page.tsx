@@ -7,7 +7,7 @@ export default function AccessPage() {
     <main className="access-shell">
       <section className="access-context" aria-labelledby="access-title">
         <Link className="platform-wordmark" href="/">
-          La plataforma
+          Wizzi Foods
         </Link>
         <div>
           <p className="eyebrow">Administración del negocio</p>

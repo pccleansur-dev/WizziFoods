@@ -19,7 +19,7 @@ export default async function ConfigureSecondFactorPage() {
         <p>
           Usá una aplicación autenticadora como Google Authenticator, Microsoft
           Authenticator o 1Password. Este paso es obligatorio para administrar
-          la plataforma.
+          Wizzi Foods.
         </p>
         <ol className="mfa-steps">
           <li>Generá el código QR.</li>

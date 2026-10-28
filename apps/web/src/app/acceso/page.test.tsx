@@ -7,6 +7,7 @@ describe("AccessPage", () => {
   it("offers administrative access without public registration", () => {
     const markup = renderToStaticMarkup(<AccessPage />);
 
+    expect(markup).toContain("Wizzi Foods");
     expect(markup).toContain("Ingresá a tu negocio");
     expect(markup).toContain("Continuar con Google");
     expect(markup).toContain("Correo electrónico");

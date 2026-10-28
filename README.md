@@ -1,4 +1,4 @@
-# La plataforma
+# Wizzi Foods
 
 Base técnica para una plataforma gastronómica multitenant. El producto se encuentra en construcción; las decisiones funcionales viven en `PLAN-PRODUCTO.md` y el orden de implementación en `tasks/`.
 

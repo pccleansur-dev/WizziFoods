@@ -1,6 +1,6 @@
 # Plan de producto: carta y mozo digital para restaurantes
 
-Estado: planificación activa, actualizado el 20 de octubre de 2026. Este documento reúne decisiones de producto y arquitectura; no describe software ya implementado. Google Stitch es solamente la herramienta usada para prototipar pantallas. La plataforma todavía no tiene nombre comercial y, hasta definirlo, se la denominará `la plataforma`.
+Estado: planificación activa, actualizado el 20 de octubre de 2026. Este documento reúne decisiones de producto y arquitectura; no describe software ya implementado. Google Stitch es solamente la herramienta usada para prototipar pantallas. El nombre comercial definido para el producto es `Wizzi Foods`.
 
 ## Objetivo comercial
 

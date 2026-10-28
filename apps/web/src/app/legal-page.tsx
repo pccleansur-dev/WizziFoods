@@ -12,7 +12,7 @@ export function LegalPage({ children, description, title }: LegalPageProps) {
     <main className="legal-shell">
       <header className="legal-header">
         <Link className="platform-wordmark" href="/">
-          WizziFoods
+          Wizzi Foods
         </Link>
         <p className="eyebrow">Información legal</p>
         <h1>{title}</h1>

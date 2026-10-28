@@ -40,6 +40,7 @@ describe("production environment", () => {
     expect(env.API_EXTERNAL_URL).toBe("https://supabase.midominio.com/auth/v1");
     expect(env.SITE_URL).toBe("https://app.midominio.com");
     expect(env.PLATFORM_BASE_DOMAIN).toBe("midominio.com");
+    expect(env.SMTP_SENDER_NAME).toBe("Wizzi Foods");
   });
 
   it("with a suffix, names everything one level under the domain", () => {
