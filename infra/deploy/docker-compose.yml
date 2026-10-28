@@ -177,6 +177,7 @@ services:
       # development), straight to Postgres inside the project network.
       DATABASE_URL: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-postgres}
       SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL:?set SUPABASE_PUBLIC_URL}
       SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
       SUPABASE_JWT_SECRET: ${JWT_SECRET}
       STAFF_PIN_PEPPER: ${STAFF_PIN_PEPPER:?set STAFF_PIN_PEPPER}

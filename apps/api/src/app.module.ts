@@ -142,6 +142,18 @@ class TenantDatabaseLifecycle implements OnApplicationShutdown {
   }
 }
 
+function resolveSupabaseJwtIssuer(config: ApiRuntimeConfig): string {
+  if (config.supabaseJwtIssuer) {
+    return config.supabaseJwtIssuer;
+  }
+
+  if (config.environment === "test") {
+    return `${config.supabaseUrl}/auth/v1`;
+  }
+
+  throw new Error("SUPABASE_PUBLIC_URL is required outside tests");
+}
+
 @Module({})
 export class AppModule {
   static register(config: ApiRuntimeConfig): DynamicModule {
@@ -321,7 +333,7 @@ export class AppModule {
           provide: AdminAuthService,
           useFactory: () =>
             new AdminAuthService(
-              new SupabaseJwtVerifier(`${config.supabaseUrl}/auth/v1`)
+              new SupabaseJwtVerifier(resolveSupabaseJwtIssuer(config))
             )
         },
         {

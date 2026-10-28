@@ -17,13 +17,14 @@ const apiInvitationEnvironment = {
   ADMIN_INVITE_REDIRECT_URL:
     "https://app.example.test/auth/callback?next=/acceso/continuar",
   PLATFORM_BASE_DOMAIN: "plataforma.example.test",
+  SUPABASE_PUBLIC_URL: "https://supabase.example.test",
   SUPABASE_SECRET_KEY: "sb_secret_server-only-example"
 };
 
 describe("runtime configuration", () => {
   it("fails with all missing API variables named", () => {
     expect(() => readApiConfig({})).toThrow(
-      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_URL is required; SUPABASE_SECRET_KEY is required; ADMIN_INVITE_REDIRECT_URL is required; PLATFORM_BASE_DOMAIN is required; STAFF_PIN_PEPPER is required"
+      "Configuración inválida para api: APP_ENV is required; LOG_LEVEL is required; API_PORT is required; API_METRICS_PORT is required; DATABASE_URL is required; SUPABASE_PUBLIC_URL is required; SUPABASE_URL is required; SUPABASE_SECRET_KEY is required; ADMIN_INVITE_REDIRECT_URL is required; PLATFORM_BASE_DOMAIN is required; STAFF_PIN_PEPPER is required"
     );
   });
 
@@ -54,11 +55,30 @@ describe("runtime configuration", () => {
       port: 3001,
       realtimeJwtSecret: null,
       staffPinPepper: "test-pepper-with-at-least-32-characters",
+      supabaseJwtIssuer: "https://supabase.example.test/auth/v1",
       supabaseSecretKey: "sb_secret_server-only-example",
       supabaseUrl: "http://supabase.local:8000",
       webPush: { mode: "off" },
       whatsapp: { mode: "off" }
     });
+  });
+
+  it("keeps the internal Supabase URL separate from the public JWT issuer", () => {
+    const config = readApiConfig({
+      ...baseEnvironment,
+      ...apiInvitationEnvironment,
+      API_METRICS_PORT: "9464",
+      API_PORT: "3001",
+      DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
+      STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+      SUPABASE_PUBLIC_URL: "https://supabase.example.test",
+      SUPABASE_URL: "http://api-gw:8000"
+    });
+
+    expect(config.supabaseUrl).toBe("http://api-gw:8000");
+    expect(config.supabaseJwtIssuer).toBe(
+      "https://supabase.example.test/auth/v1"
+    );
   });
 
   it("reads an optional payment secret key and rejects malformed ones", () => {
@@ -321,6 +341,7 @@ describe("runtime configuration", () => {
       DATABASE_URL: "postgresql://authenticator:secret@db:5432/postgres",
       PLATFORM_BASE_DOMAIN: "plataforma.example.test",
       STAFF_PIN_PEPPER: "test-pepper-with-at-least-32-characters",
+      SUPABASE_PUBLIC_URL: "https://supabase.example.test",
       SUPABASE_SECRET_KEY: "sb_secret_server-only-example",
       SUPABASE_URL: "http://supabase.local:8000"
     };
