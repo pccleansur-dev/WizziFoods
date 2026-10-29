@@ -623,3 +623,16 @@ export function explainCatalogDraft(input: unknown): CatalogDraftIssue[] {
   }
   return issues;
 }
+
+/** The id of a product photo as the public image address accepts it, or null. */
+export function parseCatalogImageAssetId(value: unknown): string | null {
+  return uuid(value) ? value.toLowerCase() : null;
+}
+
+/**
+ * The same-origin address of a published product photo. It names only the photo: the
+ * restaurant is always the one of the host that asks.
+ */
+export function catalogImagePath(assetId: string): string {
+  return `/api/catalog/image/${assetId}`;
+}

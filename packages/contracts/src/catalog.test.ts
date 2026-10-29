@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  catalogImagePath,
   catalogPublicationIssues,
+  parseCatalogImageAssetId,
   explainCatalogDraft,
   parseCatalogDraft,
   type CatalogDraft
@@ -316,5 +318,18 @@ describe("explainCatalogDraft", () => {
       expect(parseCatalogDraft(draft)).toBeNull();
       expect(explainCatalogDraft(draft).length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("catalog image address", () => {
+  it("accepts only a UUID and names only the photo, never a restaurant", () => {
+    const id = "C3000000-0000-4000-8000-000000000003";
+    expect(parseCatalogImageAssetId(id)).toBe(id.toLowerCase());
+    for (const bad of ["", "../x", "not-a-uuid", id + "/..", null, 7]) {
+      expect(parseCatalogImageAssetId(bad)).toBeNull();
+    }
+    expect(catalogImagePath(id.toLowerCase())).toBe(
+      "/api/catalog/image/c3000000-0000-4000-8000-000000000003"
+    );
   });
 });

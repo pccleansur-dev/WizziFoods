@@ -12,6 +12,9 @@ import { AppController } from "./app.controller.js";
 import { AdminAuthGuard } from "./auth/admin-auth.guard.js";
 import { AdminAuthService } from "./auth/admin-auth.service.js";
 import { SupabaseJwtVerifier } from "./auth/supabase-jwt.verifier.js";
+import { CatalogImageController } from "./catalog/catalog-image.controller.js";
+import { createCatalogImageStorage } from "./catalog/catalog-image-storage.js";
+import { CatalogImageService } from "./catalog/catalog-image.service.js";
 import { BrandController } from "./brand/brand.controller.js";
 import { createBrandLogoStorage } from "./brand/brand-logo-storage.js";
 import { BrandService } from "./brand/brand.service.js";
@@ -192,6 +195,7 @@ export class AppModule {
         LoyaltyStaffController,
         MessagingStaffController,
         BrandController,
+        CatalogImageController,
         ReadinessController,
         RealtimeController,
         DinerRealtimeController,
@@ -427,6 +431,18 @@ export class AppModule {
         {
           provide: RealtimeTokenService,
           useValue: new RealtimeTokenService(config.realtimeJwtSecret ?? null)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: CatalogImageService,
+          useFactory: (database: TenantDatabase) =>
+            new CatalogImageService(
+              database.catalogRepository,
+              createCatalogImageStorage(
+                config.supabaseUrl,
+                config.supabaseSecretKey
+              )
+            )
         },
         {
           inject: [TENANT_DATABASE],

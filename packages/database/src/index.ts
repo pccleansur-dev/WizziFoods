@@ -26,6 +26,7 @@ export {
   type CatalogPublicationRecord,
   type CatalogRepository,
   createCatalogRepository,
+  type PublicProductImage,
   type PublishedCatalogRecord,
   type PublishCatalogInput,
   type SaveCatalogDraftInput,

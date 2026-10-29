@@ -14,6 +14,13 @@ export type CatalogDraftRecord = {
   updatedAt: string;
 };
 
+/** Where the photo of a published product is stored; never sent to the public. */
+export type PublicProductImage = {
+  contentType: string;
+  objectPath: string;
+  version: string;
+};
+
 export type CatalogAvailability = {
   isAvailable: boolean;
   version: number;
@@ -55,6 +62,11 @@ export type SetCatalogAvailabilityInput = {
 
 export interface CatalogRepository {
   getCurrent(scope: TenantScope): Promise<PublishedCatalogRecord | null>;
+  /** The photo of a product of the CURRENT published catalog, or null for anything else. */
+  getPublicProductImage(
+    scope: TenantScope,
+    assetId: string
+  ): Promise<PublicProductImage | null>;
   getDraft(
     scope: TenantScope,
     requesterId: string
@@ -193,6 +205,28 @@ export function createCatalogRepository(client: Sql): CatalogRepository {
         publishedAt: toIsoTimestamp(row.published_at),
         revision: row.revision
       };
+    },
+
+    async getPublicProductImage(untrustedScope, assetId) {
+      const scope = assertScope(untrustedScope);
+      assertUuid(assetId, "assetId");
+      const [row] = await client<
+        { content_type: string; object_path: string; version: string }[]
+      >`
+        select *
+        from private.get_public_catalog_image(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${assetId}::uuid
+        )
+      `;
+      return row
+        ? {
+            contentType: row.content_type,
+            objectPath: row.object_path,
+            version: row.version
+          }
+        : null;
     },
 
     async getDraft(untrustedScope, requesterId) {

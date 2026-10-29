@@ -85,7 +85,11 @@ export function DinerMenu({
                           {!isAvailable ? <em>No disponible</em> : null}
                           <b>{formatMoney(product.priceCents)}</b>
                         </span>
-                        <DinerProductImage size="card" title={title.text} />
+                        <DinerProductImage
+                          imageAssetId={product.imageAssetId}
+                          size="card"
+                          title={title.text}
+                        />
                       </button>
                     </li>
                   );
