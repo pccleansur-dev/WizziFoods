@@ -4635,6 +4635,7 @@ main:has(.diner-experience) .diner-entry {
   padding: 1.5rem max(1.25rem, calc((100vw - 52rem) / 2));
   border-top: 1px solid #d8d2c7;
   background: #fffdf8;
+}
 
 /* Identidad del negocio en la página del comensal: nombre, logo y colores que cargó el Administrador. */
 .diner-brand {
