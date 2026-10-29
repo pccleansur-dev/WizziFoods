@@ -360,7 +360,10 @@ describe("runtime configuration", () => {
     keys.generateKeys();
     const push = {
       WEB_PUSH_MODE: "live",
-      WEB_PUSH_PRIVATE_KEY: keys.getPrivateKey().toString("base64url"),
+      WEB_PUSH_PRIVATE_KEY: Buffer.from(
+        keys.getPrivateKey().toString("hex").padStart(64, "0"),
+        "hex"
+      ).toString("base64url"),
       WEB_PUSH_PUBLIC_KEY: keys.getPublicKey().toString("base64url"),
       WEB_PUSH_SUBJECT: "mailto:soporte@plataforma.test"
     };
