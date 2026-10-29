@@ -2,9 +2,14 @@ import { parseReadinessReport } from "@platform/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const adminApi = vi.fn();
+const revalidatePath = vi.fn();
 vi.mock("../admin-api", () => ({
   adminApi: (...args: unknown[]) => adminApi(...args),
   dataOf: (body: { data?: unknown }) => body?.data
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: (...args: unknown[]) => revalidatePath(...args)
 }));
 
 const { readinessCommandAction } = await import("./actions");
@@ -34,7 +39,10 @@ const run = {
 };
 
 describe("readinessCommandAction", () => {
-  beforeEach(() => adminApi.mockReset());
+  beforeEach(() => {
+    adminApi.mockReset();
+    revalidatePath.mockReset();
+  });
 
   it("rejects unknown commands without calling the API", async () => {
     const state = await readinessCommandAction("delete-everything" as never);

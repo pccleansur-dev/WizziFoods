@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   isTeamUuid,
   parseTeamMemberActivation,
@@ -115,6 +116,7 @@ export async function teamCommandAction(
         result.message ?? "No pudimos guardar los cambios. Intentá nuevamente."
       );
     }
+    revalidatePath("/panel", "layout");
     const list = await adminApi("/v1/tenant/team");
     return state("saved", success, {
       members: list.ok ? parseTeamList(list.body) : null

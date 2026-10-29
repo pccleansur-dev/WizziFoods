@@ -131,6 +131,7 @@ export function TeamManager({
               minLength={6}
               name="pin"
               pattern="[0-9]{6}"
+              title="El PIN tiene 6 dígitos, sin letras ni espacios."
               required
               type="password"
             />
@@ -380,6 +381,7 @@ function MemberCard({
               minLength={6}
               name="pin"
               pattern="[0-9]{6}"
+              title="El PIN tiene 6 dígitos, sin letras ni espacios."
               required
               type="password"
             />

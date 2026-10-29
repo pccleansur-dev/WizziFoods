@@ -53,4 +53,35 @@ describe("support access repository", () => {
       })
     ).rejects.toThrow("grantId must be a UUID");
   });
+
+  it("accepts timestamps returned as text, as drizzle's postgres-js driver does", async () => {
+    const stamp = "2026-10-29 16:59:59.346+00";
+    const rowsClient = (() =>
+      Promise.resolve([
+        {
+          expires_at: stamp,
+          grant_id: validGrant.tenantId,
+          granted_at: stamp,
+          id: validGrant.tenantId,
+          reason: validGrant.reason,
+          revoked_at: stamp,
+          status: "active",
+          support_user_id: validGrant.supportUserId
+        }
+      ])) as never;
+    const repository = createSupportAccessRepository(rowsClient);
+
+    await expect(
+      repository.list(validGrant.tenantId, validGrant.grantedBy)
+    ).resolves.toMatchObject([
+      {
+        expiresAt: "2026-10-29T16:59:59.346Z",
+        grantedAt: "2026-10-29T16:59:59.346Z",
+        revokedAt: "2026-10-29T16:59:59.346Z"
+      }
+    ]);
+    await expect(
+      repository.resolveActive(validGrant.tenantId, validGrant.supportUserId)
+    ).resolves.toMatchObject({ expiresAt: "2026-10-29T16:59:59.346Z" });
+  });
 });

@@ -58,7 +58,7 @@ type PlatformTenantRow = {
   status: "active" | "draft" | "suspended";
   suspension_mode: TenantSuspensionMode | null;
   suspension_phase: "commercial_draining" | "suspended" | null;
-  suspension_requested_at: Date | null;
+  suspension_requested_at: Date | string | null;
   tenant_id: string;
 };
 
@@ -68,17 +68,17 @@ type PlatformAuditEventRow = {
   actor_type: string;
   correlation_id: string;
   event_id: string;
-  occurred_at: Date;
+  occurred_at: Date | string;
   reason: string;
   tenant_id: string;
   tenant_name: string;
 };
 
 type TenantSuspensionRow = {
-  completed_at: Date | null;
+  completed_at: Date | string | null;
   mode: TenantSuspensionMode;
   phase: "commercial_draining" | "suspended";
-  requested_at: Date;
+  requested_at: Date | string;
   tenant_status: "active" | "suspended";
 };
 
@@ -104,12 +104,21 @@ function assertCorrelation(value: string): void {
   }
 }
 
+/** El cliente comparte el driver de drizzle, que entrega los timestamps como texto. */
+function toIsoTimestamp(value: Date | string): string {
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.valueOf())) {
+    throw new Error("database timestamp must be valid");
+  }
+  return parsed.toISOString();
+}
+
 function mapRow(row: TenantSuspensionRow): TenantSuspensionRecord {
   return {
-    completedAt: row.completed_at?.toISOString() ?? null,
+    completedAt: row.completed_at ? toIsoTimestamp(row.completed_at) : null,
     mode: row.mode,
     phase: row.phase,
-    requestedAt: row.requested_at.toISOString(),
+    requestedAt: toIsoTimestamp(row.requested_at),
     tenantStatus: row.tenant_status
   };
 }
@@ -136,7 +145,7 @@ export function createTenantSuspensionRepository(
         actorType: row.actor_type,
         correlationId: row.correlation_id,
         id: String(row.event_id),
-        occurredAt: row.occurred_at.toISOString(),
+        occurredAt: toIsoTimestamp(row.occurred_at),
         reason: row.reason,
         tenantId: row.tenant_id,
         tenantName: row.tenant_name
@@ -162,7 +171,7 @@ export function createTenantSuspensionRepository(
             ? {
                 mode: row.suspension_mode,
                 phase: row.suspension_phase,
-                requestedAt: row.suspension_requested_at.toISOString()
+                requestedAt: toIsoTimestamp(row.suspension_requested_at)
               }
             : null
       }));

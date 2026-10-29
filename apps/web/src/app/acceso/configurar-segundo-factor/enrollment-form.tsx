@@ -68,6 +68,7 @@ export function EnrollmentForm() {
             maxLength={6}
             name="code"
             pattern="[0-9]{6}"
+            title="Ingresá los 6 dígitos de tu aplicación autenticadora."
             required
           />
         </div>

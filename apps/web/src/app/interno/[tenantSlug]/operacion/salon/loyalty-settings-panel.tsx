@@ -79,7 +79,10 @@ export function LoyaltySettingsPanel({ tenantSlug }: { tenantSlug: string }) {
   }
 
   return (
-    <section aria-label="Programa de premios" className="waiter-reject">
+    <section
+      aria-label="Programa de premios"
+      className="waiter-reject loyalty-settings"
+    >
       <h3>Programa de premios</h3>
       <label>
         <input

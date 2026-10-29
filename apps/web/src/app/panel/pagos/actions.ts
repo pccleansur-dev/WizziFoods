@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   parseMercadoPagoConnectResult,
   parsePaymentMethodKey,
@@ -120,6 +121,7 @@ export async function paymentsCommandAction(
         result.message ?? "No pudimos guardar los cambios. Intentá nuevamente."
       );
     }
+    revalidatePath("/panel", "layout");
     return state("saved", success, parsePaymentList(result.body));
   } catch {
     return state(

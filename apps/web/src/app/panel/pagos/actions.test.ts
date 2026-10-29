@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const adminApi = vi.fn();
+const revalidatePath = vi.fn();
 vi.mock("../admin-api", () => ({
   adminApi: (...args: unknown[]) => adminApi(...args),
   dataOf: (body: { data?: unknown }) => body?.data
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: (...args: unknown[]) => revalidatePath(...args)
 }));
 
 const { mercadoPagoConnectionAction, paymentsCommandAction } =
@@ -26,7 +31,10 @@ const statuses = [
 }));
 
 describe("paymentsCommandAction", () => {
-  beforeEach(() => adminApi.mockReset());
+  beforeEach(() => {
+    adminApi.mockReset();
+    revalidatePath.mockReset();
+  });
 
   it("rejects invalid input before calling the API", async () => {
     const result = await paymentsCommandAction({
@@ -79,7 +87,10 @@ describe("paymentsCommandAction", () => {
 });
 
 describe("mercadoPagoConnectionAction", () => {
-  beforeEach(() => adminApi.mockReset());
+  beforeEach(() => {
+    adminApi.mockReset();
+    revalidatePath.mockReset();
+  });
 
   it("returns only a validated authorization URL", async () => {
     adminApi.mockResolvedValue({

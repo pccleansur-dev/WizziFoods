@@ -49,4 +49,25 @@ describe("GET /auth/callback", () => {
       "https://app-carta.wizzi.com.ar/acceso?error=no-se-pudo-validar"
     );
   });
+
+  it("sends an invitation (no code, session in the fragment) to the public finish page", async () => {
+    const response = await GET(
+      new NextRequest("http://0.0.0.0:3000/auth/callback")
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://app-carta.wizzi.com.ar/auth/invitacion"
+    );
+    expect(exchangeCodeForSession).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a provider error as an invitation", async () => {
+    const response = await GET(
+      new NextRequest("http://0.0.0.0:3000/auth/callback?error=access_denied")
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://app-carta.wizzi.com.ar/acceso?error=no-se-pudo-validar"
+    );
+  });
 });

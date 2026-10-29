@@ -132,6 +132,7 @@ export function ProductVariants({
                     }
                   }}
                   pattern="[0-9]+(?:,[0-9]{1,2})?"
+                  title="Escribí el precio en pesos, con coma para los centavos (ej. 8900 o 8900,50)."
                   value={formatPrice(variant.priceDeltaCents)}
                 />
               </label>

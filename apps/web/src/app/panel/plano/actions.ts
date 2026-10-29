@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { readWebConfig } from "@platform/config";
 import {
   parseFloorPlanCommand,
@@ -150,6 +151,7 @@ export async function saveFloorPlanAction(
       );
     }
     const saved = parseFloorPlanSaveResponse(await response.json());
+    revalidatePath("/panel", "layout");
     const qr = await readQr(config.apiUrl, auth);
     return {
       issues: [],

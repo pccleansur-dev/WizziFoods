@@ -1,28 +1,14 @@
-import { createServiceStatus } from "@platform/contracts";
+import { redirect } from "next/navigation";
 
-export default function HomePage() {
-  const service = createServiceStatus("web");
-
-  return (
-    <main>
-      <section aria-labelledby="page-title">
-        <p className="eyebrow">Wizzi Foods</p>
-        <h1 id="page-title">Base técnica lista</h1>
-        <p>
-          El frontend ya comparte contratos con la API y el worker. El próximo
-          corte incorporará Supabase y el entorno local reproducible.
-        </p>
-        <dl>
-          <div>
-            <dt>Servicio</dt>
-            <dd>{service.service}</dd>
-          </div>
-          <div>
-            <dt>Estado</dt>
-            <dd>{service.status}</dd>
-          </div>
-        </dl>
-      </section>
-    </main>
-  );
+/**
+ * La raíz no tiene contenido propio: el comensal entra por el QR de su mesa y el equipo por el
+ * acceso. Si el ingreso con Google vuelve acá con un error, se conserva el aviso en /acceso.
+ */
+export default async function HomePage({
+  searchParams
+}: {
+  searchParams: Promise<{ error?: string }>;
+}): Promise<never> {
+  const { error } = await searchParams;
+  redirect(error ? "/acceso?error=no-se-pudo-validar" : "/acceso");
 }

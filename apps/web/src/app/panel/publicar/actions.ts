@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { parseReadinessView, parseSandboxRun } from "@platform/contracts";
 
 import { adminApi, dataOf } from "../admin-api";
@@ -39,6 +40,7 @@ export async function readinessCommandAction(
           method: "POST"
         });
         if (result.ok) {
+          revalidatePath("/panel", "layout");
           return state("saved", "El negocio quedó publicado.", {
             readiness: parseReadiness(result.body)
           });

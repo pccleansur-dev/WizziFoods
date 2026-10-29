@@ -53,7 +53,7 @@ export function DinerOrder({
               ) : null}
             </div>
             <label>
-              Cantidad de {item.title}
+              <span aria-hidden="true">Cant.</span>
               <input
                 aria-label={`Cantidad de ${item.title}`}
                 max={20}

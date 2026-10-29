@@ -15,9 +15,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const supabase = await createAuthServerClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
-      return NextResponse.redirect(new URL(destination, config.appUrl));
-    }
+    return NextResponse.redirect(
+      new URL(
+        error ? "/acceso?error=no-se-pudo-validar" : destination,
+        config.appUrl
+      )
+    );
+  }
+
+  // Sin `code` puede ser una invitación: su sesión viaja en el fragmento (`#access_token=…`), que el
+  // servidor no ve. El navegador conserva el fragmento al seguir esta redirección y la página cliente
+  // lo recoge; si no hay nada que recoger, esa página manda a /acceso.
+  if (!request.nextUrl.searchParams.has("error")) {
+    return NextResponse.redirect(new URL("/auth/invitacion", config.appUrl));
   }
 
   return NextResponse.redirect(

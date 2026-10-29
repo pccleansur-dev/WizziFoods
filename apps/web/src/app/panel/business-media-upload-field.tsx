@@ -69,34 +69,57 @@ export function BusinessMediaUploadField({
         className="media-upload-field__input"
         disabled={disabled || working}
         id={inputId}
+        multiple={kind === "reference"}
         onChange={async (event) => {
-          const file = event.currentTarget.files?.[0];
+          const chosen = Array.from(event.currentTarget.files ?? []);
           event.currentTarget.value = "";
-          if (!file) return;
-          // Miniatura inmediata, antes de que termine la subida. Sólo blob: locales.
-          const thumbnail = URL.createObjectURL(file);
-          setLocalPreview(thumbnail);
-          setMessage(`Subiendo ${file.name}…`);
-          setStatus("uploading");
-          try {
-            const assetId = await uploadBusinessMedia(file, kind, {
-              onStatus: () => {
-                setMessage("Optimizando y verificando la imagen…");
-                setStatus("processing");
-              }
-            });
-            onReady(assetId, thumbnail);
-            setMessage("Imagen lista para guardar en el borrador.");
-            setStatus("ready");
-          } catch (error) {
+          // Las fotos de referencia admiten varias a la vez, hasta completar las 12 del borrador.
+          const files =
+            kind === "reference"
+              ? chosen.slice(0, Math.max(0, 12 - currentCount))
+              : chosen.slice(0, 1);
+          if (files.length === 0) {
+            if (chosen.length > 0) {
+              setMessage("Ya cargaste las 12 fotos de referencia.");
+              setStatus("error");
+            }
+            return;
+          }
+          for (const [index, file] of files.entries()) {
+            // Miniatura inmediata, antes de que termine la subida. Sólo blob: locales.
+            const thumbnail = URL.createObjectURL(file);
+            setLocalPreview(thumbnail);
             setMessage(
-              error instanceof Error
-                ? error.message
-                : "No pudimos cargar la imagen."
+              files.length > 1
+                ? `Subiendo ${index + 1} de ${files.length}: ${file.name}…`
+                : `Subiendo ${file.name}…`
             );
-            setStatus("error");
-            URL.revokeObjectURL(thumbnail);
-            setLocalPreview(null);
+            setStatus("uploading");
+            try {
+              const assetId = await uploadBusinessMedia(file, kind, {
+                onStatus: () => {
+                  setMessage("Optimizando y verificando la imagen…");
+                  setStatus("processing");
+                }
+              });
+              onReady(assetId, thumbnail);
+              setMessage(
+                files.length > 1
+                  ? `${index + 1} de ${files.length} listas para guardar en el borrador.`
+                  : "Imagen lista para guardar en el borrador."
+              );
+              setStatus("ready");
+            } catch (error) {
+              setMessage(
+                error instanceof Error
+                  ? error.message
+                  : "No pudimos cargar la imagen."
+              );
+              setStatus("error");
+              URL.revokeObjectURL(thumbnail);
+              setLocalPreview(null);
+              return;
+            }
           }
         }}
         type="file"

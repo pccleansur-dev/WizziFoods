@@ -17,6 +17,7 @@ import {
 import type { FastifyRequest } from "fastify";
 
 import { AppModule } from "./app.module.js";
+import { UnhandledErrorFilter } from "./unhandled-error.filter.js";
 
 async function bootstrap(): Promise<void> {
   const config = readApiConfig(process.env);
@@ -43,6 +44,7 @@ async function bootstrap(): Promise<void> {
     adapter,
     { logger: false, rawBody: true }
   );
+  app.useGlobalFilters(new UnhandledErrorFilter(telemetry.logger, adapter));
   app.enableShutdownHooks();
   const server = adapter.getInstance();
 
