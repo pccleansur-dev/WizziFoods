@@ -57,7 +57,11 @@ export function DinerProductDetail({
       >
         ×
       </button>
-      <DinerProductImage size="hero" title={title.text} />
+      <DinerProductImage
+        imageAssetId={product.imageAssetId}
+        size="hero"
+        title={title.text}
+      />
       <p className="eyebrow">Detalle</p>
       <h2 id="product-detail-title" lang={title.language}>
         {title.text}

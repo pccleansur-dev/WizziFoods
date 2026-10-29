@@ -15,7 +15,9 @@ export {
 } from "./business-profile.js";
 export {
   catalogPublicationIssues,
+  catalogImagePath,
   explainCatalogDraft,
+  parseCatalogImageAssetId,
   parseCatalogDraft,
   type CatalogDraftIssue,
   type CatalogDraftIssueCode,

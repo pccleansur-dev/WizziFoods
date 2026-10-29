@@ -33,6 +33,33 @@ práctica de «dispositivo» para T17.
 La ruta web `/api/diner-draft` actúa como proxy same-origin y reenvía la cabecera `Host`
 real con `tenantFetch`; no agrega autorización ni permite elegir tenant o ubicación.
 
+## Fotos de producto
+
+La carta publicada ya lleva `imageAssetId` en cada producto. El comensal no recibe la
+ruta de almacenamiento (el bucket `business-media` es privado) sino la dirección de la
+foto en su propio host:
+
+`GET /api/catalog/image/{assetId}` (web, same-origin) → `GET /v1/public/catalog/images/{assetId}` (API, `TenantHostGuard`).
+
+- La API toma tenant y ubicación sólo del host. El identificador de la dirección nombra
+  la foto, nunca un restaurante.
+- `private.get_public_catalog_image` sólo responde si la foto es un activo `product` en
+  estado `ready` de ese tenant y ubicación **y** la última publicación de esa ubicación la
+  referencia. Una foto de otro restaurante, una sólo del borrador, una de un producto
+  retirado o un id inexistente dan el mismo `404`.
+- La API lee el objeto con la clave de servicio y lo devuelve con `content-type` del
+  activo, `x-content-type-options: nosniff`, `etag` (versión del contenido) y
+  `cache-control: public, max-age=86400`. Cada foto nueva tiene id nuevo, por eso la
+  caché larga no deja fotos viejas; una foto retirada puede seguir en cachés hasta un día.
+- `DinerProductImage` la usa en la tarjeta (`card`) y en el detalle (`hero`). Sin foto, o
+  si la imagen falla al cargar, muestra la inicial del producto con el mismo tamaño: una
+  foto nunca rompe la carta.
+- El proxy web devuelve `404` ante cualquier falla o respuesta que no sea JPEG, PNG o WebP.
+
+Pruebas: contrato (`parseCatalogImageAssetId`), servicio y controlador de API, proxy web,
+`DinerProductImage` y la integración `local-catalog-image.integration.test.ts` (requiere
+Supabase local; se omite sin él).
+
 ## Refresco y degradación
 
 La página conserva el refresco de T16 cada 15 segundos y al volver a estar visible. Una

@@ -65,6 +65,7 @@ function dependencies() {
   const catalog = {
     getCurrent: vi.fn(),
     getDraft: vi.fn().mockResolvedValue(null),
+    getPublicProductImage: vi.fn(),
     publish: vi.fn(),
     saveDraft: vi.fn().mockResolvedValue({ revision: 1 }),
     setAvailability: vi.fn()
