@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { tenantFetch } from "./tenant-fetch";
 
@@ -55,6 +55,40 @@ describe("tenantFetch (HTTP real)", () => {
       body: '{"name":"Salón"}',
       host: "cafe-norte.plataforma.test",
       method: "PUT"
+    });
+  });
+
+  describe("con API_URL interno (producción detrás del proxy público)", () => {
+    const original = { ...process.env };
+    afterEach(() => {
+      process.env = { ...original };
+    });
+
+    it("manda a la red interna lo que apunta a la URL pública de la API, conservando el Host del negocio", async () => {
+      // La URL pública reenviaría la solicitud según `Host` y nunca llegaría a la API.
+      process.env.NEXT_PUBLIC_API_URL = "http://api-publica.invalid:3001";
+      process.env.API_URL = apiUrl;
+
+      const response = await tenantFetch(
+        "http://api-publica.invalid:3001/v1/tenant/payment-methods?x=1",
+        { headers: { host: "app-carta.wizzi.com.ar" } }
+      );
+
+      expect(await response.json()).toMatchObject({
+        host: "app-carta.wizzi.com.ar",
+        method: "GET"
+      });
+    });
+
+    it("no toca destinos que no son la URL pública de la API", async () => {
+      process.env.NEXT_PUBLIC_API_URL = "http://api-publica.invalid:3001";
+      process.env.API_URL = "http://127.0.0.1:9";
+
+      const response = await tenantFetch(`${apiUrl}/v1/x`, {
+        headers: { host: "cafe-norte.plataforma.test" }
+      });
+
+      expect(response.ok).toBe(true);
     });
   });
 });
