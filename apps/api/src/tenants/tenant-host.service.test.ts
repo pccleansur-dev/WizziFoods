@@ -13,13 +13,17 @@ const context: TenantHostContext = {
 describe("TenantHostService", () => {
   it("canonicalizes the request authority before resolving it", async () => {
     const resolved: string[] = [];
-    const service = new TenantHostService({
-      resolveAdminByHostname: async () => null,
-      resolveByHostname: async (hostname: string) => {
-        resolved.push(hostname);
-        return context;
-      }
-    });
+    const service = new TenantHostService(
+      {
+        resolveAdminByHostname: async () => null,
+        resolveSoleAdminTenant: async () => null,
+        resolveByHostname: async (hostname: string) => {
+          resolved.push(hostname);
+          return context;
+        }
+      },
+      "app.plataforma.test"
+    );
 
     await expect(
       service.resolve("LOCAL-A.PLATAFORMA.TEST:3001")
@@ -28,12 +32,16 @@ describe("TenantHostService", () => {
   });
 
   it("fails closed before querying for malformed authorities", async () => {
-    const service = new TenantHostService({
-      resolveAdminByHostname: async () => null,
-      resolveByHostname: async () => {
-        throw new Error("repository must not be queried");
-      }
-    });
+    const service = new TenantHostService(
+      {
+        resolveAdminByHostname: async () => null,
+        resolveSoleAdminTenant: async () => null,
+        resolveByHostname: async () => {
+          throw new Error("repository must not be queried");
+        }
+      },
+      "app.plataforma.test"
+    );
 
     await expect(
       service.resolve("local-a.plataforma.test,attacker.test")
@@ -41,10 +49,14 @@ describe("TenantHostService", () => {
   });
 
   it("uses the same generic not-found response for an unknown host", async () => {
-    const service = new TenantHostService({
-      resolveAdminByHostname: async () => null,
-      resolveByHostname: async () => null
-    });
+    const service = new TenantHostService(
+      {
+        resolveAdminByHostname: async () => null,
+        resolveSoleAdminTenant: async () => null,
+        resolveByHostname: async () => null
+      },
+      "app.plataforma.test"
+    );
 
     await expect(
       service.resolve("unknown.plataforma.test")
@@ -59,13 +71,17 @@ describe("TenantHostService", () => {
 
   it("resolves draft tenants only through an assigned administrator", async () => {
     const received: unknown[] = [];
-    const service = new TenantHostService({
-      resolveAdminByHostname: async (hostname, requesterId) => {
-        received.push(hostname, requesterId);
-        return context;
+    const service = new TenantHostService(
+      {
+        resolveAdminByHostname: async (hostname, requesterId) => {
+          received.push(hostname, requesterId);
+          return context;
+        },
+        resolveSoleAdminTenant: async () => null,
+        resolveByHostname: async () => null
       },
-      resolveByHostname: async () => null
-    });
+      "app.plataforma.test"
+    );
 
     await expect(
       service.resolveForAdmin(
@@ -77,5 +93,55 @@ describe("TenantHostService", () => {
       "local-a.plataforma.test",
       "10000000-0000-4000-8000-000000000001"
     ]);
+  });
+
+  it("resolves the sole assigned tenant when administration runs on the platform host", async () => {
+    const requesterId = "10000000-0000-4000-8000-000000000001";
+    const received: string[] = [];
+    const service = new TenantHostService(
+      {
+        resolveAdminByHostname: async (hostname) => {
+          received.push(`host:${hostname}`);
+          return null;
+        },
+        resolveSoleAdminTenant: async (requester) => {
+          received.push(`identity:${requester}`);
+          return context;
+        },
+        resolveByHostname: async () => null
+      },
+      "app.plataforma.test"
+    );
+
+    await expect(
+      service.resolveForAdmin("APP.PLATAFORMA.TEST:443", requesterId)
+    ).resolves.toEqual(context);
+    expect(received).toEqual([
+      "host:app.plataforma.test",
+      `identity:${requesterId}`
+    ]);
+  });
+
+  it("never applies the sole-tenant fallback to an unrelated hostname", async () => {
+    let fallbackCalled = false;
+    const service = new TenantHostService(
+      {
+        resolveAdminByHostname: async () => null,
+        resolveSoleAdminTenant: async () => {
+          fallbackCalled = true;
+          return context;
+        },
+        resolveByHostname: async () => null
+      },
+      "app.plataforma.test"
+    );
+
+    await expect(
+      service.resolveForAdmin(
+        "unrelated.example",
+        "10000000-0000-4000-8000-000000000001"
+      )
+    ).rejects.toMatchObject({ status: 404 });
+    expect(fallbackCalled).toBe(false);
   });
 });

@@ -327,7 +327,10 @@ export class AppModule {
           inject: [TENANT_DATABASE],
           provide: TenantHostService,
           useFactory: (database: TenantDatabase) =>
-            new TenantHostService(database.tenantDomainRepository)
+            new TenantHostService(
+              database.tenantDomainRepository,
+              new URL(config.adminInviteRedirectUrl).hostname
+            )
         },
         {
           provide: AdminAuthService,

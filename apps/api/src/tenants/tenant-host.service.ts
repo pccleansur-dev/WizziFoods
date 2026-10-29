@@ -9,7 +9,8 @@ import type { TenantDomainRepository } from "@platform/database";
 export class TenantHostService {
   constructor(
     @Inject("TENANT_DOMAIN_REPOSITORY")
-    private readonly tenantDomainRepository: TenantDomainRepository
+    private readonly tenantDomainRepository: TenantDomainRepository,
+    private readonly platformHostname: string
   ) {}
 
   async resolve(authority: unknown): Promise<TenantHostContext> {
@@ -30,10 +31,14 @@ export class TenantHostService {
     const hostname = parseTenantHostname(authority);
     if (!hostname) this.notFound();
 
-    const context = await this.tenantDomainRepository.resolveAdminByHostname(
+    let context = await this.tenantDomainRepository.resolveAdminByHostname(
       hostname,
       requesterId
     );
+    if (!context && hostname === this.platformHostname) {
+      context =
+        await this.tenantDomainRepository.resolveSoleAdminTenant(requesterId);
+    }
     if (!context) this.notFound();
 
     return context;

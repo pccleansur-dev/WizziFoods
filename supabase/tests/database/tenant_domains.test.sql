@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 grant usage on schema extensions to authenticated;
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(23);
 
 select has_table('public', 'tenant_domains', 'tenant domains table exists');
 select policies_are(
@@ -56,6 +56,28 @@ select ok(
     'EXECUTE'
   ),
   'browser identities cannot call the administrative resolver directly'
+);
+select has_function(
+  'private',
+  'resolve_sole_tenant_admin',
+  array['uuid'],
+  'the sole administrative tenant resolver exists'
+);
+select ok(
+  has_function_privilege(
+    'authenticator',
+    'private.resolve_sole_tenant_admin(uuid)',
+    'EXECUTE'
+  ),
+  'the API runtime can resolve a sole administrative tenant'
+);
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'private.resolve_sole_tenant_admin(uuid)',
+    'EXECUTE'
+  ),
+  'browser identities cannot call the sole tenant resolver directly'
 );
 
 insert into auth.users (id)
@@ -125,6 +147,31 @@ select is_empty(
     )
   $$,
   'an administrator from another tenant cannot resolve the draft tenant'
+);
+select results_eq(
+  $$
+    select hostname
+    from private.resolve_sole_tenant_admin(
+      '83000000-0000-4000-8000-000000000083'
+    )
+  $$,
+  $$ values ('draft.plataforma.test'::text) $$,
+  'an administrator with one assignment can resolve its primary domain'
+);
+insert into public.tenant_memberships (tenant_id, user_id, role)
+values (
+  'a1000000-0000-4000-8000-000000000001',
+  '83000000-0000-4000-8000-000000000083',
+  'admin'
+);
+select is_empty(
+  $$
+    select *
+    from private.resolve_sole_tenant_admin(
+      '83000000-0000-4000-8000-000000000083'
+    )
+  $$,
+  'the platform-host fallback fails closed for an ambiguous administrator'
 );
 select is_empty(
   $$ select * from private.resolve_tenant_by_hostname('local-a.plataforma.test.attacker.test') $$,

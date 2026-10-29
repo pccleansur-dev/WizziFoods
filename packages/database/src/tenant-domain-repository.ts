@@ -9,6 +9,9 @@ export interface TenantDomainRepository {
     hostname: string,
     requesterId: string
   ): Promise<TenantHostContext | null>;
+  resolveSoleAdminTenant(
+    requesterId: string
+  ): Promise<TenantHostContext | null>;
   resolveByHostname(hostname: string): Promise<TenantHostContext | null>;
 }
 
@@ -57,6 +60,17 @@ export function createTenantDomainRepository(
           ${hostname},
           ${requesterId}::uuid
         )
+      `;
+      return mapHostRow(row);
+    },
+    async resolveSoleAdminTenant(requesterId) {
+      if (!uuidPattern.test(requesterId)) {
+        throw new Error("requesterId must be a UUID");
+      }
+
+      const [row] = await client<TenantHostRow[]>`
+        select *
+        from private.resolve_sole_tenant_admin(${requesterId}::uuid)
       `;
       return mapHostRow(row);
     },
