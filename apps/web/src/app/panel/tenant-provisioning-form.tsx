@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import { createTenantAction } from "./actions";
+import { suggestBusinessSlug } from "./business-slug";
 import type { TenantProvisioningActionState } from "./tenant-provisioning-state";
 
 export function TenantProvisioningForm({
@@ -20,6 +21,13 @@ export function TenantProvisioningForm({
     initialState
   );
 
+  const slugInput = useRef<HTMLInputElement>(null);
+  // Mientras no se edite a mano, el identificador sigue al nombre.
+  const slugEdited = useRef(false);
+  useEffect(() => {
+    slugEdited.current = false;
+  }, [state.idempotencyKey]);
+
   return (
     <form
       action={formAction}
@@ -34,6 +42,13 @@ export function TenantProvisioningForm({
           maxLength={120}
           minLength={2}
           name="name"
+          onChange={(event) => {
+            if (slugInput.current && !slugEdited.current) {
+              slugInput.current.value = suggestBusinessSlug(
+                event.currentTarget.value
+              );
+            }
+          }}
           placeholder="Bodegón del Centro"
           required
         />
@@ -45,7 +60,12 @@ export function TenantProvisioningForm({
           id="business-slug"
           maxLength={80}
           name="slug"
+          onChange={() => {
+            slugEdited.current = true;
+          }}
+          ref={slugInput}
           pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+          title="Usá solo minúsculas, números y guiones, sin espacios ni guiones al inicio o al final."
           placeholder="bodegon-del-centro"
           required
         />

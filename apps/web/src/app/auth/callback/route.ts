@@ -20,6 +20,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Sin `code` puede ser una invitación: su sesión viaja en el fragmento (`#access_token=…`), que el
+  // servidor no ve. El navegador conserva el fragmento al seguir esta redirección y la página cliente
+  // lo recoge; si no hay nada que recoger, esa página manda a /acceso.
+  if (!request.nextUrl.searchParams.has("error")) {
+    return NextResponse.redirect(new URL("/auth/invitacion", request.url));
+  }
+
   return NextResponse.redirect(
     new URL("/acceso?error=no-se-pudo-validar", config.appUrl)
   );

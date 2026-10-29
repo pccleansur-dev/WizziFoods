@@ -197,6 +197,7 @@ function MethodCard({
                 maxLength={200}
                 name="publicKey"
                 pattern="[A-Za-z0-9_\-]{8,200}"
+                title="Entre 8 y 200 caracteres: letras, números, guiones y guion bajo."
                 spellCheck={false}
               />
             </label>

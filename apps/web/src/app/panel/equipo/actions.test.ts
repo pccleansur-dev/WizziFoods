@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const adminApi = vi.fn();
+const revalidatePath = vi.fn();
 vi.mock("../admin-api", () => ({
   adminApi: (...args: unknown[]) => adminApi(...args),
   dataOf: (body: { data?: unknown }) => body?.data
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: (...args: unknown[]) => revalidatePath(...args)
 }));
 
 const { teamCommandAction } = await import("./actions");
@@ -20,7 +25,10 @@ const member = {
 };
 
 describe("teamCommandAction", () => {
-  beforeEach(() => adminApi.mockReset());
+  beforeEach(() => {
+    adminApi.mockReset();
+    revalidatePath.mockReset();
+  });
 
   it("validates before calling the API and never echoes the PIN", async () => {
     const result = await teamCommandAction({
@@ -54,6 +62,7 @@ describe("teamCommandAction", () => {
     });
     expect(result.status).toBe("saved");
     expect(result.members).toEqual([member]);
+    expect(revalidatePath).toHaveBeenCalledWith("/panel", "layout");
     expect(JSON.stringify(result)).not.toContain("123456");
     expect(adminApi.mock.calls[0]![0]).toBe("/v1/tenant/team");
   });

@@ -40,11 +40,11 @@ export interface SupportAccessRepository {
 }
 
 type SupportAccessRow = {
-  expires_at: Date;
-  granted_at: Date;
+  expires_at: Date | string;
+  granted_at: Date | string;
   id: string;
   reason: string;
-  revoked_at: Date | null;
+  revoked_at: Date | string | null;
   status: SupportAccessStatus;
   support_user_id: string;
 };
@@ -71,13 +71,22 @@ function assertCorrelation(value: string): void {
   }
 }
 
+/** El cliente comparte el driver de drizzle, que entrega los timestamps como texto. */
+function toIsoTimestamp(value: Date | string): string {
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.valueOf())) {
+    throw new Error("database timestamp must be valid");
+  }
+  return parsed.toISOString();
+}
+
 function mapRow(row: SupportAccessRow): SupportAccessGrant {
   return {
-    expiresAt: row.expires_at.toISOString(),
-    grantedAt: row.granted_at.toISOString(),
+    expiresAt: toIsoTimestamp(row.expires_at),
+    grantedAt: toIsoTimestamp(row.granted_at),
     id: row.id,
     reason: row.reason,
-    revokedAt: row.revoked_at?.toISOString() ?? null,
+    revokedAt: row.revoked_at ? toIsoTimestamp(row.revoked_at) : null,
     status: row.status,
     supportUserId: row.support_user_id
   };
@@ -131,7 +140,9 @@ export function createSupportAccessRepository(
     async resolveActive(tenantId, supportUserId) {
       assertUuid(tenantId, "tenantId");
       assertUuid(supportUserId, "supportUserId");
-      const [row] = await client<{ expires_at: Date; grant_id: string }[]>`
+      const [row] = await client<
+        { expires_at: Date | string; grant_id: string }[]
+      >`
         select *
         from private.resolve_active_support_access(
           ${tenantId}::uuid,
@@ -139,7 +150,7 @@ export function createSupportAccessRepository(
         )
       `;
       return row
-        ? { expiresAt: row.expires_at.toISOString(), grantId: row.grant_id }
+        ? { expiresAt: toIsoTimestamp(row.expires_at), grantId: row.grant_id }
         : null;
     },
 

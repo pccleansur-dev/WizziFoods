@@ -2,7 +2,33 @@ import Link from "next/link";
 
 import { LoginForm } from "./login-form";
 
-export default function AccessPage() {
+const notices: Record<string, { status: "error" | "success"; text: string }> = {
+  "clave-actualizada": {
+    status: "success",
+    text: "Contraseña actualizada. Ingresá con tu correo y la nueva clave."
+  },
+  "enlace-vencido": {
+    status: "error",
+    text: "El enlace venció o ya fue utilizado. Pedí uno nuevo o usá «¿Olvidaste tu contraseña?»."
+  },
+  "no-se-pudo-validar": {
+    status: "error",
+    text: "No pudimos validar tu cuenta. Intentá ingresar nuevamente."
+  }
+};
+
+function pickNotice(params: { "clave-actualizada"?: string; error?: string }) {
+  if (params["clave-actualizada"] === "1") return notices["clave-actualizada"];
+  return params.error ? notices[params.error] : undefined;
+}
+
+export default async function AccessPage({
+  searchParams
+}: {
+  searchParams: Promise<{ "clave-actualizada"?: string; error?: string }>;
+}) {
+  const notice = pickNotice(await searchParams);
+
   return (
     <main className="access-shell">
       <section className="access-context" aria-labelledby="access-title">
@@ -32,6 +58,14 @@ export default function AccessPage() {
             autenticador.
           </p>
         </div>
+        {notice ? (
+          <p
+            className={`form-message form-message--${notice.status}`}
+            role={notice.status === "error" ? "alert" : "status"}
+          >
+            {notice.text}
+          </p>
+        ) : null}
         <LoginForm />
         <p className="access-help">
           ¿Todavía no recibiste tu acceso? Contactá al responsable que dio de

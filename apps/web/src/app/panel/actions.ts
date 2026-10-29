@@ -145,7 +145,7 @@ export async function enqueueCatalogImportAction(
     if (!response.ok) {
       return importError(previousState, "No pudimos encolar la importación.");
     }
-    revalidatePath("/panel");
+    revalidatePath("/panel", "layout");
     return {
       idempotencyKey: randomUUID(),
       message:
@@ -204,7 +204,7 @@ export async function approveCatalogImportAction(
           : "No pudimos incorporar la importación."
       );
     }
-    revalidatePath("/panel");
+    revalidatePath("/panel", "layout");
     return {
       idempotencyKey: randomUUID(),
       message:
@@ -245,7 +245,7 @@ export async function discardCatalogImportAction(
     );
     if (!response.ok)
       return importError(previousState, "No pudimos descartar la importación.");
-    revalidatePath("/panel");
+    revalidatePath("/panel", "layout");
     return {
       idempotencyKey: randomUUID(),
       message: "Importación descartada.",
@@ -360,7 +360,7 @@ export async function setCatalogAvailabilityAction(
         "No pudimos confirmar la disponibilidad."
       );
     }
-    revalidatePath("/panel");
+    revalidatePath("/panel", "layout");
     return {
       isAvailable: body.data.isAvailable,
       message: body.data.isAvailable
@@ -430,7 +430,7 @@ export async function saveCatalogAction(
     if (!Number.isSafeInteger(body.data?.revision)) {
       return catalogError(previousState, "No pudimos confirmar el guardado.");
     }
-    revalidatePath("/panel");
+    revalidatePath("/panel", "layout");
     return {
       draftRevision: body.data!.revision as number,
       message: "Borrador guardado. La carta publicada no cambió.",
@@ -498,7 +498,7 @@ export async function publishCatalogAction(
         "No pudimos confirmar la publicación."
       );
     }
-    revalidatePath("/panel");
+    revalidatePath("/panel", "layout");
     return {
       draftRevision: expectedDraftRevision,
       message: "Carta publicada. Los clientes ya ven esta versión.",
@@ -599,7 +599,7 @@ export async function saveBusinessProfileAction(
       status: "error"
     };
   }
-  revalidatePath("/panel");
+  revalidatePath("/panel", "layout");
   return {
     message: "Guardamos el borrador. La versión publicada no cambió.",
     status: "success"
@@ -694,6 +694,7 @@ export async function createTenantAction(
     );
   }
 
+  revalidatePath("/panel", "layout");
   return {
     idempotencyKey: randomUUID(),
     message: `Creamos ${result.tenant.name}, enviamos la invitación a ${result.adminEmail} y reservamos https://${result.domain.hostname}.`,
@@ -787,7 +788,7 @@ export async function suspendTenantAction(
     };
   }
 
-  revalidatePath("/panel");
+  revalidatePath("/panel", "layout");
   return {
     message:
       mode === "commercial"
