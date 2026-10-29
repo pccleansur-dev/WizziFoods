@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createAuthServerClient } from "../../../../auth/supabase-server";
+import { isSameOrigin } from "../../../api/business-media/same-origin";
 
 const tokenPattern = /^[A-Za-z0-9._-]{8,4096}$/u;
 
@@ -13,7 +14,8 @@ function invalid(): NextResponse {
  * URL (el servidor nunca lo ve), la página cliente la reenvía acá y las cookies quedan httpOnly.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  if (request.headers.get("origin") !== request.nextUrl.origin) {
+  // Detrás del proxy la URL de la solicitud es interna; `Host` y `Origin` son los públicos.
+  if (!isSameOrigin(request)) {
     return NextResponse.json({ ok: false }, { status: 403 });
   }
 

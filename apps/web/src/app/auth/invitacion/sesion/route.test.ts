@@ -14,6 +14,7 @@ function post(body: unknown, origin: string | null = "http://negocio.test") {
     body: JSON.stringify(body),
     headers: {
       "content-type": "application/json",
+      host: "negocio.test",
       ...(origin ? { origin } : {})
     },
     method: "POST"
