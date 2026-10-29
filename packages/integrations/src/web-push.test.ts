@@ -16,7 +16,10 @@ function newKeys(): VapidKeys {
   const ecdh = createECDH("prime256v1");
   ecdh.generateKeys();
   return {
-    privateKey: ecdh.getPrivateKey().toString("base64url"),
+    privateKey: Buffer.from(
+      ecdh.getPrivateKey().toString("hex").padStart(64, "0"),
+      "hex"
+    ).toString("base64url"),
     publicKey: ecdh.getPublicKey().toString("base64url"),
     subject: "mailto:soporte@plataforma.test"
   };
