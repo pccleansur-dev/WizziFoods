@@ -76,3 +76,62 @@ Playwright (`pnpm e2e`) tampoco se corrió: las pruebas de arriba son manuales c
 - pgTAP: `tenant_activation_on_publication` (4/4) y `security_posture` (9/9) sobre la base local.
 - `pnpm format:check` marca 387 archivos de toda la copia de trabajo por fin de línea de Windows, también
   los que no se tocaron; los archivos modificados pasan Prettier de forma individual.
+
+## Segunda parte: el mismo recorrido en producción (29 y 30 de octubre de 2026)
+
+Después de corregir lo anterior en local se repitió el alta como un cliente nuevo en el despliegue real (Coolify, detrás de
+Cloudflare Tunnel), con datos inventados y **sin borrar nada**: negocio «Pc Clean Resto», en la cuenta de prueba del dueño del
+producto. En producción hubo dos reglas: el acceso (contraseña, 2FA, PIN) lo iniciaba la persona dueña de la cuenta y el resto
+se operaba dentro de su sesión, y no se escribieron credenciales en ningún formulario.
+
+### Lo que se encontró (y se corrigió)
+
+| #   | Sev.        | Hallazgo                                                                                                                                                                              | Causa raíz                                                                                                                                                                                                                                                                                                                  | Corrección                                                                                                                                                   |
+| --- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1  | **Crítica** | Plano, Pagos, Equipo, Publicar, las subidas de imágenes y la carta del comensal no cargaban («No pudimos cargar…», 502 al subir el logo). La API no recibía ninguna de esas llamadas. | `tenantFetch` llamaba a la API por su URL pública reescribiendo `Host` con el del negocio. El proxy público enruta por `Host`, así que la solicitud terminaba en la web. Prueba directa: `Host: app-carta…` contra la URL pública de la API devolvía el 404 HTML de la web. En local no pasa (no hay proxy en el medio). | PR #20: con `API_URL` (red interna, ya definido en el compose y sin lector) el destino público se reescribe a la red interna. Pruebas con HTTP real.           |
+| P2  | Alta        | Dos despliegues seguidos fallaron al construir (`ERR_PNPM_BROKEN_METADATA_JSON`, `error (23)`), y la prueba local tardó 31 minutos en fallar.                                         | `pnpm deploy --legacy` de `api` y `worker` volvía a resolver dependencias contra el registro, con los metadatos completos que exige `minimumReleaseAge` (solo `next` pesa decenas de MB), y arrastraba `next` y `eslint-config-next` sin necesitarlos. No era la red: un `fetch` normal bajaba lo mismo en menos de 2 s. | PR #21: `deploy` desde el `pnpm-lock.yaml` (sin `--legacy`, `inject-workspace-packages` solo para ese comando), más reintentos y caché de metadatos. 34 s y 19 s. |
+| P3  | Media       | El comprobante decía «Abierta 30/10/26, 2:04 a. m. · Cerrada 2:35 a. m.» y la lista de cuentas cerradas «cerrada 11:35 p. m.».                                                       | El comprobante se renderiza en el servidor (UTC) y formatea sin zona; la lista se renderiza en el navegador.                                                                                                                                                                                                                | PR #22: `formatBusinessDateTime` en `America/Argentina/Buenos_Aires`. Verificado en producción: 11:04 p. m. y 11:35 p. m. del 29/10.                         |
+| P4  | Media       | El QR (`<slug>-carta.wizzi.com.ar`) no abría desde internet: sin DNS, Cloudflare `530 / 1016`, y Coolify con 404.                                                                     | Solo existían los hostnames de `app`, `api` y `supabase`. Nada creaba el del negocio.                                                                                                                                                                                                                                       | Cloudflare: registro `*` con proxy y regla `*.wizzi.com.ar` en el túnel (después de las específicas). Coolify: dominio del negocio en `web`. Ver «Pendiente». |
+
+Las migraciones, la función `resolve_sole_tenant_admin`, sus permisos, el host de plataforma y la cuenta (un solo negocio con
+dominio activo) se verificaron y **no** eran la causa de P1. Esa búsqueda llevó varias vueltas porque la API devolvía un 404
+controlado que no deja huella en el log, y la API de Coolify solo expone los logs del contenedor `web`.
+
+### Recorrido en producción (resultado)
+
+- **Negocio:** datos, horarios, colores, logo, portada y 3 fotos de referencia (subida múltiple). Guardado.
+- **Carta:** CSV de 15 filas (precio `24.900,50` bien interpretado), aprobación sin recargar la página, 15 fotos, publicación v1;
+  luego variantes (bife: 3, sorrentinos: 2, cerveza: 2), cambio de precio del bife y publicación v2.
+- **Plano y QR:** planta, 2 sectores, 10 mesas de 3 formas, 10 QR.
+- **Pagos:** crédito y débito habilitados; crédito deshabilitado después (deja de ofrecerse al comensal).
+- **Equipo:** 4 empleados; edición, desactivación y reactivación.
+- **Modo prueba y publicación:** los 6 pasos correctos; avance 100 %.
+- **Comensal (desde internet):** logo, colores y fotos de los 15 platos (todas responden `image/jpeg`, con cabeceras de
+  seguridad); pedido con variantes y total de $118.000 verificado a mano.
+- **Operación:** el mozo confirma, Cocina y Barra preparan (cada una ve solo sus ítems), la encargada abre la caja (fondo
+  $30.000), cobro parcial con propina, entrega, cobro del saldo con débito, cierre, comprobante (consumo 118.000, propina
+  2.000, efectivo 20.000, débito 100.000, saldo 0) y limpieza de la mesa.
+- **Permisos:** la encargada no puede abrir Cocina ni Barra (la redirige al inicio), como corresponde.
+
+### Despliegues
+
+| Fecha (UTC) | Commit    | Resultado                                           |
+| ----------- | --------- | --------------------------------------------------- |
+| 29/10 22:36 | `80fd455` | OK (todavía sin los arreglos de esta pasada)        |
+| 29/10 23:08 | `4a223fc` | OK (PR #19)                                         |
+| 30/10 00:08 | `1597cc9` | Falló dos veces al construir (P2)                   |
+| 30/10 01:18 | `408721a` | OK (PR #21; deja funcionando P1)                    |
+| 30/10 02:40 | `84af769` | OK (PR #22; arregla P3)                             |
+
+### Pendiente tras la pasada de producción
+
+- **Dominio por negocio en Coolify.** Coolify rechaza dominios con comodín (`Invalid URL: http://*.wizzi.com.ar`), por lo que cada
+  negocio nuevo necesita su dominio registrado en el servicio `web` (con la API de Coolify en el alta, o una regla `HostRegexp`
+  en las etiquetas de Traefik del compose). Cloudflare ya no necesita nada por negocio.
+- **Vista previa del panel:** no dibuja las fotos ya guardadas (solo miniaturas de la sesión de subida); el menú del comensal sí.
+- **Variantes con imagen:** el modelo no las admite; la imagen es del producto.
+- **Nombre mostrado:** la cabecera del personal y el comprobante usan el nombre del alta («PC CLEAN»), no el del perfil
+  («Pc Clean Resto»).
+- **Sin probar en producción:** faltante con reemplazo (solo en local), Mercado Pago, WhatsApp, dividir cuenta, fidelización,
+  traducción y móvil real.
+- **Operativo:** revocar el token de Cloudflare creado para esta pasada y cambiar los PIN de los empleados de prueba.
