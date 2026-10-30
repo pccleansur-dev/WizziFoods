@@ -9,6 +9,7 @@ import {
   openCallIds,
   playCallTone,
   readCallAlertMuted,
+  unattendedCallsLabel,
   vibrateForCall,
   writeCallAlertMuted
 } from "./call-alerts";
@@ -58,6 +59,12 @@ describe("call alerts", () => {
     expect(alertTitle("(3) Salón · Bar", 0)).toBe("Salón · Bar");
     expect(baseTitle("(12) Salón")).toBe("Salón");
     expect(baseTitle("Salón (2)")).toBe("Salón (2)");
+  });
+
+  it("tells the staff home how many calls wait, and nothing when none do", () => {
+    expect(unattendedCallsLabel(0)).toBeNull();
+    expect(unattendedCallsLabel(1)).toBe("1 llamado sin atender");
+    expect(unattendedCallsLabel(3)).toBe("3 llamados sin atender");
   });
 
   it("keeps the mute choice on the device and survives a broken storage", () => {

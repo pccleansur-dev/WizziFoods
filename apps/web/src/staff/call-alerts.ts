@@ -42,6 +42,14 @@ export function alertTitle(title: string, openCount: number): string {
   return openCount > 0 ? `(${openCount}) ${base}` : base;
 }
 
+/** What the staff home says about the calls nobody took yet; null when there are none. */
+export function unattendedCallsLabel(openCount: number): string | null {
+  if (openCount <= 0) return null;
+  return openCount === 1
+    ? "1 llamado sin atender"
+    : `${openCount} llamados sin atender`;
+}
+
 type MuteStorage = Pick<Storage, "getItem" | "setItem">;
 
 function deviceStorage(): MuteStorage | null {
