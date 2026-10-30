@@ -13,6 +13,16 @@
 FROM node:24-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm CI=1
 ENV PATH=$PNPM_HOME:$PATH
+# `pnpm deploy --legacy` re-resolved dependencies against the registry (with the full metadata that
+# minimumReleaseAge needs; `next` alone is tens of MB) and timed out on slow builds. Deploy now installs
+# from the lockfile (inject-workspace-packages is enabled for that command only). The rest is margin for
+# a slow network: more retries than pnpm's default (2), and a metadata cache kept between builds.
+ENV pnpm_config_fetch_retries=4 \
+    pnpm_config_fetch_retry_mintimeout=10000 \
+    pnpm_config_fetch_retry_maxtimeout=60000 \
+    pnpm_config_fetch_timeout=120000 \
+    pnpm_config_cache_dir=/pnpm/cache \
+    pnpm_config_prefer_offline=true
 RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
 WORKDIR /repo
 
@@ -28,7 +38,7 @@ COPY packages/database/package.json packages/database/
 COPY packages/infra/package.json packages/infra/
 COPY packages/integrations/package.json packages/integrations/
 COPY packages/observability/package.json packages/observability/
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store --mount=type=cache,id=pnpm-metadata,target=/pnpm/cache pnpm install --frozen-lockfile
 
 FROM deps AS source
 COPY . .
@@ -36,7 +46,8 @@ COPY . .
 # ---- api ------------------------------------------------------------------------------
 FROM source AS build-api
 RUN pnpm exec turbo run build --filter=@platform/api...
-RUN pnpm --filter @platform/api deploy --prod --legacy /out/api
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store --mount=type=cache,id=pnpm-metadata,target=/pnpm/cache \
+    pnpm_config_inject_workspace_packages=true pnpm --filter @platform/api deploy --prod /out/api
 
 FROM node:24-bookworm-slim AS api
 ENV NODE_ENV=production API_PORT=3001
@@ -51,7 +62,8 @@ CMD ["node", "dist/main.js"]
 # ---- worker ---------------------------------------------------------------------------
 FROM source AS build-worker
 RUN pnpm exec turbo run build --filter=@platform/worker...
-RUN pnpm --filter @platform/worker deploy --prod --legacy /out/worker
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store --mount=type=cache,id=pnpm-metadata,target=/pnpm/cache \
+    pnpm_config_inject_workspace_packages=true pnpm --filter @platform/worker deploy --prod /out/worker
 
 FROM node:24-bookworm-slim AS worker
 ENV NODE_ENV=production
