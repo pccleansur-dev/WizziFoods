@@ -83,7 +83,22 @@ export function useCallAlerts(calls: readonly WaiterCallView[]) {
   }, [calls]);
 
   useEffect(() => {
-    document.title = alertTitle(document.title, openCount);
+    const apply = () => {
+      const next = alertTitle(document.title, openCount);
+      if (next !== document.title) document.title = next;
+    };
+    apply();
+    // The framework writes the page title again once the page finished loading, which erased
+    // the count when the salon opened with calls already waiting: put it back.
+    const titleElement = document.querySelector("title");
+    if (!titleElement || openCount === 0) return;
+    const observer = new MutationObserver(apply);
+    observer.observe(titleElement, {
+      characterData: true,
+      childList: true,
+      subtree: true
+    });
+    return () => observer.disconnect();
   }, [openCount]);
 
   useEffect(

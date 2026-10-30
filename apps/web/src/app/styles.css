@@ -1756,6 +1756,16 @@ dd {
   font-size: 0.875rem;
 }
 
+.staff-module-card .staff-module-alert {
+  display: inline-block;
+  margin: 0.5rem 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: #fdecc8;
+  color: #5c3b00;
+  font-weight: 700;
+}
+
 .staff-module-card small {
   color: #80613d;
   font-weight: 700;
