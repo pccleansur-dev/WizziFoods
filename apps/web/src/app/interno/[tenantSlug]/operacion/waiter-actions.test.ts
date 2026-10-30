@@ -57,6 +57,26 @@ describe("waiter server actions", () => {
     expect(JSON.parse(init.body)).toEqual({ commandId });
   });
 
+  it("resolves a diner call through the staff API", async () => {
+    fetchMock.mockResolvedValue(
+      json(200, { data: { callId, status: "closed" } })
+    );
+    const { resolveCallAction } = await import("./waiter-actions");
+    await expect(resolveCallAction("bar", callId, commandId)).resolves.toEqual({
+      data: { callId, status: "closed" },
+      status: "ok"
+    });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe(
+      `http://api.localhost:3001/v1/staff/calls/${callId}/resolve`
+    );
+    expect(JSON.parse(init.body)).toEqual({ commandId });
+    await expect(
+      resolveCallAction("bar", "not-a-uuid", commandId)
+    ).resolves.toMatchObject({ status: "error" });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("fails closed without a session cookie and never calls the API", async () => {
     cookieValue.mockReturnValue(undefined);
     const { claimCallAction } = await import("./waiter-actions");

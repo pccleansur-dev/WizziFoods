@@ -18,6 +18,7 @@ import {
   isWaiterUuid,
   parseManualOrderRequest,
   parseWaiterCallClaimRequest,
+  parseWaiterCallResolveRequest,
   parseWaiterIntentDecisionRequest,
   type StaffCapability
 } from "@platform/contracts";
@@ -171,6 +172,24 @@ export class WaiterController {
     if (!parsed) throw invalid();
     try {
       return { data: await this.service.claimCall(context, id, parsed) };
+    } catch (error) {
+      return mapFailure(error);
+    }
+  }
+
+  @Post("calls/:callId/resolve")
+  @HttpCode(HttpStatus.OK)
+  async resolve(
+    @Req() request: WaiterRequest,
+    @Param("callId") callId: string,
+    @Body() body: unknown
+  ) {
+    const context = needs(request, "calls.manage");
+    const parsed = parseWaiterCallResolveRequest(body);
+    const id = identifier(callId);
+    if (!parsed) throw invalid();
+    try {
+      return { data: await this.service.resolveCall(context, id, parsed) };
     } catch (error) {
       return mapFailure(error);
     }

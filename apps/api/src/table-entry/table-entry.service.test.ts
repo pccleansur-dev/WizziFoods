@@ -83,10 +83,31 @@ describe("TableEntryService", () => {
     }
   );
 
+  it("keeps the waiter call of a seated table while the business is closing tables", async () => {
+    const { result } = await outcome(
+      entry({ acceptsNewTables: false, serviceState: "occupied" })
+    );
+    expect(result).toMatchObject({ entry: { canCallWaiter: true } });
+  });
+
+  it.each(["available", "needs_cleaning", "out_of_service"])(
+    "takes no waiter call from a %s table while the business is closing tables",
+    async (serviceState) => {
+      const { result } = await outcome(
+        entry({ acceptsNewTables: false, serviceState })
+      );
+      expect(result).toMatchObject({
+        entry: { canCallWaiter: false, mode: "view_only" },
+        status: "ok"
+      });
+    }
+  );
+
   it("does not open new tables while the business is closing them", async () => {
     const { result } = await outcome(entry({ acceptsNewTables: false }));
     expect(result).toMatchObject({
       entry: {
+        canCallWaiter: false,
         canConfirmOrder: false,
         mode: "view_only",
         reason: "not_accepting"

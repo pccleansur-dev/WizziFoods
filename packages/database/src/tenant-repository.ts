@@ -31,6 +31,10 @@ import {
   type OrderIntentRepository
 } from "./order-intent-repository.js";
 import {
+  createWaiterCallRepository,
+  type WaiterCallRepository
+} from "./waiter-call-repository.js";
+import {
   createCashRegisterRepository,
   type CashRegisterRepository
 } from "./cash-register-repository.js";
@@ -163,6 +167,7 @@ export type TenantDatabase = {
   floorPlanRepository: FloorPlanRepository;
   identityAccessRepository: IdentityAccessRepository;
   orderIntentRepository: OrderIntentRepository;
+  waiterCallRepository: WaiterCallRepository;
   orderAdjustmentsRepository: OrderAdjustmentsRepository;
   cashRegisterRepository: CashRegisterRepository;
   mercadoPagoRepository: MercadoPagoRepository;
@@ -257,6 +262,7 @@ export function createTenantDatabase(databaseUrl: string): TenantDatabase {
     },
     floorPlanRepository: createFloorPlanRepository(client),
     orderIntentRepository: createOrderIntentRepository(client),
+    waiterCallRepository: createWaiterCallRepository(client),
     orderAdjustmentsRepository: createOrderAdjustmentsRepository(client),
     cashRegisterRepository: createCashRegisterRepository(client),
     mercadoPagoRepository: createMercadoPagoRepository(client),

@@ -640,6 +640,164 @@ describeWithLocalStack("waiter operations with local Supabase", () => {
     ).toBe(404);
   });
 
+  describe("diner calls to the waiter", () => {
+    async function dinerCall(
+      label: string,
+      reason: string,
+      host = one.hostname,
+      token = tokens.get(label)
+    ) {
+      const response = await app!.getHttpAdapter().getInstance().inject({
+        headers: { host },
+        method: "POST",
+        payload: { reason, token },
+        url: "/v1/public/waiter-calls"
+      });
+      return { body: response.json(), status: response.statusCode };
+    }
+    const resolveCall = (user: string, callId: string, commandId = next()) =>
+      staff(user, "POST", `/v1/staff/calls/${callId}/resolve`, {
+        commandId
+      });
+    const callsOf = async (user: string) =>
+      (await staff(user, "GET", "/v1/staff/salon")).body.data.calls as {
+        id: string;
+        intentId: string | null;
+        paymentMethod: string | null;
+        reason: string;
+      }[];
+
+    it("opens one call per table and reason, and replays it", async () => {
+      const first = await dinerCall("2", "call_waiter");
+      expect(first.status).toBe(200);
+      expect(first.body.data).toMatchObject({
+        created: true,
+        reason: "call_waiter",
+        status: "open"
+      });
+      const again = await dinerCall("2", "call_waiter");
+      expect(again.body.data).toMatchObject({
+        callId: first.body.data.callId,
+        created: false
+      });
+      const rows = await admin`
+        select 1 from private.waiter_calls
+        where tenant_id = ${one.tenantId} and reason = 'call_waiter'
+          and table_id = ${tableMain2} and status in ('open', 'acknowledged')
+      `;
+      expect(rows).toHaveLength(1);
+    });
+
+    it("shows it only to the waiters of that sector, with its reason", async () => {
+      const ana = (await callsOf("ana")).find(
+        (call) => call.reason === "call_waiter"
+      );
+      expect(ana).toMatchObject({ intentId: null, paymentMethod: null });
+      expect(
+        (await callsOf("carla")).some((call) => call.reason === "call_waiter")
+      ).toBe(false);
+      expect(
+        (await callsOf("otra")).some((call) => call.reason === "call_waiter")
+      ).toBe(false);
+    });
+
+    it("is claimed and resolved by staff, and then disappears", async () => {
+      const call = (await callsOf("ana")).find(
+        (item) => item.reason === "call_waiter"
+      )!;
+      expect((await claim("bruno", call.id)).status).toBe(200);
+      const blocked = await resolveCall("ana", call.id);
+      expect(blocked.status).toBe(409);
+      expect(blocked.body.error.code).toBe("CALL_ALREADY_CLAIMED");
+      expect((await resolveCall("coco", call.id)).status).toBe(403);
+      const done = await resolveCall("marta", call.id);
+      expect(done.status).toBe(200);
+      expect(done.body.data).toEqual({ callId: call.id, status: "closed" });
+      expect((await callsOf("ana")).some((item) => item.id === call.id)).toBe(
+        false
+      );
+      expect((await resolveCall("marta", call.id)).status).toBe(409);
+      const audits = await admin`
+        select 1 from private.audit_events
+        where action = 'waiter_call.resolved' and subject_id = ${call.id}
+      `;
+      expect(audits).toHaveLength(1);
+    });
+
+    it("never resolves an order validation call from the call endpoint", async () => {
+      const { callId } = await diner("1");
+      const refused = await resolveCall("marta", callId!);
+      expect(refused.status).toBe(400);
+      expect(refused.body.error.code).toBe("INVALID_WAITER_REQUEST");
+    });
+
+    it("refuses forged scope, unknown tokens and tokens of another business", async () => {
+      const forged = await app!
+        .getHttpAdapter()
+        .getInstance()
+        .inject({
+          headers: { host: one.hostname },
+          method: "POST",
+          payload: {
+            reason: "help",
+            tenantId: two.tenantId,
+            token: tokens.get("2")
+          },
+          url: "/v1/public/waiter-calls"
+        });
+      expect(forged.statusCode).toBe(400);
+      expect((await dinerCall("2", "order_validation")).status).toBe(400);
+      expect(
+        (await dinerCall("2", "help", one.hostname, "0".repeat(64))).status
+      ).toBe(409);
+      const foreign = await dinerCall("2", "help", two.hostname);
+      expect(foreign.status).toBe(409);
+      expect(foreign.body.error.code).toBe("WAITER_CALL_TABLE_CHANGED");
+      expect(
+        (await dinerCall("2", "help", "nadie.plataforma.test")).status
+      ).toBe(404);
+    });
+
+    it("asks for the bill only on an open table and limits the frequency", async () => {
+      const early = await dinerCall("3", "request_bill");
+      expect(early.status).toBe(409);
+      expect(early.body.error.code).toBe("WAITER_CALL_NO_OPEN_TABLE");
+      await admin`
+        insert into private.floor_table_service_states
+          (tenant_id, location_id, table_id, state)
+        values (${one.tenantId}, ${locationOne}, ${tableTerrace}, 'occupied')
+      `;
+      const bill = await dinerCall("3", "request_bill");
+      expect(bill.status).toBe(200);
+      expect(bill.body.data.reason).toBe("request_bill");
+      expect(
+        (await callsOf("carla")).find(
+          (item) => item.id === bill.body.data.callId
+        )
+      ).toMatchObject({ reason: "request_bill" });
+      expect((await resolveCall("carla", bill.body.data.callId)).status).toBe(
+        200
+      );
+
+      let limited = 0;
+      for (let attempt = 0; attempt < 8 && limited === 0; attempt += 1) {
+        const call = await dinerCall("3", "help");
+        if (call.status === 429) {
+          limited = attempt + 1;
+          expect(call.body.error.code).toBe("WAITER_CALL_RATE_LIMITED");
+        } else {
+          expect(call.status).toBe(200);
+          await resolveCall("carla", call.body.data.callId);
+        }
+      }
+      expect(limited).toBeGreaterThan(0);
+      await admin`
+        delete from private.floor_table_service_states
+        where tenant_id = ${one.tenantId} and table_id = ${tableTerrace}
+      `;
+    });
+  });
+
   it("audits decisions without secrets and keeps orders append-only", async () => {
     const audits = await admin<{ action: string; reason: string }[]>`
       select action, reason from private.audit_events

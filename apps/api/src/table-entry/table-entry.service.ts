@@ -48,7 +48,11 @@ export class TableEntryService {
     const group = found.group
       ? { name: found.group.name, tableLabels: found.group.tableLabels }
       : null;
-    const base = { canCallWaiter: true, group, table };
+    // A suspended business keeps serving the tables already seated but takes no
+    // call from one nobody is using; it mirrors private.create_waiter_call.
+    const canCallWaiter =
+      found.serviceState === "occupied" || found.acceptsNewTables;
+    const base = { canCallWaiter, group, table };
 
     if (found.serviceState === "occupied") {
       return {

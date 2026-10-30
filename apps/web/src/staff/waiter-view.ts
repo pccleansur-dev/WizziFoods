@@ -1,6 +1,7 @@
 import type {
   CatalogDraft,
   LocalizedCatalogContent,
+  WaiterCallReason,
   WaiterInPersonMethod,
   WaiterSalonUnit,
   WaiterSalonView,
@@ -195,4 +196,15 @@ export function buildWaiterMenu(
           title: localizedTitle(variant.content)
         }))
     }));
+}
+
+const callReasonLabels: Record<WaiterCallReason, string> = {
+  call_waiter: "Llama al mozo",
+  help: "Pide ayuda",
+  order_validation: "Pedido por validar",
+  request_bill: "Pide la cuenta"
+};
+
+export function callReasonLabel(reason: WaiterCallReason): string {
+  return callReasonLabels[reason];
 }

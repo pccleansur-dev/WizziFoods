@@ -5,10 +5,13 @@ import {
   parseManualOrderRequest,
   parseWaiterCallClaimRequest,
   parseWaiterCallClaimResult,
+  parseWaiterCallResolveRequest,
+  parseWaiterCallResolveResult,
   parseWaiterIntentDecisionRequest,
   parseWaiterIntentDecisionResult,
   parseWaiterOrderResult,
   type WaiterCallClaimResult,
+  type WaiterCallResolveResult,
   type WaiterIntentDecisionRequest,
   type WaiterIntentDecisionResult,
   type WaiterManualOrderRequest,
@@ -58,6 +61,22 @@ export async function claimCallAction(
     `/v1/staff/calls/${callId}/claim`,
     request,
     parseWaiterCallClaimResult
+  );
+}
+
+export async function resolveCallAction(
+  tenantSlug: string,
+  callId: string,
+  commandId: string
+): Promise<WaiterActionResult<WaiterCallResolveResult>> {
+  const request = parseWaiterCallResolveRequest({ commandId });
+  if (!isWaiterUuid(callId) || !request)
+    return failure("INVALID_WAITER_REQUEST");
+  return run(
+    tenantSlug,
+    `/v1/staff/calls/${callId}/resolve`,
+    request,
+    parseWaiterCallResolveResult
   );
 }
 

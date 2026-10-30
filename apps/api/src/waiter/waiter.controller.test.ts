@@ -39,7 +39,8 @@ function serviceStub() {
     createManualOrder: vi.fn().mockResolvedValue({ orderId: "order" }),
     decideIntent: vi.fn().mockResolvedValue({ decision: "rejected" }),
     getMenu: vi.fn().mockResolvedValue(null),
-    getSalon: vi.fn().mockResolvedValue({ units: [] })
+    getSalon: vi.fn().mockResolvedValue({ units: [] }),
+    resolveCall: vi.fn().mockResolvedValue({ callId, status: "closed" })
   };
 }
 
@@ -114,6 +115,28 @@ describe("WaiterController", () => {
     expect(service.claimCall).not.toHaveBeenCalled();
     expect(service.decideIntent).not.toHaveBeenCalled();
     expect(service.createManualOrder).not.toHaveBeenCalled();
+  });
+
+  it("resolves a call with the same capability and strict body as claiming", async () => {
+    const service = serviceStub();
+    const controller = new WaiterController(service as never);
+    await expect(
+      controller.resolve(request(all), callId, { commandId })
+    ).resolves.toEqual({ data: { callId, status: "closed" } });
+    await expect(
+      controller.resolve(request([]), callId, { commandId })
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      controller.resolve(request(all), callId, { commandId, tenantId: "x" })
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      controller.resolve(request(all), "not-a-uuid", { commandId })
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(service.resolveCall).toHaveBeenCalledOnce();
+    service.resolveCall.mockRejectedValue(databaseError("PT204"));
+    await expect(
+      controller.resolve(request(all), callId, { commandId })
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("maps database state errors without leaking details", async () => {

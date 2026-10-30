@@ -48,10 +48,54 @@ cada 5 s mientras la pestaña es visible. Un fallo de red conserva la última le
 
 ## Llamados
 
+Hay dos clases de llamado, en la misma tabla (`private.waiter_calls`):
+
+- **Validación de pedido** (`order_validation`): lo crea el pedido en persona de T18 y se
+  cierra al confirmar o rechazar la intención.
+- **Llamado del comensal** (`call_waiter`, `request_bill`, `help`): lo crea el comensal desde
+  su pantalla de mesa (ver `entrada-por-qr.md`). No tiene intención ni medio de pago.
+
 Reclamar (`open → acknowledged`) bloquea la fila: de dos Mozos simultáneos gana uno y el
 otro recibe `409 CALL_ALREADY_CLAIMED`. Repetir el mismo `commandId` devuelve el mismo
 resultado; reclamar tu propio llamado de nuevo es idempotente. Un llamado tomado por otro
 Mozo sólo lo resuelve ese Mozo o un Encargado.
+
+### Llamados del comensal en el salón
+
+- La pestaña «Salón y llamados» muestra una sección **«Llamados de mesa»** (sobre «Llamados y
+  pedidos por validar») con la mesa, el motivo («Llama al mozo», «Pide la cuenta», «Pide
+  ayuda»), cuánto hace que esperan y su estado. Cada Mozo ve sólo los de sus sectores; el
+  Encargado, todos.
+- **Tomar** usa el flujo de `claim` de siempre. **Resolver**
+  (`POST /v1/staff/calls/:callId/resolve`, capacidad `calls.manage`, mismo cuerpo
+  `{ commandId }`) pasa el llamado a `closed` y lo hace desaparecer de la vista. Se puede
+  resolver sin haberlo tomado antes; uno tomado por otro Mozo sólo lo resuelve un Encargado.
+  Queda auditado (`waiter_call.resolved`).
+- Un llamado de validación de pedido **no** se resuelve por acá (`400`): se cierra decidiendo
+  la intención.
+- Si la mesa ya tiene abierto el mismo motivo, el comensal no crea otro: ve el mismo llamado.
+  Una vez resuelto, puede volver a pedirlo.
+
+### Aviso al personal
+
+Cuando entra un llamado nuevo sin atender (de cualquier clase) la pantalla del salón avisa en
+ese dispositivo, sin enviar nada afuera:
+
+- **Sonido corto** (dos notas) y **vibración** (200-100-200 ms) donde el dispositivo la tiene.
+  Los navegadores sólo dejan sonar después de un toque en la página: el primer toque o tecla
+  la habilita, y volver a activar el sonido lo reproduce de muestra.
+- **Control para silenciar** «Aviso de llamados…»: se guarda en el propio dispositivo
+  (`localStorage`, clave `staff.callAlerts.muted`); silenciado no suena ni vibra, pero el resto
+  del aviso sigue.
+- **Título de la pestaña** con el contador de llamados sin atender, por ejemplo
+  «(2) Salón…», que vuelve a la normalidad al tomarlos.
+- **Destaque visual**: la franja de estado se resalta mientras haya llamados sin atender, y
+  cada llamado nuevo parpadea unos segundos (sin animación si el sistema pide menos
+  movimiento).
+- La primera lectura al abrir la pantalla no avisa: sólo lo que llega después. Los llamados
+  se enteran por Realtime (T31) o por el sondeo de respaldo de 5 s.
+- **No usa el Web Push de comensales** (`avisos-pwa.md`) ni ningún envío externo: si la
+  pestaña está cerrada o el teléfono bloqueado, el aviso no llega.
 
 ## Decidir una intención
 
@@ -108,9 +152,13 @@ pnpm e2e                                                  # 3100/3101; waiter-op
 ```
 
 - pgTap `waiter_operations.test.sql`: 71 aserciones con dos tenants.
+- pgTap `diner_waiter_calls.test.sql`: 37 aserciones (llamados del comensal: idempotencia,
+  motivos, suspensión, límite de frecuencia, alcance por sector, resolver, aislamiento).
 - Integración HTTP con dos tenants y dos Mozos concurrentes (reclamo, decisión, stock,
   reintento idéntico, Mercado Pago, comanda manual, sesión revocada).
-- Playwright móvil (375 px) y escritorio: cliente → llamado → Mozo → pedido confirmado.
+- Playwright móvil (375 px) y escritorio: cliente → llamado → Mozo → pedido confirmado, y
+  `waiter-calls.spec.ts`: el comensal llama, el Mozo lo ve con el título «(1) …», lo toma y
+  lo resuelve, y el silencio queda guardado.
 
 Migración `20261024090000_create_waiter_operations.sql`; se aplica con `supabase_admin`
 (dueño de las tablas de T18). Rollback: `supabase/rollbacks/20261024090000_create_waiter_operations.down.sql`
@@ -118,8 +166,19 @@ Migración `20261024090000_create_waiter_operations.sql`; se aplica con `supabas
 
 ## Límites conocidos
 
-- **No hay todavía un «Llamar al mozo» genérico** del comensal (mesa sólo-carta): el
-  único llamado es `order_validation` de T18.
+- **Un llamado del comensal es un aviso, no un pedido**: no abre la cuenta, no confirma nada y
+  no tiene cola de espera ni prioridad; si nadie lo toma sigue sin atender hasta que alguien lo resuelva.
 - Con stock en cero la confirmación se rechaza, pero no se apaga la disponibilidad del
   producto (esa tabla exige un miembro administrador como autor).
 - La vista se actualiza por Realtime (T31) con polling de respaldo cada 5 s.
+
+## Migración de los llamados del comensal
+
+`20261103010000_create_diner_waiter_calls.sql` (se aplica con `supabase_admin`): permite
+llamados sin intención ni medio de pago, agrega los motivos `call_waiter`, `request_bill` y
+`help`, un índice único parcial («un llamado vivo por mesa y motivo») y las funciones
+`private.create_waiter_call` y `private.resolve_waiter_call`. Además parchea la vista del
+salón para devolver el motivo real. El invalidador de Realtime ya existente
+(`waiter_calls_realtime`) cubre las filas nuevas. Rollback:
+`supabase/rollbacks/20261103010000_create_diner_waiter_calls.down.sql` (borra los llamados del
+comensal; sólo antes de operar de verdad).

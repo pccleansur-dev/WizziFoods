@@ -22,6 +22,7 @@ import type { WaiterMenuProduct } from "../../../../../staff/waiter-view";
 import { waiterErrorMessage } from "../../../../../staff/waiter-view";
 import {
   claimCallAction,
+  resolveCallAction,
   createManualOrderAction,
   decideIntentAction
 } from "../waiter-actions";
@@ -68,6 +69,9 @@ import { CashPanel } from "./cash-panel";
 import { LoyaltySettingsPanel } from "./loyalty-settings-panel";
 import { OrdersInProgress } from "./orders-in-progress";
 import { WaiterPending } from "./waiter-pending";
+import { CallAlertToggle } from "./call-alert-toggle";
+import { WaiterCalls } from "./waiter-calls";
+import { useCallAlerts } from "../../../../../staff/use-call-alerts";
 import { WaiterTables } from "./waiter-tables";
 import { ConnectionBanner } from "../../../../../lib/connection-banner";
 import { OFFLINE_ACTION_MESSAGE } from "../../../../../lib/connection-view";
@@ -223,6 +227,7 @@ export function WaiterWorkspace({
 
   // Realtime says "something changed" and every reconnection asks again; without it the
   // screen polls. Either way the state shown is always the server's.
+  const alerts = useCallAlerts(view.calls);
   const live = useLiveSync({
     endpoint: `/interno/${tenantSlug}/operacion/tiempo-real`,
     refresh
@@ -265,6 +270,17 @@ export function WaiterWorkspace({
     setNotice(
       result.status === "ok"
         ? { kind: "ok", text: "Tomaste el llamado." }
+        : { kind: "error", text: result.message }
+    );
+  }
+
+  async function resolveCall(callId: string) {
+    const result = await perform(`resolve:${callId}`, (commandId) =>
+      resolveCallAction(tenantSlug, callId, commandId)
+    );
+    setNotice(
+      result.status === "ok"
+        ? { kind: "ok", text: "Resolviste el llamado." }
         : { kind: "error", text: result.message }
     );
   }
@@ -691,14 +707,23 @@ export function WaiterWorkspace({
   return (
     <div className="waiter-workspace">
       <ConnectionBanner state={live} />
-      <p aria-live="polite" className="waiter-status" role="status">
+      <p
+        aria-live="polite"
+        className={
+          alerts.openCount > 0
+            ? "waiter-status waiter-status--alert"
+            : "waiter-status"
+        }
+        role="status"
+      >
         {openCalls === 0
           ? "Sin llamados abiertos."
-          : `${openCalls} llamado${openCalls === 1 ? "" : "s"} abierto${openCalls === 1 ? "" : "s"}.`}{" "}
+          : `${openCalls} llamado${openCalls === 1 ? "" : "s"} abierto${openCalls === 1 ? "" : "s"}${alerts.openCount > 0 ? `, ${alerts.openCount} sin atender` : ""}.`}{" "}
         {stale
           ? "Sin conexión con el servidor: se muestra la última lectura."
           : "Se actualiza solo."}
       </p>
+      <CallAlertToggle muted={alerts.muted} onChange={alerts.setMuted} />
 
       <nav aria-label="Vistas del salón" className="waiter-tabs">
         <button
@@ -867,6 +892,15 @@ export function WaiterWorkspace({
         />
       ) : tab === "salon" ? (
         <>
+          <WaiterCalls
+            busy={busy}
+            calls={view.calls}
+            canOverrideClaim={isManager}
+            fresh={alerts.fresh}
+            now={now}
+            onClaim={(callId) => void claim(callId)}
+            onResolve={(callId) => void resolveCall(callId)}
+          />
           {canValidate ? (
             <WaiterPending
               busy={busy}

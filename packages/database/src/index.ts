@@ -110,6 +110,11 @@ export {
   type OrderIntentRepository
 } from "./order-intent-repository.js";
 export {
+  type CreateWaiterCallInput,
+  createWaiterCallRepository,
+  type WaiterCallRepository
+} from "./waiter-call-repository.js";
+export {
   createCashRegisterRepository,
   type CashRegisterRepository
 } from "./cash-register-repository.js";
