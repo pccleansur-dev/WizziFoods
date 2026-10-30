@@ -76,6 +76,11 @@ recuperación de contraseña), `MERCADO_PAGO_*` (modo `off`), `WHATSAPP_*` y `WE
 - **Una migración ya aplicada no se edita.** Si cambió el archivo, `migrate` se detiene con el nombre del archivo: el cambio va en una migración nueva.
 - **Volver atrás:** ver `lanzamiento.md` (sección «Cómo se vuelve atrás»): _Rollback_ de la aplicación en Coolify y, si la migración no convive con la versión
   anterior, su archivo de `supabase/rollbacks/`.
+- **Si la construcción falla bajando paquetes** (`ERR_PNPM_BROKEN_METADATA_JSON`, `error (23)`, timeout contra `registry.npmjs.org` al ejecutar `pnpm deploy`): antes el
+  `deploy` de `api` y `worker` usaba `--legacy`, que vuelve a resolver las dependencias contra el registro (con los metadatos completos que pide `minimumReleaseAge`;
+  solo `next` pesa decenas de MB) y se colgaba hasta 30 minutos sin tocar el código. Ahora instala desde el `pnpm-lock.yaml` (`inject-workspace-packages` activado solo
+  para ese comando): unos 20-35 segundos y sin `next` en las imágenes de API y worker. El `Dockerfile` también da más margen de red (4 reintentos, 120 s) y guarda los
+  metadatos de pnpm en una caché de BuildKit. Un despliegue fallido deja la versión anterior en ejecución; reintentar con _Redeploy_.
 - **Base que ya se migró a mano** (por ejemplo la local de desarrollo): `docker run … sh /migrate.sh --baseline` la marca como al día sin ejecutar nada.
 
 ## 6. Copias, monitoreo y seguridad en este servidor
