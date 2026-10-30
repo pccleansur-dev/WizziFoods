@@ -52,9 +52,16 @@ function deviceStorage(): MuteStorage | null {
   }
 }
 
+/**
+ * The choice that could not be saved on the device (blocked storage). It still
+ * applies while this page stays open, it just is not remembered afterwards.
+ */
+let unsaved: boolean | null = null;
+
 export function readCallAlertMuted(
   storage: MuteStorage | null = deviceStorage()
 ): boolean {
+  if (unsaved !== null) return unsaved;
   try {
     return storage?.getItem(callAlertStorageKey) === "1";
   } catch {
@@ -67,12 +74,19 @@ export function writeCallAlertMuted(
   storage: MuteStorage | null = deviceStorage()
 ): void {
   try {
-    storage?.setItem(callAlertStorageKey, muted ? "1" : "0");
-    if (typeof window !== "undefined")
-      window.dispatchEvent(new Event(mutedChanged));
+    if (!storage) throw new Error("no storage");
+    storage.setItem(callAlertStorageKey, muted ? "1" : "0");
+    unsaved = null;
   } catch {
-    // The choice just is not remembered on this device.
+    unsaved = muted;
   }
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new Event(mutedChanged));
+}
+
+/** Test hook: forgets a choice that was only kept in memory. */
+export function resetUnsavedCallAlertMuted(): void {
+  unsaved = null;
 }
 
 type ToneWindow = {

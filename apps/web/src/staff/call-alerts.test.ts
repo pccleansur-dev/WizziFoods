@@ -9,6 +9,7 @@ import {
   openCallIds,
   playCallTone,
   readCallAlertMuted,
+  resetUnsavedCallAlertMuted,
   vibrateForCall,
   writeCallAlertMuted
 } from "./call-alerts";
@@ -81,8 +82,27 @@ describe("call alerts", () => {
       }
     };
     expect(readCallAlertMuted(broken)).toBe(false);
-    expect(() => writeCallAlertMuted(true, broken)).not.toThrow();
     expect(readCallAlertMuted(null)).toBe(false);
+  });
+
+  it("still silences the alert while the page is open when storage is blocked", () => {
+    const broken = {
+      getItem: () => {
+        throw new Error("blocked");
+      },
+      setItem: () => {
+        throw new Error("blocked");
+      }
+    };
+    try {
+      expect(() => writeCallAlertMuted(true, broken)).not.toThrow();
+      expect(readCallAlertMuted(broken)).toBe(true);
+      expect(readCallAlertMuted(null)).toBe(true);
+      writeCallAlertMuted(false, broken);
+      expect(readCallAlertMuted(broken)).toBe(false);
+    } finally {
+      resetUnsavedCallAlertMuted();
+    }
   });
 
   it("does not break where there is no sound or vibration", () => {
