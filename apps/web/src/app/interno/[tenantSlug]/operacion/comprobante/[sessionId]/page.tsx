@@ -7,18 +7,12 @@ import { loadStaffSession } from "../../../../../../staff/load-staff-session";
 import { callStaffApi } from "../../../../../../staff/waiter-api";
 import { formatMoney } from "../../../../../m/[token]/diner-catalog-format";
 import { PrintReceiptButton } from "./print-receipt-button";
+import { formatBusinessDateTime } from "../../../../../../lib/business-time";
 
 export const metadata: Metadata = {
   robots: { follow: false, index: false },
   title: "Comprobante de consumo"
 };
-
-function stamp(value: string): string {
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
-}
 
 /**
  * Non-fiscal receipt of a closed account. It reads the receipt issued at close,
@@ -64,8 +58,8 @@ export default async function ReceiptPage({
             · Comprobante N° {receipt.number}
           </p>
           <p>
-            Abierta {stamp(receipt.openedAt)} · Cerrada{" "}
-            {stamp(receipt.closedAt)}
+            Abierta {formatBusinessDateTime(receipt.openedAt)} · Cerrada{" "}
+            {formatBusinessDateTime(receipt.closedAt)}
           </p>
         </header>
 
