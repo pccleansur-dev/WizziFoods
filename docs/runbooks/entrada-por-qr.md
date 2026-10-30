@@ -29,15 +29,15 @@ estado de servicio, si el negocio está publicado y si acepta mesas nuevas
 **Una mesa sin fila está disponible.** T16 sólo lee esta tabla; quien la escribirá es la
 operación del salón (T19), la sesión de mesa (T22) y el cierre/limpieza (T26, ya implementado: `cierre-limpieza-y-comprobante.md`).
 
-| Situación                                     | Modo          | ¿Confirma pedido? | Mensaje                                        |
-| --------------------------------------------- | ------------- | ----------------- | ---------------------------------------------- |
-| Disponible                                    | `start`       | Sí                | «La mesa está lista…»                          |
-| Ocupada                                       | `join`        | Sí                | «Tu mesa ya está abierta: te sumás al pedido»  |
-| Pendiente de limpieza                         | `view_only`   | No                | Puede ver la carta y llamar al mozo            |
-| Fuera de servicio                             | `view_only`   | No                | Ídem; el mozo lo ayuda a sentarse en otra mesa |
-| Disponible, con suspensión comercial en curso | `view_only`   | No                | «Por hoy el local no abre mesas nuevas»        |
-| Ocupada, con suspensión comercial en curso    | `join`        | Sí                | La mesa abierta puede terminar su servicio     |
-| Negocio sin publicar                          | `unavailable` | —                 | «Este local aún no está abierto»               |
+| Situación                                     | Modo          | ¿Confirma pedido?  | Mensaje                                        |
+| --------------------------------------------- | ------------- | ------------------ | ---------------------------------------------- |
+| Disponible                                    | `start`       | Sí                 | «La mesa está lista…»                          |
+| Ocupada                                       | `join`        | Sí                 | «Tu mesa ya está abierta: te sumás al pedido»  |
+| Pendiente de limpieza                         | `view_only`   | No                 | Puede ver la carta y llamar al mozo            |
+| Fuera de servicio                             | `view_only`   | No                 | Ídem; el mozo lo ayuda a sentarse en otra mesa |
+| Disponible, con suspensión comercial en curso | `view_only`   | No (y sin llamado) | «Por hoy el local no abre mesas nuevas»        |
+| Ocupada, con suspensión comercial en curso    | `join`        | Sí                 | La mesa abierta puede terminar su servicio     |
+| Negocio sin publicar                          | `unavailable` | —                  | «Este local aún no está abierto»               |
 
 ## Grupos
 
@@ -62,9 +62,43 @@ sesión viva que migrar: unir o separar mesas con una cuenta abierta cambia qué
 sesión, nunca mueve deuda ni pedidos, y el personal elige la mesa ancla al separar (T27, ver
 `unir-y-separar-mesas.md`). Todos los QR del grupo leen el grupo vigente en cada escaneo.
 
+## Llamar al mozo
+
+La pantalla de la mesa muestra un bloque **«¿Necesitás al mozo?»** con botones de motivo
+acotado, sólo si la mesa lo permite (`canCallWaiter`):
+
+| Botón           | Motivo (`reason`) | Cuándo se ofrece                                |
+| --------------- | ----------------- | ----------------------------------------------- |
+| Llamar al mozo  | `call_waiter`     | Siempre que `canCallWaiter`                     |
+| Necesito ayuda  | `help`            | Siempre que `canCallWaiter`                     |
+| Pedir la cuenta | `request_bill`    | Sólo con la mesa abierta (modo `join`, ocupada) |
+
+- **`canCallWaiter` refleja el estado real** (antes estaba fijo en `true`): es `true` en una
+  mesa ocupada (también durante una suspensión comercial, para que pueda pedir la cuenta y
+  terminar) y en cualquier mesa mientras el negocio abre mesas nuevas, incluidas las
+  `view_only` por limpieza o fuera de servicio (la propia pantalla ya prometía «llamar al
+  mozo» ahí). Es `false` en una mesa no ocupada mientras hay suspensión comercial en curso, y
+  entonces el texto de la pantalla deja de prometerlo. Un negocio sin publicar no abre la
+  pantalla.
+- La confirmación es visible y accesible (`role="status"`): «Avisamos al mozo. Ya viene.»; si
+  ya había uno tomado por un Mozo, «El mozo ya está yendo a tu mesa». Si falla, lo dice
+  («No pudimos avisar al mozo…») y no muestra nada como enviado; sin conexión no sale nada.
+- Endpoint público: `POST /v1/public/waiter-calls` por host (`TenantHostGuard`), con
+  `{ token, reason }` en el cuerpo (el token nunca va en la URL ni en logs). Estricto: cualquier
+  otra clave (`tenantId`, `tableId`, …) o un motivo distinto de los tres da `400
+INVALID_WAITER_CALL`. La web lo llama por el proxy mismo origen `/api/waiter-calls`.
+- **Idempotente**: un solo llamado vivo (abierto o en atención) por mesa y motivo; repetirlo
+  devuelve el mismo `callId` con `created: false`. Una vez resuelto, se puede pedir de nuevo.
+- **Límite de frecuencia por mesa**: a partir de 6 llamados nuevos en 10 minutos responde
+  `429 WAITER_CALL_RATE_LIMITED`. Es por mesa (el token es el único dato del comensal), no por
+  IP; el límite por IP sigue pendiente en el borde (T33).
+- Errores: `409 WAITER_CALL_TABLE_CHANGED` (token desconocido o de otro negocio, mesa que ya
+  no llama o suspensión), `409 WAITER_CALL_NO_OPEN_TABLE` (cuenta sin mesa abierta).
+- El Mozo lo ve en el salón con su motivo y lo toma y resuelve (ver `operacion-del-salon.md`).
+
 ## Qué no hace T16
 
-- No hay carta pública navegable, borrador de pedido ni llamado al mozo (T17–T19): la
+- No hay carta pública navegable ni borrador de pedido en T16 (T17–T19 lo agregaron; el llamado al mozo está en «Llamar al mozo»): la
   página lista lo que el comensal podrá hacer.
 - **La regla «no agrupar mesas con cuentas abiertas distintas»** la aplican T27 (al unir en el
   servicio, `PT278`) y el editor del plano (no puede romper los grupos de una cuenta abierta,
@@ -74,7 +108,8 @@ sesión, nunca mueve deuda ni pedidos, y el personal elige la mesa ancla al sepa
 
 ## Verificación
 
-- pgTap con dos tenants: `supabase/tests/database/table_entry.test.sql` (11 aserciones).
+- pgTap con dos tenants: `supabase/tests/database/table_entry.test.sql` (11 aserciones); el llamado al mozo
+  tiene el suyo: `supabase/tests/database/diner_waiter_calls.test.sql`.
 - Unitarias: repositorio, servicio, controlador, parser y vista.
 - Integración HTTP contra Postgres local con dos tenants
   (`local-table-entry.integration.test.ts`, 10 casos: todos los estados, grupo, token

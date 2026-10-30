@@ -1,6 +1,8 @@
 import type { OrderAttribution } from "./order-intent.js";
 
 export type WaiterCallClaimRequest = { commandId: string };
+/** Resolving a diner call takes the same body as claiming it. */
+export type WaiterCallResolveRequest = WaiterCallClaimRequest;
 
 export type WaiterIntentDecisionRequest =
   | { commandId: string; decision: "confirm"; reason: null }
@@ -66,6 +68,12 @@ export function parseWaiterCallClaimRequest(
   if (!candidate || !hasExactKeys(candidate, ["commandId"])) return null;
   const commandId = uuid(candidate.commandId);
   return commandId ? { commandId } : null;
+}
+
+export function parseWaiterCallResolveRequest(
+  input: unknown
+): WaiterCallResolveRequest | null {
+  return parseWaiterCallClaimRequest(input);
 }
 
 export function parseWaiterIntentDecisionRequest(
@@ -208,6 +216,11 @@ export type WaiterCallClaimResult = {
   status: WaiterCallStatus;
 };
 
+export type WaiterCallResolveResult = { callId: string; status: "closed" };
+
+export type WaiterCallReason =
+  "call_waiter" | "help" | "order_validation" | "request_bill";
+
 export type WaiterInPersonMethod =
   "cash" | "credit_card" | "debit_card" | "other_in_person";
 
@@ -216,9 +229,10 @@ export type WaiterCallView = {
   claimedByName: string | null;
   createdAt: string;
   id: string;
-  intentId: string;
-  paymentMethod: WaiterInPersonMethod;
-  reason: "order_validation";
+  /** Only an order validation call belongs to an intent. */
+  intentId: string | null;
+  paymentMethod: WaiterInPersonMethod | null;
+  reason: WaiterCallReason;
   status: WaiterCallStatus;
   tableId: string;
   tableLabel: string;
@@ -453,6 +467,24 @@ export function parseWaiterCallClaimResult(
     : null;
 }
 
+export function parseWaiterCallResolveResult(
+  input: unknown
+): WaiterCallResolveResult | null {
+  const root = record(input);
+  if (!root || !hasExactKeys(root, ["callId", "status"])) return null;
+  const callId = uuid(root.callId);
+  return callId && root.status === "closed"
+    ? { callId, status: "closed" }
+    : null;
+}
+
+const callReasons = [
+  "call_waiter",
+  "help",
+  "order_validation",
+  "request_bill"
+] as const;
+
 function callView(value: unknown): WaiterCallView | null {
   const call = record(value);
   if (
@@ -473,23 +505,29 @@ function callView(value: unknown): WaiterCallView | null {
     return null;
   }
   const id = uuid(call.id);
-  const intentId = uuid(call.intentId);
+  const intentId = call.intentId === null ? null : uuid(call.intentId);
   const tableId = uuid(call.tableId);
   const createdAt = isoDate(call.createdAt);
   const status = oneOf(call.status, ["acknowledged", "open"] as const);
-  const paymentMethod = oneOf(call.paymentMethod, inPersonMethods);
+  const reason = oneOf(call.reason, callReasons);
+  const paymentMethod =
+    call.paymentMethod === null
+      ? null
+      : oneOf(call.paymentMethod, inPersonMethods);
   const tableLabel = text(call.tableLabel, 20);
   const claimedByName =
     call.claimedByName === null ? null : text(call.claimedByName, 120);
   if (
     !id ||
-    !intentId ||
     !tableId ||
     !createdAt ||
     !status ||
-    !paymentMethod ||
+    !reason ||
     !tableLabel ||
-    call.reason !== "order_validation" ||
+    // An order validation call carries its intent and payment method; a diner
+    // call carries neither.
+    (reason === "order_validation") !== (intentId !== null) ||
+    (reason === "order_validation") !== (paymentMethod !== null) ||
     typeof call.claimedByMe !== "boolean" ||
     (call.claimedByName !== null && !claimedByName)
   ) {
@@ -502,7 +540,7 @@ function callView(value: unknown): WaiterCallView | null {
     id,
     intentId,
     paymentMethod,
-    reason: "order_validation",
+    reason,
     status,
     tableId,
     tableLabel

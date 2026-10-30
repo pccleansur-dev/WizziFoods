@@ -148,7 +148,9 @@ function IntentCard({
 
 export function WaiterPending(props: Props) {
   const callByIntent = new Map(
-    props.calls.map((call) => [call.intentId, call])
+    props.calls.flatMap((call) =>
+      call.intentId === null ? [] : [[call.intentId, call] as const]
+    )
   );
   return (
     <section aria-labelledby="pending-title" className="waiter-section">

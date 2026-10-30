@@ -34,6 +34,8 @@ import { DinerDraftController } from "./diner-draft/diner-draft.controller.js";
 import { DinerDraftService } from "./diner-draft/diner-draft.service.js";
 import { OrderIntentController } from "./order-intent/order-intent.controller.js";
 import { OrderIntentService } from "./order-intent/order-intent.service.js";
+import { WaiterCallController } from "./waiter-call/waiter-call.controller.js";
+import { WaiterCallService } from "./waiter-call/waiter-call.service.js";
 import { FloorPlanAdminController } from "./floor-plan/floor-plan.controller.js";
 import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
 import { TableEntryController } from "./table-entry/table-entry.controller.js";
@@ -172,6 +174,7 @@ export class AppModule {
         DinerDraftController,
         FloorPlanAdminController,
         OrderIntentController,
+        WaiterCallController,
         PaymentMethodsAdminController,
         PublicCatalogController,
         ReadinessAdminController,
@@ -285,6 +288,12 @@ export class AppModule {
           provide: OrderIntentService,
           useFactory: (database: TenantDatabase) =>
             new OrderIntentService(database.orderIntentRepository)
+        },
+        {
+          inject: [TENANT_DATABASE],
+          provide: WaiterCallService,
+          useFactory: (database: TenantDatabase) =>
+            new WaiterCallService(database.waiterCallRepository)
         },
         {
           inject: [TENANT_DATABASE],

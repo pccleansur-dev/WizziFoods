@@ -54,6 +54,20 @@ describe("EntryView", () => {
     }
   );
 
+  it.each(["needs_cleaning", "out_of_service", "not_accepting"] as const)(
+    "does not promise the waiter when %s and the table cannot call",
+    (reason) => {
+      const markup = html({
+        canCallWaiter: false,
+        canConfirmOrder: false,
+        mode: "view_only",
+        reason
+      });
+      expect(markup).not.toContain("llamar al mozo");
+      expect(markup).toContain("Llamar al mozo no disponible");
+    }
+  );
+
   it.each([
     ["invalid", "No reconocemos este código"],
     ["unavailable", "Este local aún no está abierto"],

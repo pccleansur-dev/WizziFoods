@@ -15,19 +15,26 @@ describe("WaiterService", () => {
       claimCall: vi.fn().mockResolvedValue("claim"),
       createManualOrder: vi.fn().mockResolvedValue("order"),
       decideIntent: vi.fn().mockResolvedValue("decision"),
-      getSalon: vi.fn().mockResolvedValue("salon")
+      getSalon: vi.fn().mockResolvedValue("salon"),
+      resolveCall: vi.fn().mockResolvedValue("resolved")
     };
     const catalog = { getCurrent: vi.fn().mockResolvedValue("menu") };
     const service = new WaiterService(operations as never, catalog as never);
     const request = { commandId: "c" } as never;
     await service.getSalon(context);
     await service.claimCall(context, "call", request);
+    await service.resolveCall(context, "call", request);
     await service.decideIntent(context, "intent", request);
     await service.createManualOrder(context, request);
     await expect(service.getMenu(context)).resolves.toBe("menu");
     const expected = { scope: context.scope, staffId: "staff" };
     expect(operations.getSalon).toHaveBeenCalledWith(expected);
     expect(operations.claimCall).toHaveBeenCalledWith({
+      ...expected,
+      callId: "call",
+      request
+    });
+    expect(operations.resolveCall).toHaveBeenCalledWith({
       ...expected,
       callId: "call",
       request

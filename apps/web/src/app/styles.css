@@ -2617,7 +2617,8 @@ dd {
 
 .catalog-card:not(.catalog-card--table):not(.catalog-card--products)
   > .catalog-add-row {
-  padding-inline: 0;
+  margin-bottom: 1rem;
+  padding: 1rem;
 }
 
 .catalog-translate {
@@ -2695,7 +2696,8 @@ dd {
 .onboarding section.panel-content {
   width: min(100%, 60rem);
   margin-inline: 0;
-  padding-inline: 0;
+  margin-bottom: 1rem;
+  padding: 1rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -4733,4 +4735,107 @@ main.diner-branded:has(.diner-entry) {
 .diner-order li > b {
   text-align: right;
   white-space: nowrap;
+}
+
+.diner-waiter-call {
+  display: grid;
+  gap: 0.75rem;
+  width: min(100%, 28rem);
+  padding: clamp(1.25rem, 5vw, 2rem);
+}
+
+main:has(.diner-experience) .diner-waiter-call {
+  width: min(100%, 64rem);
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.diner-waiter-call h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+.diner-waiter-call-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.diner-waiter-call-actions button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #221f1a;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #221f1a;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.diner-waiter-call-actions button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.diner-waiter-call-actions button.is-sent {
+  border-color: #2f6b3f;
+  background: #e6f2e8;
+  color: #1f4b2b;
+}
+
+.diner-waiter-call-actions button:focus-visible {
+  outline: 3px solid #d09a52;
+  outline-offset: 2px;
+}
+
+.diner-waiter-call-notice {
+  min-height: 1.5rem;
+  margin: 0;
+  color: #1f4b2b;
+  font-weight: 650;
+}
+
+.diner-waiter-call-notice.is-error {
+  color: #9b2c1f;
+}
+
+.waiter-status--alert {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #b4561c;
+  border-radius: 0.75rem;
+  background: #fff1e3;
+  color: #6b2f08;
+  font-weight: 750;
+}
+
+.waiter-call--open {
+  border-color: #b4561c;
+  border-width: 2px;
+  background: #fff8f0;
+}
+
+.waiter-call--new {
+  animation: waiter-call-pulse 1.2s ease-in-out 4;
+}
+
+@keyframes waiter-call-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(180 86 28 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 0.5rem rgb(180 86 28 / 35%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiter-call--new {
+    animation: none;
+    outline: 3px solid #b4561c;
+  }
+}
+
+.waiter-alert-toggle {
+  justify-self: start;
 }

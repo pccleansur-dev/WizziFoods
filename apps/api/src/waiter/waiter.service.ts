@@ -1,5 +1,6 @@
 import type {
   WaiterCallClaimRequest,
+  WaiterCallResolveRequest,
   WaiterIntentDecisionRequest,
   WaiterManualOrderRequest
 } from "@platform/contracts";
@@ -29,6 +30,19 @@ export class WaiterService {
     request: WaiterCallClaimRequest
   ) {
     return this.operations.claimCall({
+      callId,
+      request,
+      scope: context.scope,
+      staffId: context.staffId
+    });
+  }
+
+  resolveCall(
+    context: StaffRequestContext,
+    callId: string,
+    request: WaiterCallResolveRequest
+  ) {
+    return this.operations.resolveCall({
       callId,
       request,
       scope: context.scope,

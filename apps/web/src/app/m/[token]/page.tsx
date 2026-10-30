@@ -6,6 +6,7 @@ import { loadBrand } from "../../../lib/brand";
 import { DinerBrandHeader, dinerBrandStyle } from "./diner-brand-header";
 import { EntryRefresh } from "./entry-refresh";
 import { EntryView } from "./entry-view";
+import { WaiterCallPanel } from "./waiter-call-panel";
 import { DinerExperience } from "./diner-experience";
 import { loadPublicCatalog } from "./public-catalog";
 import { loadOrderIntentOptions } from "./order-intent-options";
@@ -42,6 +43,9 @@ export default async function TableEntryPage({
     >
       <DinerBrandHeader brand={brand} />
       <EntryView result={result} />
+      {result.status === "ok" ? (
+        <WaiterCallPanel entry={result.entry} token={token} />
+      ) : null}
       {result.status === "ok" ? <DinerAccountBar token={token} /> : null}
       {result.status === "ok" ? (
         <>

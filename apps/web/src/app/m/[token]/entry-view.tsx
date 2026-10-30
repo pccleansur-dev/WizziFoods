@@ -1,4 +1,4 @@
-import type { TableEntryResult } from "./table-entry";
+import type { TableEntry, TableEntryResult } from "./table-entry";
 
 type Content = { lead: string; title: string };
 
@@ -21,14 +21,24 @@ const closed: Record<string, Content> = {
   }
 };
 
-const viewOnlyLead = {
-  needs_cleaning:
-    "Estamos preparando esta mesa. Mientras tanto podés mirar la carta y llamar al mozo; todavía no podés hacer el pedido.",
-  not_accepting:
-    "Por hoy el local no abre mesas nuevas. Podés mirar la carta y llamar al mozo.",
-  out_of_service:
-    "Esta mesa no está disponible. Podés mirar la carta y llamar al mozo, que te va a ayudar a sentarte en otra."
-} as const;
+function viewOnlyLead(
+  reason: NonNullable<TableEntry["reason"]>,
+  canCallWaiter: boolean
+): string {
+  if (reason === "needs_cleaning") {
+    return canCallWaiter
+      ? "Estamos preparando esta mesa. Mientras tanto podés mirar la carta y llamar al mozo; todavía no podés hacer el pedido."
+      : "Estamos preparando esta mesa. Mientras tanto podés mirar la carta; todavía no podés hacer el pedido.";
+  }
+  if (reason === "not_accepting") {
+    return canCallWaiter
+      ? "Por hoy el local no abre mesas nuevas. Podés mirar la carta y llamar al mozo."
+      : "Por hoy el local no abre mesas nuevas. Podés mirar la carta.";
+  }
+  return canCallWaiter
+    ? "Esta mesa no está disponible. Podés mirar la carta y llamar al mozo, que te va a ayudar a sentarte en otra."
+    : "Esta mesa no está disponible. Podés mirar la carta; pedile ayuda al personal para sentarte en otra.";
+}
 
 function tablesPhrase(labels: string[]): string {
   if (labels.length < 2) return `mesa ${labels[0] ?? ""}`.trim();
@@ -54,7 +64,7 @@ export function EntryView({ result }: { result: TableEntryResult }) {
   const { entry } = result;
   const lead =
     entry.mode === "view_only" && entry.reason
-      ? viewOnlyLead[entry.reason]
+      ? viewOnlyLead(entry.reason, entry.canCallWaiter)
       : entry.mode === "join"
         ? "Tu mesa ya está abierta: te sumás al pedido de la mesa."
         : "La mesa está lista. Ya podés ver la carta y armar tu pedido.";

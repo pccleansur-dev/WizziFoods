@@ -92,6 +92,29 @@ describe("waiter operations repository", () => {
     expect(client).toHaveBeenCalledOnce();
   });
 
+  it("resolves a diner call through its scoped function", async () => {
+    const client = vi.fn(async () => [
+      { result: { callId, status: "closed" } }
+    ]) as never;
+    await expect(
+      createWaiterOperationsRepository(client).resolveCall({
+        callId,
+        request: { commandId },
+        scope,
+        staffId
+      })
+    ).resolves.toEqual({ callId, status: "closed" });
+    await expect(
+      createWaiterOperationsRepository(client).resolveCall({
+        callId,
+        request: { commandId, tenantId: scope.tenantId } as never,
+        scope,
+        staffId
+      })
+    ).rejects.toThrow("waiter request must be canonical");
+    expect(client).toHaveBeenCalledOnce();
+  });
+
   it("rejects non-canonical requests before querying", async () => {
     const client = vi.fn(() => {
       throw new Error("database must not be queried");

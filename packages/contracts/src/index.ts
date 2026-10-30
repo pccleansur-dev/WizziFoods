@@ -197,12 +197,17 @@ export {
   parseManualOrderRequest,
   parseWaiterCallClaimRequest,
   parseWaiterCallClaimResult,
+  parseWaiterCallResolveRequest,
+  parseWaiterCallResolveResult,
   parseWaiterIntentDecisionRequest,
   parseWaiterIntentDecisionResult,
   parseWaiterOrderResult,
   parseWaiterSalonView,
   type WaiterCallClaimRequest,
   type WaiterCallClaimResult,
+  type WaiterCallReason,
+  type WaiterCallResolveRequest,
+  type WaiterCallResolveResult,
   type WaiterCallStatus,
   type WaiterCallView,
   type WaiterInPersonMethod,
@@ -331,3 +336,4 @@ export * from "./brand.js";
 export * from "./realtime.js";
 export * from "./loyalty.js";
 export * from "./messaging.js";
+export * from "./waiter-call.js";

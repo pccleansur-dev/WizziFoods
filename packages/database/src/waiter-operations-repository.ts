@@ -3,6 +3,8 @@ import {
   parseTenantScope,
   parseWaiterCallClaimRequest,
   parseWaiterCallClaimResult,
+  parseWaiterCallResolveRequest,
+  parseWaiterCallResolveResult,
   parseWaiterIntentDecisionRequest,
   parseWaiterIntentDecisionResult,
   parseWaiterOrderResult,
@@ -10,6 +12,8 @@ import {
   type TenantScope,
   type WaiterCallClaimRequest,
   type WaiterCallClaimResult,
+  type WaiterCallResolveRequest,
+  type WaiterCallResolveResult,
   type WaiterIntentDecisionRequest,
   type WaiterIntentDecisionResult,
   type WaiterManualOrderRequest,
@@ -34,6 +38,9 @@ export interface WaiterOperationsRepository {
     }
   ): Promise<WaiterIntentDecisionResult>;
   getSalon(input: StaffScope): Promise<WaiterSalonView>;
+  resolveCall(
+    input: StaffScope & { callId: string; request: WaiterCallResolveRequest }
+  ): Promise<WaiterCallResolveResult>;
 }
 
 type ResultRow = { result: unknown };
@@ -115,6 +122,24 @@ export function createWaiterOperationsRepository(
       `;
       const result = parseWaiterCallClaimResult(row?.result);
       if (!result) throw new Error("call claim result must be canonical");
+      return result;
+    },
+
+    async resolveCall(input) {
+      const scope = assertScope(input.scope);
+      const request = parseWaiterCallResolveRequest(input.request);
+      if (!request) throw new Error("waiter request must be canonical");
+      const [row] = await client<ResultRow[]>`
+        select private.resolve_waiter_call(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${input.staffId}::uuid,
+          ${input.callId}::uuid,
+          ${request.commandId}::uuid
+        ) as result
+      `;
+      const result = parseWaiterCallResolveResult(row?.result);
+      if (!result) throw new Error("call resolve result must be canonical");
       return result;
     },
 

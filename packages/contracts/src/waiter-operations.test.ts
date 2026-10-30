@@ -143,6 +143,58 @@ describe("waiter operation results", () => {
     expect(parseWaiterSalonView({ ...view, tenantId: tableId })).toBeNull();
   });
 
+  it("lists a diner call by its reason, without intent or payment method", () => {
+    const base = {
+      claimedByMe: false,
+      claimedByName: null,
+      createdAt: "2026-10-24T12:00:00.000Z",
+      id: commandId,
+      status: "open",
+      tableId,
+      tableLabel: "7"
+    };
+    const view = (call: object) => ({
+      calls: [call],
+      floors: [],
+      generatedAt: "2026-10-24T12:00:00.000Z",
+      intents: [],
+      units: []
+    });
+    const diner = {
+      ...base,
+      intentId: null,
+      paymentMethod: null,
+      reason: "request_bill"
+    };
+    expect(parseWaiterSalonView(view(diner))?.calls[0]).toMatchObject(diner);
+    // A diner call cannot pretend to belong to an intent or a payment method.
+    expect(
+      parseWaiterSalonView(view({ ...diner, intentId: tableId }))
+    ).toBeNull();
+    expect(
+      parseWaiterSalonView(view({ ...diner, paymentMethod: "cash" }))
+    ).toBeNull();
+    expect(
+      parseWaiterSalonView(view({ ...diner, reason: "pizza" }))
+    ).toBeNull();
+    // An order validation call must keep both.
+    expect(
+      parseWaiterSalonView(
+        view({ ...diner, reason: "order_validation", paymentMethod: "cash" })
+      )
+    ).toBeNull();
+    expect(
+      parseWaiterSalonView(
+        view({
+          ...diner,
+          intentId: tableId,
+          paymentMethod: "cash",
+          reason: "order_validation"
+        })
+      )
+    ).not.toBeNull();
+  });
+
   it("reports the open session and the derived balance of a unit, or neither", () => {
     const floorId = "55555555-5555-4555-8555-555555555555";
     const sessionId = "66666666-6666-4666-8666-666666666666";
