@@ -1,7 +1,10 @@
+import type { PaymentHistoryAccount } from "@platform/contracts";
 import { redirect } from "next/navigation";
 
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
 import { mercadoPagoConnectionAction, paymentsCommandAction } from "./actions";
+import { adminApi, dataOf } from "../admin-api";
+import { PaymentHistory } from "./payment-history";
 import { PaymentMethodsManager } from "./payment-methods-manager";
 import { loadPaymentMethods } from "./payments";
 import { OnboardingShell } from "../onboarding/onboarding-shell";
@@ -12,16 +15,31 @@ export default async function PaymentMethodsPage() {
 
   const isTenantAdmin =
     result.status === "ready" && result.data.access.type === "tenant_admin";
-  const payments = isTenantAdmin ? await loadPaymentMethods() : null;
+  const [payments, history] = isTenantAdmin
+    ? await Promise.all([
+        loadPaymentMethods(),
+        adminApi("/v1/tenant/payment-methods/history").catch(() => null)
+      ])
+    : [null, null];
+  const accounts = history?.ok ? dataOf(history.body) : null;
 
   return (
     <OnboardingShell current="pagos">
       {payments?.status === "ready" ? (
-        <PaymentMethodsManager
-          initialMethods={payments.methods}
-          onCommand={paymentsCommandAction}
-          onConnect={mercadoPagoConnectionAction}
-        />
+        <>
+          <PaymentHistory
+            accounts={
+              Array.isArray(accounts)
+                ? (accounts as PaymentHistoryAccount[])
+                : null
+            }
+          />
+          <PaymentMethodsManager
+            initialMethods={payments.methods}
+            onCommand={paymentsCommandAction}
+            onConnect={mercadoPagoConnectionAction}
+          />
+        </>
       ) : (
         <section className="panel-content" role="alert">
           <p className="eyebrow">Medios de pago</p>

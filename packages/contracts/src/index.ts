@@ -149,6 +149,7 @@ export {
   type PaymentParseResult,
   type PaymentPublicConfig
 } from "./payment-methods.js";
+export type { PaymentHistoryAccount } from "./payment-methods.js";
 export {
   TEAM_LIMITS,
   isTeamUuid,

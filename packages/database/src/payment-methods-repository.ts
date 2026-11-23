@@ -1,6 +1,7 @@
 import {
   parsePaymentMethodStatuses,
   parseTenantScope,
+  type PaymentHistoryAccount,
   type PaymentMethodKey,
   type PaymentMethodStatus,
   type PaymentPublicConfig,
@@ -43,6 +44,10 @@ export type PaymentReadiness = { availableMethods: number; ready: boolean };
  */
 export interface PaymentMethodsRepository {
   clearSecret(input: ClearPaymentSecretInput): Promise<PaymentMethodStatus[]>;
+  history(
+    scope: TenantScope,
+    requesterId: string
+  ): Promise<PaymentHistoryAccount[]>;
   getReadiness(scope: TenantScope): Promise<PaymentReadiness>;
   list(scope: TenantScope, requesterId: string): Promise<PaymentMethodStatus[]>;
   storeSecret(input: StorePaymentSecretInput): Promise<PaymentMethodStatus[]>;
@@ -87,6 +92,19 @@ export function createPaymentMethodsRepository(
         ) as result
       `;
       return mapStatuses(row?.result);
+    },
+
+    async history(untrustedScope, requesterId) {
+      const scope = assertScope(untrustedScope);
+      assertUuid(requesterId, "requesterId");
+      const [row] = await client<{ result: PaymentHistoryAccount[] }[]>`
+        select private.read_payment_history(
+          ${scope.tenantId}::uuid, ${scope.locationId}::uuid, ${requesterId}::uuid
+        ) as result
+      `;
+      if (!row || !Array.isArray(row.result))
+        throw new Error("Invalid payment history");
+      return row.result;
     },
 
     async getReadiness(untrustedScope) {

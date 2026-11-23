@@ -107,6 +107,11 @@ export class PaymentMethodsAdminController {
     return { data: await this.service.list(request.tenantAdminContext) };
   }
 
+  @Get("history")
+  async history(@Req() request: PaymentRequest) {
+    return { data: await this.service.history(request.tenantAdminContext) };
+  }
+
   @Put(":method")
   async update(
     @Req() request: PaymentRequest,

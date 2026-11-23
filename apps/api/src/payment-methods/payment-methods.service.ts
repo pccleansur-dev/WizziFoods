@@ -19,6 +19,10 @@ export class PaymentMethodsService {
     return this.repository.list(context.scope, context.identity.userId);
   }
 
+  history(context: TenantAdminRequestContext) {
+    return this.repository.history(context.scope, context.identity.userId);
+  }
+
   update(
     context: TenantAdminRequestContext,
     method: PaymentMethodKey,

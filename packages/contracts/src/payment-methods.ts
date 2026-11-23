@@ -208,3 +208,22 @@ export function parsePaymentMethodStatuses(
   }
   return statuses;
 }
+
+export type PaymentHistoryAccount = {
+  id: string;
+  tableLabels: string[];
+  status: "open" | "closed";
+  lastAt: string;
+  closedAt: string | null;
+  pendingCents: number;
+  paidCents: number;
+  movements: {
+    id: string;
+    kind: "payment" | "refund";
+    method: PaymentMethodKey | null;
+    amountCents: number;
+    at: string;
+    recordedBy: string | null;
+    payers: string[];
+  }[];
+};

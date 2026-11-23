@@ -5220,3 +5220,28 @@ main:has(.diner-experience) .diner-waiter-call {
     display: none;
   }
 }
+
+.payment-history__filters,
+.payment-history__amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.payment-history__filters > label {
+  flex: 1 1 10rem;
+}
+
+.payment-history summary {
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.payment-history__amounts {
+  margin-block-start: 0.4rem;
+  color: #625b51;
+}
+
+.payment-history details > .payment-list {
+  margin-block-start: 0.75rem;
+}
