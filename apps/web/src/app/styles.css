@@ -2023,6 +2023,17 @@ dd {
   }
 }
 
+@media (orientation: landscape) and (min-width: 48rem) {
+  .floor-plan {
+    width: min(100% - 1.5rem, 90rem);
+  }
+
+  .floor-plan-side,
+  .floor-plan-side input {
+    min-width: 0;
+  }
+}
+
 @media (min-width: 960px) {
   .floor-plan-layout {
     grid-template-columns: minmax(0, 1fr) 24rem;
