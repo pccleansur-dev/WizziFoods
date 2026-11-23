@@ -31,7 +31,10 @@ export async function OnboardingShell({
       {report?.published ? (
         children
       ) : (
-        <OnboardingFrame current={current} progress={onboardingProgress(report)}>
+        <OnboardingFrame
+          current={current}
+          progress={onboardingProgress(report)}
+        >
           {children}
         </OnboardingFrame>
       )}
