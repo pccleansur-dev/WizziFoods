@@ -4,8 +4,10 @@ import type {
   CatalogProduct,
   DinerDraftItem,
   DinerDraftQuote,
+  OrderServiceStatus,
   OrderIntentResult
 } from "@platform/contracts";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -37,13 +39,16 @@ import { OnlinePaymentCheckout } from "./online-payment-checkout";
 
 export function DinerExperience({
   catalog,
+  orderService,
   paymentMethods,
   token
 }: {
   catalog: PublicCatalog | null;
+  orderService?: OrderServiceStatus | null;
   paymentMethods: OrderIntentPaymentMethod[];
   token: string;
 }) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [items, setItems] = useState<DinerDraftItem[]>([]);
@@ -152,11 +157,68 @@ export function DinerExperience({
     );
   }
 
+  const blockedSectors = new Set(
+    catalog.catalog.sectors
+      .filter(
+        ({ kind }) =>
+          (kind === "kitchen" && orderService?.kitchenClosed) ||
+          (kind === "bar" && orderService?.barClosed)
+      )
+      .map(({ id }) => id)
+  );
+  const blockedProducts = new Set(
+    catalog.catalog.products
+      .filter(
+        ({ sectorId }) =>
+          orderService?.ordersClosed || blockedSectors.has(sectorId)
+      )
+      .map(({ id }) => id)
+  );
+  const blockedItems = items.filter(({ productId }) =>
+    blockedProducts.has(productId)
+  );
+  const menuCatalog =
+    blockedProducts.size === 0
+      ? catalog
+      : {
+          ...catalog,
+          availability: {
+            ...catalog.availability,
+            ...Object.fromEntries(
+              [...blockedProducts].map((id) => [
+                id,
+                {
+                  isAvailable: false,
+                  version: catalog.availability[id]?.version ?? 0
+                }
+              ])
+            )
+          }
+        };
+  const serviceMessages = orderService?.ordersClosed
+    ? ["Ya cerramos los pedidos. Podés seguir viendo la carta."]
+    : [
+        orderService?.ordersMinutes
+          ? "Los pedidos cierran en " + orderService.ordersMinutes + " min."
+          : null,
+        orderService?.kitchenClosed
+          ? "La cocina ya cerró."
+          : orderService?.kitchenMinutes
+            ? "La cocina cierra en " + orderService.kitchenMinutes + " min."
+            : null,
+        orderService?.barClosed
+          ? "La barra ya cerró."
+          : orderService?.barMinutes
+            ? "La barra cierra en " + orderService.barMinutes + " min."
+            : null
+      ].filter(Boolean);
+
   const add = (
     product: CatalogProduct,
     variantId: string | null,
     quantity: number
   ) => {
+    if (blockedProducts.has(product.id)) return;
     setItems((current) =>
       addDraftItem(current, {
         lineId: newId(),
@@ -172,7 +234,13 @@ export function DinerExperience({
   };
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const submitIntent = (value: DinerCheckoutValue) => {
-    if (!quote?.canConfirm || submitting) return;
+    if (
+      !quote?.canConfirm ||
+      submitting ||
+      orderService?.ordersClosed ||
+      blockedItems.length > 0
+    )
+      return;
     // Nothing is sent, or shown as sent, while the device cannot reach the server.
     if (!navigator.onLine) {
       setCheckoutError(OFFLINE_ACTION_MESSAGE);
@@ -199,18 +267,34 @@ export function DinerExperience({
       headers: { "content-type": "application/json" },
       method: "POST"
     })
-      .then(async (response) =>
-        response.ok ? parseOrderIntentResponse(await response.json()) : null
-      )
+      .then(async (response) => {
+        const body = await response.json();
+        if (response.ok) return parseOrderIntentResponse(body);
+        if (
+          body.error?.code === "ORDER_SERVICE_CLOSED" &&
+          typeof body.error.message === "string"
+        ) {
+          router.refresh();
+          throw new Error(body.error.message);
+        }
+        return null;
+      })
       .then((result) => {
         if (!result) throw new Error("intent rejected");
         window.localStorage.removeItem(storageKey);
         setItems([]);
         setAccepted(result);
       })
-      .catch(() => {
+      .catch((failure: unknown) => {
         setCheckoutError(
-          "No pudimos enviar el pedido. Tu selección sigue guardada; intentá nuevamente."
+          failure instanceof Error &&
+            [
+              "La cocina ya cerró.",
+              "La barra ya cerró.",
+              "Ya cerramos los pedidos."
+            ].includes(failure.message)
+            ? failure.message
+            : "No pudimos enviar el pedido. Tu selección sigue guardada; intentá nuevamente."
         );
       })
       .finally(() => setSubmitting(false));
@@ -223,6 +307,44 @@ export function DinerExperience({
   return (
     <div className="diner-experience">
       <DinerConnection />
+      {serviceMessages.length > 0 ? (
+        <p className="diner-order-hours" role="status">
+          {serviceMessages.join(" ")}
+        </p>
+      ) : null}
+      {blockedItems.length > 0 && (view === "order" || view === "checkout") ? (
+        <div className="diner-order-hours">
+          <p>
+            Ya no podés pedir:{" "}
+            {Array.from(
+              new Set(
+                blockedItems.map(({ productId }) =>
+                  catalogTitle(
+                    catalog.catalog.products.find(({ id }) => id === productId)
+                      ?.content ?? [],
+                    language
+                  )
+                )
+              )
+            ).join(", ")}
+            .
+          </p>
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={() => {
+              setItems((current) =>
+                current.filter(
+                  ({ productId }) => !blockedProducts.has(productId)
+                )
+              );
+              setView("order");
+            }}
+          >
+            Quitar del pedido
+          </button>
+        </div>
+      ) : null}
       <DinerLanguagePicker
         available={languages}
         choose={chooseLanguage}
@@ -260,10 +382,12 @@ export function DinerExperience({
         </p>
       ) : null}
       {view === "menu" ? (
-        <DinerMenu catalog={catalog} language={language} onAdd={add} />
+        <DinerMenu catalog={menuCatalog} language={language} onAdd={add} />
       ) : view === "split" ? (
         <DinerSplit token={token} />
-      ) : view === "order" ? (
+      ) : view === "order" ||
+        orderService?.ordersClosed ||
+        blockedItems.length > 0 ? (
         <DinerOrder
           error={error}
           items={items}
@@ -272,7 +396,11 @@ export function DinerExperience({
           onQuantity={(lineId, quantity) =>
             setItems((current) => setDraftQuantity(current, lineId, quantity))
           }
-          quote={quote}
+          quote={
+            quote && (orderService?.ordersClosed || blockedItems.length > 0)
+              ? { ...quote, canConfirm: false }
+              : quote
+          }
         />
       ) : (
         <DinerCheckout

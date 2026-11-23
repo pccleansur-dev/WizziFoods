@@ -3,6 +3,7 @@ import {
   parseOrderIntentRequest,
   parseTenantScope,
   type OrderIntentRequest,
+  type OrderServiceStatus,
   type OrderIntentResult,
   type OrderPaymentPath,
   type PaymentMethodKey,
@@ -22,6 +23,7 @@ export type CreateOrderIntentInput = {
 
 export interface OrderIntentRepository {
   create(input: CreateOrderIntentInput): Promise<OrderIntentResult>;
+  orderStatus(scope: TenantScope): Promise<OrderServiceStatus>;
   listPaymentMethods(scope: TenantScope): Promise<AvailablePaymentMethod[]>;
 }
 
@@ -98,6 +100,14 @@ export function createOrderIntentRepository(
   client: Sql
 ): OrderIntentRepository {
   return {
+    async orderStatus(inputScope) {
+      const scope = assertScope(inputScope);
+      const [row] = await client<{ result: OrderServiceStatus }[]>`
+        select private.order_hours_status(${scope.tenantId}::uuid, ${scope.locationId}::uuid) as result
+      `;
+      if (!row) throw new Error("Missing order service status");
+      return row.result;
+    },
     async create(input) {
       const scope = assertScope(input.scope);
       const request = parseOrderIntentRequest(input.request);

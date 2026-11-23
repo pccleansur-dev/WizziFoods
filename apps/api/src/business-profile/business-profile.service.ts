@@ -1,5 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import type { BusinessProfileDraft } from "@platform/contracts";
+import type {
+  BusinessProfileDraft,
+  OrderServiceHours
+} from "@platform/contracts";
 import type {
   BusinessProfileDraftRecord,
   BusinessProfileRepository
@@ -12,6 +15,14 @@ export class BusinessProfileService {
   constructor(
     private readonly businessProfileRepository: BusinessProfileRepository
   ) {}
+
+  orderHours(context: TenantAdminRequestContext, settings?: OrderServiceHours) {
+    return this.businessProfileRepository.orderHours(
+      context.scope,
+      context.identity.userId,
+      settings
+    );
+  }
 
   getDraft(
     context: TenantAdminRequestContext

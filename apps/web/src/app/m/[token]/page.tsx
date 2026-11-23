@@ -10,6 +10,7 @@ import { WaiterCallPanel } from "./waiter-call-panel";
 import { DinerExperience } from "./diner-experience";
 import { loadPublicCatalog } from "./public-catalog";
 import { loadOrderIntentOptions } from "./order-intent-options";
+import { loadOrderService } from "./order-service";
 import { loadTableEntry } from "./table-entry";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +31,14 @@ export default async function TableEntryPage({
 }) {
   const { token } = await params;
   const host = (await headers()).get("host") ?? "";
-  const [result, catalog, paymentMethods, brand] = await Promise.all([
-    loadTableEntry(host, token),
-    loadPublicCatalog(host),
-    loadOrderIntentOptions(host),
-    loadBrand(host)
-  ]);
+  const [result, catalog, paymentMethods, brand, orderService] =
+    await Promise.all([
+      loadTableEntry(host, token),
+      loadPublicCatalog(host),
+      loadOrderIntentOptions(host),
+      loadBrand(host),
+      loadOrderService(host)
+    ]);
   return (
     <main
       className={brand ? "diner-branded" : undefined}
@@ -52,6 +55,7 @@ export default async function TableEntryPage({
           <DinerExperience
             catalog={catalog}
             paymentMethods={paymentMethods}
+            orderService={orderService}
             token={token}
           />
           <EntryRefresh token={token} />

@@ -2,6 +2,8 @@ import {
   parseBusinessProfileDraft,
   parseTenantScope,
   type BusinessProfileDraft,
+  parseOrderServiceHours,
+  type OrderServiceHours,
   type TenantScope
 } from "@platform/contracts";
 import type { Sql } from "postgres";
@@ -18,6 +20,11 @@ export type SaveBusinessProfileDraftInput = {
 };
 
 export interface BusinessProfileRepository {
+  orderHours(
+    scope: TenantScope,
+    requesterId: string,
+    settings?: OrderServiceHours
+  ): Promise<OrderServiceHours>;
   getDraft(
     scope: TenantScope,
     requesterId: string
@@ -102,6 +109,18 @@ export function createBusinessProfileRepository(
   client: Sql
 ): BusinessProfileRepository {
   return {
+    async orderHours(inputScope, requesterId, settings) {
+      const scope = assertScope(inputScope);
+      assertRequester(requesterId);
+      const [row] = await client<{ result: unknown }[]>`
+        select private.admin_order_hours(${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid, ${requesterId}::uuid,
+          ${settings ? JSON.stringify(settings) : null}::jsonb) as result
+      `;
+      const parsed = parseOrderServiceHours(row?.result);
+      if (!parsed) throw new Error("Invalid order service hours");
+      return parsed;
+    },
     async getDraft(untrustedScope, requesterId) {
       const scope = assertScope(untrustedScope);
       assertRequester(requesterId);

@@ -140,3 +140,80 @@ export function parseBusinessProfileDraft(
     }
   };
 }
+
+export type OrderServiceDay = {
+  opens: string;
+  orders: string;
+  kitchen: string | null;
+  bar: string | null;
+};
+
+export type OrderServiceHours = {
+  days: (OrderServiceDay | null)[];
+  paused: boolean;
+  warningMinutes: number;
+};
+
+export type OrderServiceStatus = {
+  ordersClosed: boolean;
+  kitchenClosed: boolean;
+  barClosed: boolean;
+  ordersMinutes?: number;
+  kitchenMinutes?: number;
+  barMinutes?: number;
+};
+
+const clockTime = /^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/u;
+
+export function parseOrderServiceHours(
+  input: unknown
+): OrderServiceHours | null {
+  const settings = record(input);
+  if (
+    !settings ||
+    !Array.isArray(settings.days) ||
+    settings.days.length !== 7 ||
+    typeof settings.paused !== "boolean" ||
+    typeof settings.warningMinutes !== "number" ||
+    !Number.isInteger(settings.warningMinutes) ||
+    settings.warningMinutes < 0 ||
+    settings.warningMinutes > 120
+  )
+    return null;
+  const days: OrderServiceHours["days"] = [];
+  for (const value of settings.days) {
+    if (value === null) {
+      days.push(null);
+      continue;
+    }
+    const day = record(value);
+    if (
+      !day ||
+      typeof day.opens !== "string" ||
+      !clockTime.test(day.opens) ||
+      typeof day.orders !== "string" ||
+      !clockTime.test(day.orders) ||
+      day.opens === day.orders ||
+      !(
+        day.kitchen === null ||
+        (typeof day.kitchen === "string" && clockTime.test(day.kitchen))
+      ) ||
+      !(
+        day.bar === null ||
+        (typeof day.bar === "string" && clockTime.test(day.bar))
+      )
+    )
+      return null;
+    days.push({
+      opens: day.opens,
+      orders: day.orders,
+      kitchen: day.kitchen,
+      bar: day.bar
+    });
+  }
+  return {
+    days,
+    paused: settings.paused,
+    warningMinutes: settings.warningMinutes
+  };
+}

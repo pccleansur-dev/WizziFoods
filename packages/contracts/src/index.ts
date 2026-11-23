@@ -14,6 +14,11 @@ export {
   type BusinessProfileLayout
 } from "./business-profile.js";
 export {
+  parseOrderServiceHours,
+  type OrderServiceHours,
+  type OrderServiceStatus
+} from "./business-profile.js";
+export {
   catalogPublicationIssues,
   catalogImagePath,
   explainCatalogDraft,

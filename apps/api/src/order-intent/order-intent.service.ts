@@ -17,6 +17,13 @@ export class OrderIntentService {
     });
   }
 
+  orderStatus(context: TenantHostContext) {
+    return this.repository.orderStatus({
+      locationId: context.location.id,
+      tenantId: context.tenant.id
+    });
+  }
+
   listPaymentMethods(context: TenantHostContext) {
     return this.repository.listPaymentMethods({
       locationId: context.location.id,

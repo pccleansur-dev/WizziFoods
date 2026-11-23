@@ -66,6 +66,19 @@ function mapFailure(error: unknown): never {
       }
     });
   }
+  if (code === "PT180" || code === "PT181" || code === "PT182") {
+    throw new ConflictException({
+      error: {
+        code: "ORDER_SERVICE_CLOSED",
+        message:
+          code === "PT181"
+            ? "La cocina ya cerró."
+            : code === "PT182"
+              ? "La barra ya cerró."
+              : "Ya cerramos los pedidos."
+      }
+    });
+  }
   if (code === "PT107") {
     throw new BadRequestException({
       error: { code: "INVALID_ORDER_INTENT", message: "Pedido inválido." }
@@ -90,6 +103,11 @@ export class OrderIntentController {
         )
       }
     };
+  }
+
+  @Get("service")
+  async orderStatus(@Req() request: PublicRequest) {
+    return { data: await this.service.orderStatus(request.tenantHostContext) };
   }
 
   @Post()

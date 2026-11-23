@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
 import { loadBusinessProfileDraft } from "../business-profile";
 import { BusinessStep } from "../onboarding/business-step";
+import { loadOrderHours } from "./order-hours-actions";
+import { OrderHoursForm } from "./order-hours-form";
 import { OnboardingShell } from "../onboarding/onboarding-shell";
 
 export default async function BusinessPage() {
@@ -28,11 +30,20 @@ export default async function BusinessPage() {
     );
   }
 
-  const profile = await loadBusinessProfileDraft(
-    (await headers()).get("host") ?? ""
-  );
+  const host = (await headers()).get("host") ?? "";
+  const [profile, hours] = await Promise.all([
+    loadBusinessProfileDraft(host),
+    loadOrderHours()
+  ]);
   return (
     <OnboardingShell current="negocio">
+      <div className="panel-content order-hours-panel">
+        {hours ? (
+          <OrderHoursForm hours={hours} />
+        ) : (
+          <p role="alert">No pudimos cargar los horarios de pedidos.</p>
+        )}
+      </div>
       <BusinessStep
         businessProfile={profile.status === "ready" ? profile.data : null}
         tenantName={context.tenant.name}

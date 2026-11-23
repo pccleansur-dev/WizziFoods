@@ -9,6 +9,8 @@ import {
   UseGuards
 } from "@nestjs/common";
 
+import { parseOrderServiceHours } from "@platform/contracts";
+
 import { AdminAuthGuard } from "../auth/admin-auth.guard.js";
 import {
   TenantAdminScopeGuard,
@@ -34,6 +36,24 @@ export class BusinessProfileController {
   @Get()
   async get(@Req() request: BusinessProfileRequest) {
     return { data: await this.service.getDraft(request.tenantAdminContext) };
+  }
+
+  @Get("order-hours")
+  async orderHours(@Req() request: BusinessProfileRequest) {
+    return { data: await this.service.orderHours(request.tenantAdminContext) };
+  }
+
+  @Put("order-hours")
+  async saveOrderHours(
+    @Req() request: BusinessProfileRequest,
+    @Body() body: unknown
+  ) {
+    const settings = parseOrderServiceHours(body);
+    if (!settings)
+      throw new BadRequestException("Revisá los horarios de pedidos.");
+    return {
+      data: await this.service.orderHours(request.tenantAdminContext, settings)
+    };
   }
 
   @Put()
