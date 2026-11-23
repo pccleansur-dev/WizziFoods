@@ -34,6 +34,16 @@ describe("team manager", () => {
     expect(markup).toContain("Activo");
   });
 
+  it("keeps the roster outside the initially closed creation dialog", () => {
+    const dialog = markup.match(/<dialog[^>]*>[\s\S]*?<\/dialog>/u)?.[0] ?? "";
+    expect(markup).toContain('aria-haspopup="dialog"');
+    expect(dialog).toContain('aria-labelledby="team-create-title"');
+    expect(dialog).not.toMatch(/<dialog[^>]*\sopen(?:=|\s|>)/u);
+    expect(dialog).toContain('name="displayName"');
+    expect(markup.replace(dialog, "")).toContain('aria-label="Empleados"');
+    expect(markup.replace(dialog, "")).not.toContain('name="displayName"');
+  });
+
   it("masks PIN entry and never renders hashes", () => {
     expect(markup).toContain('type="password"');
     expect(markup).toContain('autoComplete="new-password"');

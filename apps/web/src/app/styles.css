@@ -5034,3 +5034,54 @@ main:has(.diner-experience) .diner-waiter-call {
     justify-content: space-between;
   }
 }
+
+.team-heading,
+.team-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.team-heading {
+  justify-content: space-between;
+}
+
+.team-heading .panel-lead,
+.team-dialog .panel-lead,
+.team-dialog h2 {
+  margin: 0;
+}
+
+.team-heading .panel-lead {
+  margin-top: 0.35rem;
+}
+
+.team-dialog {
+  width: min(36rem, calc(100% - 1.5rem));
+  max-height: calc(100dvh - 1.5rem);
+  padding: 0;
+  border: 1px solid #d8d2c7;
+  border-radius: 1rem;
+  background: #fffdf8;
+  color: inherit;
+}
+
+.team-dialog::backdrop {
+  background: rgb(34 31 26 / 55%);
+}
+
+.team-dialog .team-form {
+  padding: clamp(1rem, 4vw, 1.75rem);
+  border: 0;
+}
+
+.team-dialog__actions {
+  justify-content: end;
+}
+
+.team-heading .button,
+.team-dialog__actions .button {
+  width: auto;
+  min-height: 2.75rem;
+}

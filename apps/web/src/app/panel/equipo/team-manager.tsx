@@ -6,7 +6,7 @@ import {
   type TeamIssue,
   type TeamMember
 } from "@platform/contracts";
-import { useState, useTransition, type FormEvent } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 
 import type { TeamActionState, TeamCommand } from "./team";
 
@@ -34,6 +34,10 @@ export function TeamManager({
     message: "",
     status: "idle"
   });
+  const createDialog = useRef<HTMLDialogElement>(null);
+  const [createFeedback, setCreateFeedback] = useState<TeamActionState | null>(
+    null
+  );
   const [pending, startTransition] = useTransition();
   const [createRole, setCreateRole] = useState<StaffRole>("waiter");
   const [editing, setEditing] = useState<string | null>(null);
@@ -41,6 +45,10 @@ export function TeamManager({
   function run(command: TeamCommand, onDone?: () => void) {
     startTransition(async () => {
       const next = await onCommand(command);
+      if (command.type === "create" && next.status !== "saved") {
+        setCreateFeedback(next);
+        return;
+      }
       setFeedback(next);
       if (next.members) setMembers(next.members);
       if (next.status === "saved") onDone?.();
@@ -61,7 +69,7 @@ export function TeamManager({
         type: "create",
         username: String(data.get("username") ?? "")
       },
-      () => form.reset()
+      () => createDialog.current?.close()
     );
   }
 
@@ -72,13 +80,24 @@ export function TeamManager({
       className="panel-content team-workspace"
       aria-labelledby="team-title"
     >
-      <p className="eyebrow">Equipo</p>
-      <h1 id="team-title">Empleados del negocio</h1>
-      <p className="panel-lead">
-        Cada persona entra con su usuario y un PIN de seis dígitos. El PIN no se
-        puede volver a ver: si se olvida, restablecelo. Hay{" "}
-        <strong>{activeCount}</strong> empleados activos.
-      </p>
+      <div className="team-heading">
+        <div>
+          <h1 id="team-title">Equipo</h1>
+          <p className="panel-lead">
+            <strong>{activeCount}</strong> de {members.length} empleados
+            activos.
+          </p>
+        </div>
+        <button
+          aria-haspopup="dialog"
+          className="button button--primary"
+          disabled={pending}
+          onClick={() => createDialog.current?.showModal()}
+          type="button"
+        >
+          <span aria-hidden="true">+</span> Agregar empleado
+        </button>
+      </div>
 
       <p
         aria-live="polite"
@@ -93,78 +112,6 @@ export function TeamManager({
       >
         {feedback.message}
       </p>
-
-      <form className="profile-form team-form" onSubmit={submitCreate}>
-        <h2>Nuevo empleado</h2>
-        <div className="profile-fields-grid">
-          <label className="field-group">
-            <span>Nombre</span>
-            <input
-              autoComplete="off"
-              maxLength={120}
-              name="displayName"
-              required
-            />
-            <small role="alert">
-              {issueFor(feedback.issues, "displayName")}
-            </small>
-          </label>
-          <label className="field-group">
-            <span>Usuario</span>
-            <input
-              autoCapitalize="none"
-              autoComplete="off"
-              maxLength={64}
-              minLength={3}
-              name="username"
-              required
-              spellCheck={false}
-            />
-            <small role="alert">{issueFor(feedback.issues, "username")}</small>
-          </label>
-          <label className="field-group">
-            <span>PIN (6 dígitos)</span>
-            <input
-              autoComplete="new-password"
-              inputMode="numeric"
-              maxLength={6}
-              minLength={6}
-              name="pin"
-              pattern="[0-9]{6}"
-              title="El PIN tiene 6 dígitos, sin letras ni espacios."
-              required
-              type="password"
-            />
-            <small role="alert">{issueFor(feedback.issues, "pin")}</small>
-          </label>
-          <label className="field-group">
-            <span>Rol</span>
-            <select
-              name="role"
-              onChange={(event) =>
-                setCreateRole(event.target.value as StaffRole)
-              }
-              value={createRole}
-            >
-              {roles.map((role) => (
-                <option key={role} value={role}>
-                  {staffRoleLabels[role]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {createRole === "waiter" ? (
-          <SectorChoices name="sectorIds" sectors={sectors} selected={[]} />
-        ) : null}
-        <button
-          className="button button--primary"
-          disabled={pending}
-          type="submit"
-        >
-          {pending ? "Guardando…" : "Crear empleado"}
-        </button>
-      </form>
 
       <ul className="team-list" aria-label="Empleados">
         {members.length === 0 ? (
@@ -182,6 +129,113 @@ export function TeamManager({
           />
         ))}
       </ul>
+      <dialog
+        aria-labelledby="team-create-title"
+        className="team-dialog"
+        onCancel={(event) => {
+          if (pending) event.preventDefault();
+        }}
+        onClose={() => {
+          createDialog.current?.querySelector("form")?.reset();
+          setCreateRole("waiter");
+          setCreateFeedback(null);
+        }}
+        ref={createDialog}
+      >
+        <form className="profile-form team-form" onSubmit={submitCreate}>
+          <h2 id="team-create-title">Nuevo empleado</h2>
+          <p className="panel-lead">
+            El empleado entra con su usuario y un PIN de seis dígitos.
+          </p>
+          {createFeedback?.message ? (
+            <p className="form-message form-message--error" role="alert">
+              {createFeedback.message}
+            </p>
+          ) : null}
+          <div className="profile-fields-grid">
+            <label className="field-group">
+              <span>Nombre</span>
+              <input
+                autoComplete="off"
+                maxLength={120}
+                name="displayName"
+                required
+              />
+              <small role="alert">
+                {issueFor(createFeedback?.issues ?? [], "displayName")}
+              </small>
+            </label>
+            <label className="field-group">
+              <span>Usuario</span>
+              <input
+                autoCapitalize="none"
+                autoComplete="off"
+                maxLength={64}
+                minLength={3}
+                name="username"
+                required
+                spellCheck={false}
+              />
+              <small role="alert">
+                {issueFor(createFeedback?.issues ?? [], "username")}
+              </small>
+            </label>
+            <label className="field-group">
+              <span>PIN (6 dígitos)</span>
+              <input
+                autoComplete="new-password"
+                inputMode="numeric"
+                maxLength={6}
+                minLength={6}
+                name="pin"
+                pattern="[0-9]{6}"
+                title="El PIN tiene 6 dígitos, sin letras ni espacios."
+                required
+                type="password"
+              />
+              <small role="alert">
+                {issueFor(createFeedback?.issues ?? [], "pin")}
+              </small>
+            </label>
+            <label className="field-group">
+              <span>Rol</span>
+              <select
+                name="role"
+                onChange={(event) =>
+                  setCreateRole(event.target.value as StaffRole)
+                }
+                value={createRole}
+              >
+                {roles.map((role) => (
+                  <option key={role} value={role}>
+                    {staffRoleLabels[role]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {createRole === "waiter" ? (
+            <SectorChoices name="sectorIds" sectors={sectors} selected={[]} />
+          ) : null}
+          <div className="team-dialog__actions">
+            <button
+              className="button button--secondary"
+              disabled={pending}
+              onClick={() => createDialog.current?.close()}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="button button--primary"
+              disabled={pending}
+              type="submit"
+            >
+              {pending ? "Guardando…" : "Crear empleado"}
+            </button>
+          </div>
+        </form>
+      </dialog>
     </section>
   );
 }
