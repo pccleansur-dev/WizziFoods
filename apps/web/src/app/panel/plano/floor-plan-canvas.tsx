@@ -74,7 +74,11 @@ export function FloorPlanCanvas({
     id: string;
     offsetX: number;
     offsetY: number;
+    pointerId: number;
   } | null>(null);
+  const panRef = useRef<{ x: number; y: number; pointerId: number } | null>(
+    null
+  );
   const viewportRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(zoom);
   const onZoomRef = useRef(onZoom);
@@ -195,7 +199,41 @@ export function FloorPlanCanvas({
           100%
         </button>
       </div>
-      <div className="floor-plan-viewport" ref={viewportRef}>
+      <div
+        className={
+          disabled
+            ? "floor-plan-viewport"
+            : "floor-plan-viewport floor-plan-viewport--editing"
+        }
+        onPointerDown={(event) => {
+          if (
+            disabled ||
+            event.pointerType !== "touch" ||
+            !event.isPrimary ||
+            dragRef.current
+          )
+            return;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          panRef.current = {
+            x: event.clientX,
+            y: event.clientY,
+            pointerId: event.pointerId
+          };
+        }}
+        onPointerMove={(event) => {
+          const pan = panRef.current;
+          if (pan?.pointerId !== event.pointerId) return;
+          event.currentTarget.scrollLeft += pan.x - event.clientX;
+          event.currentTarget.scrollTop += pan.y - event.clientY;
+          pan.x = event.clientX;
+          pan.y = event.clientY;
+        }}
+        onLostPointerCapture={(event) => {
+          if (panRef.current?.pointerId === event.pointerId)
+            panRef.current = null;
+        }}
+        ref={viewportRef}
+      >
         <svg
           aria-label="Plano del salón"
           className="floor-plan-svg"
@@ -275,14 +313,16 @@ export function FloorPlanCanvas({
                 key={table.id}
                 onKeyDown={(event) => onKeyDown(event, table.id)}
                 onPointerDown={(event) => {
-                  if (disabled) return;
+                  if (disabled || !event.isPrimary || event.button !== 0)
+                    return;
                   const point = toPlanPoint(event);
                   if (!point) return;
                   event.currentTarget.setPointerCapture(event.pointerId);
                   dragRef.current = {
                     id: table.id,
                     offsetX: point.x - table.x,
-                    offsetY: point.y - table.y
+                    offsetY: point.y - table.y,
+                    pointerId: event.pointerId
                   };
                   onSelect(
                     table.id,
@@ -291,7 +331,12 @@ export function FloorPlanCanvas({
                 }}
                 onPointerMove={(event) => {
                   const drag = dragRef.current;
-                  if (!drag || drag.id !== table.id) return;
+                  if (
+                    !drag ||
+                    drag.id !== table.id ||
+                    drag.pointerId !== event.pointerId
+                  )
+                    return;
                   const point = toPlanPoint(event);
                   if (point) {
                     onMove(
@@ -301,11 +346,10 @@ export function FloorPlanCanvas({
                     );
                   }
                 }}
-                onPointerUp={() => {
-                  dragRef.current = null;
-                }}
-                onPointerCancel={() => {
-                  dragRef.current = null;
+                onLostPointerCapture={(event) => {
+                  if (dragRef.current?.pointerId === event.pointerId) {
+                    dragRef.current = null;
+                  }
                 }}
                 role="button"
                 tabIndex={0}

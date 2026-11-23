@@ -1875,9 +1875,12 @@ dd {
   user-select: none;
 }
 
+.floor-plan-viewport--editing {
+  touch-action: none;
+}
+
 .floor-plan-table {
   cursor: grab;
-  touch-action: none;
 }
 
 .floor-plan-table:focus-visible {
