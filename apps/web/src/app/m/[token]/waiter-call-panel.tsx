@@ -1,7 +1,7 @@
 "use client";
 
 import type { DinerWaiterCallReason } from "@platform/contracts";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { OFFLINE_ACTION_MESSAGE } from "../../../lib/connection-view";
 import {
@@ -15,6 +15,8 @@ type Notice =
   | { kind: "error"; text: string }
   | { kind: "sent"; reason: DinerWaiterCallReason; text: string };
 
+const subscribeToHydration = () => () => {};
+
 /**
  * Lets the diner call the waiter from the table screen. It is shown only when
  * the table allows it (`canCallWaiter`), and says plainly when the waiter was
@@ -27,6 +29,12 @@ export function WaiterCallPanel({
   entry: Pick<TableEntry, "canCallWaiter" | "mode">;
   token: string;
 }) {
+  // The server renders these buttons before the browser can send a call.
+  const ready = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false
+  );
   const [pending, setPending] = useState<DinerWaiterCallReason | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const reasons = waiterCallReasons(entry);
@@ -70,7 +78,7 @@ export function WaiterCallPanel({
                 ? "is-sent"
                 : undefined
             }
-            disabled={pending !== null}
+            disabled={!ready || pending !== null}
             key={reason}
             onClick={() => void call(reason)}
             type="button"
@@ -88,7 +96,7 @@ export function WaiterCallPanel({
         }
         role={notice?.kind === "error" ? "alert" : "status"}
       >
-        {notice?.text ?? ""}
+        {ready ? (notice?.text ?? "") : "Preparando los avisos…"}
       </p>
     </section>
   );

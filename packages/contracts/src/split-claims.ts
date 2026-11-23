@@ -10,7 +10,7 @@ export type DinerShare = {
   /** Who reserved it, when someone did. */
   claimedBy: string | null;
   items: string[];
-  /** Reserved by this very device. */
+  /** Reserved by this device, including after the reservation was paid. */
   mine: boolean;
   position: number;
   status: "cancelled" | "claimed" | "open" | "paid";

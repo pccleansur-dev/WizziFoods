@@ -141,12 +141,44 @@ test("a diner pays the share they reserved with Mercado Pago", async ({
     .getByRole("button", { name: "Pagar la parte 1 con Mercado Pago" })
     .click();
   await page.getByRole("button", { name: "Simular pago" }).click();
-  await expect(page.getByRole("heading", { name: "Parte pagada" })).toBeVisible(
-    { timeout: 20_000 }
-  );
+  const shares = page.getByRole("list", { name: "Partes de la cuenta" });
+  const paidShare = shares.getByRole("listitem").filter({ hasText: "Parte 1" });
+  await expect(
+    paidShare.getByRole("heading", { name: "Parte pagada" })
+  ).toBeVisible({ timeout: 20_000 });
+  await page.reload();
+  await expect(async () => {
+    if (!(await shares.isVisible())) {
+      await page.getByRole("button", { name: "Dividir la cuenta" }).click();
+    }
+    await expect(
+      paidShare.getByRole("heading", { name: "Parte pagada" })
+    ).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
+  await expect(paidShare.getByRole("status")).toContainText("$ 82,50");
   await expect(page.getByLabel(/número|vencimiento|cvv|cvc/iu)).toHaveCount(0);
   const payments = (await business.entries()).filter(
     (entry) => entry.kind === "payment"
   );
-  expect(payments.at(-1)?.amount).toBe(-8_250);
+  expect(payments.filter((entry) => entry.amount === -8_250)).toHaveLength(1);
+
+  await page.getByLabel("Tu nombre").fill("Ana");
+  await page.getByRole("button", { name: "Tomar la parte 2" }).click();
+  await page
+    .getByRole("button", { name: "Pagar la parte 2 con Mercado Pago" })
+    .click();
+  await page.getByRole("button", { name: "Simular pago" }).click();
+  const lastShare = shares.getByRole("listitem").filter({ hasText: "Parte 2" });
+  await expect(
+    lastShare.getByRole("heading", { name: "Parte pagada" })
+  ).toBeVisible({ timeout: 20_000 });
+  await page.reload();
+  await expect(async () => {
+    if (!(await shares.isVisible())) {
+      await page.getByRole("button", { name: "Dividir la cuenta" }).click();
+    }
+    await expect(
+      lastShare.getByRole("heading", { name: "Parte pagada" })
+    ).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
 });

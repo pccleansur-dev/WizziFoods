@@ -33,6 +33,9 @@ export function DinerOrder({
       </section>
     );
   }
+  const hasUnavailableItems = quote?.items.some(
+    ({ status }) => status !== "available"
+  );
   return (
     <section aria-labelledby="order-title" className="diner-order">
       <h2 id="order-title">Mi pedido</h2>
@@ -65,7 +68,9 @@ export function DinerOrder({
                 value={item.quantity}
               />
             </label>
-            <b>{formatMoney(item.totalCents)}</b>
+            {item.status === "available" ? (
+              <b>{formatMoney(item.totalCents)}</b>
+            ) : null}
             <button
               aria-label={`Quitar ${item.title}`}
               className="diner-remove"
@@ -78,7 +83,7 @@ export function DinerOrder({
         ))}
       </ul>
       <div className="diner-total">
-        <span>Total</span>
+        <span>{hasUnavailableItems ? "Total disponible" : "Total"}</span>
         <strong>{quote ? formatMoney(quote.totalCents) : "—"}</strong>
       </div>
       <button
@@ -89,7 +94,12 @@ export function DinerOrder({
       >
         Continuar
       </button>
-      {quote && !quote.canConfirm ? (
+      {hasUnavailableItems ? (
+        <p className="diner-help" role="status">
+          Los productos marcados quedan fuera del total. Quitalos del pedido
+          para continuar. Si querés, podés elegir otro producto en Carta.
+        </p>
+      ) : quote && !quote.canConfirm ? (
         <p className="diner-help" role="status">
           Corregí los productos marcados o pedile ayuda al mozo para continuar.
         </p>

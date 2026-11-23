@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(23);
 
 insert into auth.users (id)
 values
@@ -230,6 +230,63 @@ select throws_ok(
   '42501',
   null,
   'an administrator from another tenant cannot overwrite the draft'
+);
+
+update public.tenants set status = 'active'
+where id = 'e3000000-0000-4000-8000-000000000003';
+
+create temporary table availability_staff as
+select
+  tenant_id,
+  id as location_id,
+  'e6000000-0000-4000-8000-000000000011'::uuid as manager_id,
+  'e6000000-0000-4000-8000-000000000012'::uuid as waiter_id,
+  'e7000000-0000-4000-8000-000000000007'::uuid as product_id
+from public.locations where tenant_id = 'e3000000-0000-4000-8000-000000000003';
+
+insert into public.staff_members (id, tenant_id, location_id, username, display_name, role, created_by)
+select actor.id, scope.tenant_id, scope.location_id, actor.role, actor.role, actor.role,
+  'e1000000-0000-4000-8000-000000000001'::uuid
+from availability_staff scope
+cross join lateral (values (scope.manager_id, 'manager'), (scope.waiter_id, 'waiter')) actor(id, role);
+
+select results_eq(
+  $$ select changed.is_available, changed.version
+     from availability_staff scope
+     cross join lateral private.set_staff_catalog_product_availability(
+       scope.tenant_id, scope.location_id, scope.manager_id, scope.product_id, false, 2
+     ) changed $$,
+  $$ values (false, 3) $$,
+  'the manager changes availability using the same version as the administrator'
+);
+select is(
+  (select updated_by_staff from private.catalog_product_availability
+   where product_id = (select product_id from availability_staff)),
+  (select manager_id from availability_staff),
+  'the availability row records the staff actor'
+);
+select throws_ok(
+  $$ select changed.version from availability_staff scope
+     cross join lateral private.set_staff_catalog_product_availability(
+       scope.tenant_id, scope.location_id, scope.manager_id, scope.product_id, true, 2
+     ) changed $$,
+  '40001', null, 'a stale staff command does not overwrite the current state'
+);
+select throws_ok(
+  $$ select changed.version from availability_staff scope
+     cross join lateral private.set_staff_catalog_product_availability(
+       scope.tenant_id, scope.location_id, scope.waiter_id, scope.product_id, true, 3
+     ) changed $$,
+  'PT200', null, 'a waiter cannot change availability'
+);
+select throws_ok(
+  $$ select changed.version from availability_staff scope
+     cross join lateral private.set_staff_catalog_product_availability(
+       'e4000000-0000-4000-8000-000000000004',
+       (select id from public.locations where tenant_id = 'e4000000-0000-4000-8000-000000000004'),
+       scope.manager_id, scope.product_id, true, 3
+     ) changed $$,
+  'PT200', null, 'a manager cannot change availability in another tenant'
 );
 
 select * from finish();

@@ -172,7 +172,8 @@ function localizedTitle(content: LocalizedCatalogContent[]): string {
 /** Display-only menu for manual orders: the server prices every line again. */
 export function buildWaiterMenu(
   catalog: CatalogDraft,
-  availability: Record<string, { isAvailable: boolean; version?: number }>
+  availability: Record<string, { isAvailable: boolean; version?: number }>,
+  includeUnavailable = false
 ): WaiterMenuProduct[] {
   const categories = new Map(
     catalog.categories.map((category) => [
@@ -181,7 +182,10 @@ export function buildWaiterMenu(
     ])
   );
   return [...catalog.products]
-    .filter((product) => availability[product.id]?.isAvailable !== false)
+    .filter(
+      (product) =>
+        includeUnavailable || availability[product.id]?.isAvailable !== false
+    )
     .sort((left, right) => left.position - right.position)
     .map((product) => ({
       categoryTitle: categories.get(product.categoryId) ?? "",

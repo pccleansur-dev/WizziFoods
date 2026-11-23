@@ -2,20 +2,22 @@ import type { StaffCapability, StaffRole } from "@platform/contracts";
 
 export type StaffOperationModule = {
   description: string;
-  /** Route under /interno/<tenant>/operacion, when the module already exists. */
-  path?: string;
+  path: string;
   requiredCapability: StaffCapability;
   title: string;
 };
 
 const modules: readonly StaffOperationModule[] = [
   {
-    description: "Disponibilidad, productos, precios y categorías.",
+    description:
+      "Consultá los productos, precios y disponibilidad de la carta publicada.",
+    path: "carta",
     requiredCapability: "menu.manage",
     title: "Carta"
   },
   {
-    description: "Distribución, estado y preparación de mesas.",
+    description: "Estado y preparación de las mesas por planta.",
+    path: "salon",
     requiredCapability: "salon.manage",
     title: "Salón"
   },
@@ -33,6 +35,7 @@ const modules: readonly StaffOperationModule[] = [
   },
   {
     description: "Consumos pendientes y registro de cobros.",
+    path: "salon?vista=cuentas",
     requiredCapability: "payments.collect",
     title: "Cobros"
   },

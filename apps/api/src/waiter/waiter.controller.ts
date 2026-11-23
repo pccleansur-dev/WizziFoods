@@ -24,6 +24,10 @@ import {
 } from "@platform/contracts";
 
 import {
+  parseAvailabilityRequest,
+  parseCatalogProductId
+} from "../catalog/catalog-input.js";
+import {
   StaffSessionGuard,
   type StaffSessionRequest
 } from "../staff-auth/staff-session.guard.js";
@@ -157,6 +161,45 @@ export class WaiterController {
   async menu(@Req() request: WaiterRequest) {
     const context = needs(request, "orders.manage");
     return { data: await this.service.getMenu(context) };
+  }
+
+  @Post("menu/products/:productId/availability")
+  @HttpCode(HttpStatus.OK)
+  async setMenuAvailability(
+    @Req() request: WaiterRequest,
+    @Param("productId") productId: string,
+    @Body() body: unknown
+  ) {
+    const context = needs(request, "menu.availability.manage");
+    let product;
+    let change;
+    try {
+      product = parseCatalogProductId(productId);
+      change = parseAvailabilityRequest(body);
+    } catch {
+      throw invalid();
+    }
+    try {
+      return {
+        data: await this.service.setMenuAvailability(context, product, change)
+      };
+    } catch (error) {
+      if (databaseCode(error) === "40001") {
+        throw conflict(
+          "CATALOG_AVAILABILITY_CHANGED",
+          "La disponibilidad cambió. Revisá el estado actual."
+        );
+      }
+      if (databaseCode(error) === "22023") {
+        throw new NotFoundException({
+          error: {
+            code: "CATALOG_PRODUCT_NOT_FOUND",
+            message: "El producto ya no está en la carta publicada."
+          }
+        });
+      }
+      return mapFailure(error);
+    }
   }
 
   @Post("calls/:callId/claim")

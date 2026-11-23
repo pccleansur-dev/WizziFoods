@@ -52,6 +52,7 @@ export type SaveFloorPlanInput = {
   command: FloorPlanCommand;
   requesterId: string;
   scope: TenantScope;
+  staff?: true;
 };
 
 export type RotateFloorTableQrInput = {
@@ -62,6 +63,12 @@ export type RotateFloorTableQrInput = {
 
 export interface FloorPlanRepository {
   getPlan(scope: TenantScope, requesterId: string): Promise<FloorPlanRecord>;
+  getStaffPlan(
+    scope: TenantScope,
+    staffId: string
+  ): Promise<
+    FloorPlanRecord & { codes: FloorTableQrCode[]; hostname: string | null }
+  >;
   getReadiness(scope: TenantScope): Promise<FloorPlanReadiness>;
   listQrCodes(
     scope: TenantScope,
@@ -179,6 +186,31 @@ export function createFloorPlanRepository(client: Sql): FloorPlanRepository {
       };
     },
 
+    async getStaffPlan(untrustedScope, staffId) {
+      const scope = assertScope(untrustedScope);
+      assertUuid(staffId, "staffId");
+      const [row] = await client<
+        {
+          result: unknown;
+          hostname: string | null;
+          codes: FloorTableQrCode[];
+        }[]
+      >`
+        select * from private.get_staff_floor_plan(
+          ${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid,
+          ${staffId}::uuid
+        )
+      `;
+      if (!row)
+        throw new Error("Staff floor plan read did not return a record");
+      return {
+        ...mapRecord(row.result),
+        hostname: row.hostname,
+        codes: row.codes
+      };
+    },
+
     async listQrCodes(untrustedScope, requesterId) {
       const scope = assertScope(untrustedScope);
       assertUuid(requesterId, "requesterId");
@@ -253,9 +285,12 @@ export function createFloorPlanRepository(client: Sql): FloorPlanRepository {
       const parsed = parseFloorPlanCommand(input.command);
       if (!parsed.ok) throw new Error("floor plan command must be canonical");
       const { command } = parsed;
+      const operation = input.staff
+        ? "save_staff_floor_plan"
+        : "save_floor_plan";
       const [row] = await client<SaveRow[]>`
         select *
-        from private.save_floor_plan(
+        from private.${client(operation)}(
           ${scope.tenantId}::uuid,
           ${scope.locationId}::uuid,
           ${input.requesterId}::uuid,

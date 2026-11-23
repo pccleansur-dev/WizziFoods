@@ -55,8 +55,10 @@ function quoteItem(
     };
   }
 
-  const unitPriceCents = product.priceCents + (variant?.priceDeltaCents ?? 0);
   const isAvailable = current?.availability[product.id]?.isAvailable ?? true;
+  const unitPriceCents = isAvailable
+    ? product.priceCents + (variant?.priceDeltaCents ?? 0)
+    : 0;
   return {
     ...item,
     status: isAvailable ? "available" : "product_unavailable",

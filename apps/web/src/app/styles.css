@@ -1854,6 +1854,7 @@ dd {
 
 .floor-plan-layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   margin-top: 1rem;
 }
@@ -2871,6 +2872,54 @@ dd {
   }
 }
 
+.business-tools {
+  width: min(100%, 56rem);
+  margin-top: 1.5rem;
+}
+
+.business-tools h2 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.business-tools ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.business-tools a {
+  display: grid;
+  height: 100%;
+  min-height: 5rem;
+  align-content: center;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d8d2c7;
+  border-radius: 0.85rem;
+  background: #fffdf8;
+  color: #221f1a;
+  text-decoration: none;
+}
+
+.business-tools a:hover {
+  border-color: #355f3f;
+  background: #f1f6ef;
+}
+
+.business-tools a:focus-visible {
+  outline: 3px solid #90612a;
+  outline-offset: 2px;
+}
+
+.business-tools a span {
+  color: #625b51;
+  font-size: 0.875rem;
+}
+
 /* Resumen de la puesta en marcha en el inicio del panel. */
 .onboarding-overview {
   width: min(100%, 56rem);
@@ -3173,7 +3222,7 @@ dd {
 
 .floor-plan-qr-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
   gap: 0.75rem;
   margin: 0;
   padding: 0;
@@ -3193,7 +3242,7 @@ dd {
 
 .floor-plan-qr-grid .button {
   width: 100%;
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   padding-block: 0.25rem;
   font-size: 0.85rem;
 }

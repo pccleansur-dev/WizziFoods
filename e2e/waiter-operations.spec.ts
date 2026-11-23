@@ -6,9 +6,10 @@ import {
   type Page
 } from "@playwright/test";
 
-import { webPort } from "./stack-env";
+import { apiPort, webPort } from "./stack-env";
 import { contextOptions } from "./stack-env";
 import {
+  catalogProduct,
   seedWaiterBusiness,
   staffPin,
   waiterHostname,
@@ -18,6 +19,7 @@ import {
 
 const origin = `http://${waiterHostname}:${webPort}`;
 const salonUrl = `${origin}/interno/${waiterSlug}/operacion/salon`;
+const catalogUrl = `${origin}/interno/${waiterSlug}/operacion/carta`;
 
 let business: WaiterBusiness;
 const contexts: BrowserContext[] = [];
@@ -224,6 +226,127 @@ test("a waiter loads a manual order for a table within their sectors", async ({
   await expect(confirmed).toBeVisible();
   await expect(confirmed).toContainText("no registrado");
   await expect(business.orderCounts()).resolves.toMatchObject({ manual: 1 });
+});
+
+test("a manager changes availability for the diner and the waiter without overwriting a newer change", async ({
+  browser
+}) => {
+  const manager = await signIn(browser, "marta");
+  const otherManager = await signIn(browser, "marta");
+  const waiter = await signIn(browser, "ana");
+  await Promise.all([manager.goto(catalogUrl), otherManager.goto(catalogUrl)]);
+
+  const markSoldOut = (page: Page) =>
+    page.getByRole("button", { name: "Marcar agotado: Milanesa" });
+  await expect(markSoldOut(otherManager)).toBeVisible();
+  await markSoldOut(manager).click();
+  await expect(manager.getByText("Agotado", { exact: true })).toBeVisible();
+  await markSoldOut(otherManager).click();
+  await expect(
+    otherManager.getByRole("alert").filter({ hasText: "La carta cambió" })
+  ).toBeVisible();
+  await expect(
+    otherManager.getByText("Agotado", { exact: true })
+  ).toBeVisible();
+
+  const phone = await browser.newContext(
+    contextOptions(test.info().project.use)
+  );
+  contexts.push(phone);
+  const diner = await phone.newPage();
+  const qr = `${origin}/m/${business.tokens.get("2")!}`;
+  await diner.goto(qr);
+  await expect(diner.getByText("No disponible", { exact: true })).toBeVisible();
+
+  await waiter.goto(`${salonUrl}?vista=comanda`);
+  await expect(
+    waiter.getByRole("heading", { name: "Cargar comanda" })
+  ).toBeVisible();
+  const addMilanesa = waiter.getByRole("button", { name: "Agregar Milanesa" });
+  await expect(addMilanesa).toHaveCount(0);
+  const session = (await waiter.context().cookies(salonUrl)).find(
+    ({ name }) => name === `staff_session_${waiterSlug}`
+  );
+  expect(session).toBeDefined();
+  const forbidden = await waiter.request.post(
+    `http://localhost:${apiPort}/v1/staff/menu/products/${catalogProduct}/availability`,
+    {
+      data: { expectedVersion: 1, isAvailable: true },
+      headers: { authorization: `Bearer ${session!.value}` }
+    }
+  );
+  expect(forbidden.status()).toBe(403);
+
+  await manager
+    .getByRole("button", { name: "Volver a ofrecer: Milanesa" })
+    .click();
+  await expect(markSoldOut(manager)).toBeVisible();
+  await diner.reload();
+  await expect(
+    diner.getByRole("button", { name: "Ver detalle de Milanesa" })
+  ).toBeEnabled();
+  await waiter.reload();
+  await expect(addMilanesa).toBeVisible();
+});
+
+test("a manager edits the floor plan and downloads the same table QR", async ({
+  browser
+}) => {
+  test.setTimeout(60_000);
+  const manager = await signIn(browser, "marta");
+  await manager.goto(salonUrl);
+  await manager.getByRole("link", { name: "Plano y QR" }).click();
+  const editor = manager.getByRole("region", { name: "Plano del salón" });
+  const qrView = editor.getByRole("button", { name: /^Códigos QR/u });
+  const qr = editor.getByRole("img", { name: "Código QR de la mesa 1" });
+  const openQr = async () => {
+    await expect(async () => {
+      if (!(await qr.isVisible())) await qrView.click({ timeout: 2_000 });
+      await expect(qr).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
+  };
+  await openQr();
+  const originalQr = await qr.getAttribute("src");
+  expect(originalQr).toMatch(/^data:image\/svg\+xml/u);
+
+  await editor.getByRole("button", { name: "Plano", exact: true }).click();
+  await editor.getByRole("button", { name: /^Mesa 1,/u }).click();
+  await editor.getByLabel("Posición X").fill("55");
+  await editor.getByLabel("Sillas", { exact: true }).fill("5");
+  await editor.getByRole("button", { name: "Guardar plano" }).click();
+  await expect(editor.getByText(/Plano guardado/u)).toBeVisible();
+  await expect(
+    editor.getByRole("button", { name: /^Mesa 1, 5 sillas/u })
+  ).toBeVisible();
+
+  await manager.reload();
+  await expect(async () => {
+    if (!(await editor.getByLabel("Posición X").isVisible())) {
+      await editor.getByRole("button", { name: /^Mesa 1, 5 sillas/u }).click();
+    }
+    await expect(editor.getByLabel("Posición X")).toHaveValue("55", {
+      timeout: 1_000
+    });
+  }).toPass({ timeout: 15_000 });
+  await openQr();
+  await expect(qr).toHaveAttribute("src", originalQr!);
+  const downloadButton = qr
+    .locator("..")
+    .getByRole("button", { name: "Descargar QR" });
+  await downloadButton.evaluate((element) =>
+    element.scrollIntoView({ block: "center", inline: "center" })
+  );
+  const [download] = await Promise.all([
+    manager.waitForEvent("download", { timeout: 8_000 }),
+    downloadButton.press("Enter")
+  ]);
+  expect(download.suggestedFilename()).toBe("qr-mesa-1.svg");
+
+  const waiter = await signIn(browser, "ana");
+  await waiter.goto(salonUrl);
+  await expect(waiter.getByRole("link", { name: "Plano y QR" })).toHaveCount(0);
+  await waiter.goto(new URL(manager.url()).href);
+  await expect(waiter).toHaveURL(/\/operacion$/u);
 });
 
 test("kitchen staff cannot open the salon", async ({ browser }) => {

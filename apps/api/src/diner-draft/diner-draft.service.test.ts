@@ -99,10 +99,58 @@ describe("DinerDraftService", () => {
     expect(result).toMatchObject({
       draft: {
         canConfirm: false,
-        items: [{ status: "product_unavailable" }],
-        totalCents: 12_500
+        items: [
+          { status: "product_unavailable", totalCents: 0, unitPriceCents: 0 }
+        ],
+        totalCents: 0
       },
       status: "ok"
+    });
+  });
+
+  it("adds only available lines to the total of a mixed draft", async () => {
+    const availableId = crypto.randomUUID();
+    const current = {
+      ...catalog,
+      availability: { [productId]: { isAvailable: false, version: 2 } },
+      catalog: {
+        ...catalog.catalog,
+        products: [
+          ...catalog.catalog.products,
+          { ...catalog.catalog.products[0], id: availableId, priceCents: 6_800 }
+        ]
+      }
+    };
+    const items = [
+      { lineId, productId, quantity: 2, variantId },
+      {
+        lineId: crypto.randomUUID(),
+        productId: availableId,
+        quantity: 1,
+        variantId: null
+      }
+    ];
+    const dinerDraft = service(undefined, current);
+    await expect(
+      dinerDraft.recalculate(context, { items, token })
+    ).resolves.toMatchObject({
+      draft: {
+        canConfirm: false,
+        totalCents: 6_800,
+        items: [
+          {
+            status: "product_unavailable",
+            totalCents: 0,
+            variantTitle: "Napolitana"
+          },
+          { status: "available", totalCents: 6_800 }
+        ]
+      }
+    });
+    await expect(
+      dinerDraft.recalculate(context, { items: items.slice(1), token })
+    ).resolves.toMatchObject({
+      draft: { canConfirm: true, totalCents: 6_800 }
     });
   });
 

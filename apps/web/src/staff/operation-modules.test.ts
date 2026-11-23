@@ -38,8 +38,17 @@ describe("staff operation modules", () => {
     expect(modules.find(({ title }) => title === "Pedidos")?.path).toBe(
       "salon?vista=comanda"
     );
-    expect(
-      modules.find(({ title }) => title === "Cobros")?.path
-    ).toBeUndefined();
+    expect(modules.find(({ title }) => title === "Cobros")?.path).toBe(
+      "salon?vista=cuentas"
+    );
+  });
+
+  it("links Carta and Salón for the manager", () => {
+    const modules = operationModulesFor(
+      "manager",
+      STAFF_ROLE_CAPABILITIES.manager
+    );
+    expect(modules.find(({ title }) => title === "Carta")?.path).toBe("carta");
+    expect(modules.find(({ title }) => title === "Salón")?.path).toBe("salon");
   });
 });

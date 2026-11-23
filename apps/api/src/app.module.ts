@@ -36,7 +36,10 @@ import { OrderIntentController } from "./order-intent/order-intent.controller.js
 import { OrderIntentService } from "./order-intent/order-intent.service.js";
 import { WaiterCallController } from "./waiter-call/waiter-call.controller.js";
 import { WaiterCallService } from "./waiter-call/waiter-call.service.js";
-import { FloorPlanAdminController } from "./floor-plan/floor-plan.controller.js";
+import {
+  FloorPlanAdminController,
+  FloorPlanStaffController
+} from "./floor-plan/floor-plan.controller.js";
 import { FloorPlanService } from "./floor-plan/floor-plan.service.js";
 import { TableEntryController } from "./table-entry/table-entry.controller.js";
 import { TableEntryService } from "./table-entry/table-entry.service.js";
@@ -173,6 +176,7 @@ export class AppModule {
         CatalogAdminController,
         DinerDraftController,
         FloorPlanAdminController,
+        FloorPlanStaffController,
         OrderIntentController,
         WaiterCallController,
         PaymentMethodsAdminController,

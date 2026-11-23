@@ -56,9 +56,11 @@ export type SetCatalogAvailabilityInput = {
   expectedVersion: number | null;
   isAvailable: boolean;
   productId: string;
-  requesterId: string;
   scope: TenantScope;
-};
+} & (
+  | { requesterId: string; staffId?: never }
+  | { requesterId?: never; staffId: string }
+);
 
 export interface CatalogRepository {
   getCurrent(scope: TenantScope): Promise<PublishedCatalogRecord | null>;
@@ -289,7 +291,8 @@ export function createCatalogRepository(client: Sql): CatalogRepository {
 
     async setAvailability(input) {
       const scope = assertScope(input.scope);
-      assertUuid(input.requesterId, "requesterId");
+      const actorId = input.staffId ?? input.requesterId;
+      assertUuid(actorId, "actorId");
       assertUuid(input.productId, "productId");
       if (typeof input.isAvailable !== "boolean") {
         throw new Error("isAvailable must be a boolean");
@@ -302,12 +305,15 @@ export function createCatalogRepository(client: Sql): CatalogRepository {
           throw new Error("expectedVersion must be null or a positive integer");
         }
       }
+      const operation = input.staffId
+        ? "set_staff_catalog_product_availability"
+        : "set_catalog_product_availability";
       const [row] = await client<CatalogAvailabilityRow[]>`
         select *
-        from private.set_catalog_product_availability(
+        from private.${client(operation)}(
           ${scope.tenantId}::uuid,
           ${scope.locationId}::uuid,
-          ${input.requesterId}::uuid,
+          ${actorId}::uuid,
           ${input.productId}::uuid,
           ${input.isAvailable},
           ${input.expectedVersion}

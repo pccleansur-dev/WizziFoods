@@ -9,6 +9,7 @@ import type {
   WaiterOperationsRepository
 } from "@platform/database";
 
+import type { AvailabilityRequest } from "../catalog/catalog-input.js";
 import type { StaffRequestContext } from "../staff-auth/staff-session.guard.js";
 
 export class WaiterService {
@@ -77,5 +78,18 @@ export class WaiterService {
   /** The published menu with live availability; prices are only displayed. */
   getMenu(context: StaffRequestContext) {
     return this.catalog.getCurrent(context.scope);
+  }
+
+  setMenuAvailability(
+    context: StaffRequestContext,
+    productId: string,
+    request: AvailabilityRequest
+  ) {
+    return this.catalog.setAvailability({
+      ...request,
+      productId,
+      scope: context.scope,
+      staffId: context.staffId
+    });
   }
 }

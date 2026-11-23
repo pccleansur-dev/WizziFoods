@@ -167,16 +167,26 @@ test("a concurrent availability change marks the draft and blocks continuation",
   await expect(
     page.getByRole("button", { name: "Continuar", exact: true })
   ).toBeEnabled();
+  await expect(page.locator(".diner-total")).toContainText("$ 125,00");
   await business.setProductAvailable(false);
   try {
     await page.clock.fastForward(16_000);
     await expect(page.getByText("No está disponible ahora.")).toBeVisible();
+    await expect(page.locator(".diner-total")).toContainText(
+      "Total disponible"
+    );
+    await expect(page.locator(".diner-total")).toContainText("$ 0,00");
     await expect(
       page.getByRole("button", { name: "Continuar", exact: true })
     ).toBeDisabled();
   } finally {
     await business.setProductAvailable(true);
   }
+  await page.clock.fastForward(16_000);
+  await expect(page.locator(".diner-total")).toContainText("$ 125,00");
+  await expect(
+    page.getByRole("button", { name: "Continuar", exact: true })
+  ).toBeEnabled();
 });
 
 async function addMilanesa(page: import("@playwright/test").Page) {

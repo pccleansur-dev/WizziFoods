@@ -5,6 +5,7 @@ import {
   type BrowserContext,
   type Page
 } from "@playwright/test";
+import type { DinerWaiterCallReason } from "@platform/contracts";
 
 import { contextOptions, webPort } from "./stack-env";
 import {
@@ -53,6 +54,15 @@ async function signIn(browser: Browser, username: string): Promise<Page> {
   return page;
 }
 
+function callResponse(page: Page, reason: DinerWaiterCallReason) {
+  return page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/api/waiter-calls" &&
+      response.request().method() === "POST" &&
+      response.request().postDataJSON()?.reason === reason
+  );
+}
+
 test("the diner calls the waiter, the staff is told and resolves it", async ({
   browser
 }) => {
@@ -69,12 +79,24 @@ test("the diner calls the waiter, the staff is told and resolves it", async ({
   await expect(
     panel.getByRole("button", { name: "Pedir la cuenta" })
   ).toHaveCount(0);
+  const firstCall = callResponse(diner, "call_waiter");
   await panel.getByRole("button", { name: "Llamar al mozo" }).click();
+  const firstResponse = await firstCall;
+  expect(firstResponse.ok()).toBe(true);
+  const { data: first } = await firstResponse.json();
+  expect(first.created).toBe(true);
   await expect(panel.getByRole("status")).toContainText(
     "Avisamos al mozo. Ya viene."
   );
   // Asking again does not pile up calls.
+  const duplicateCall = callResponse(diner, "call_waiter");
   await panel.getByRole("button", { name: "Llamar al mozo" }).click();
+  const duplicateResponse = await duplicateCall;
+  expect(duplicateResponse.ok()).toBe(true);
+  expect((await duplicateResponse.json()).data).toMatchObject({
+    callId: first.callId,
+    created: false
+  });
   await expect(panel.getByRole("status")).toContainText("Ya viene");
 
   // The staff screen learns about it by itself and warns in the tab title.
@@ -95,8 +117,34 @@ test("the diner calls the waiter, the staff is told and resolves it", async ({
     .click();
   await expect(card).toHaveCount(0);
 
-  // After being resolved the diner can call again and it is a new call.
-  await panel.getByRole("button", { name: "Necesito ayuda" }).click();
+  // After a reload on a slow connection, SSR must not accept a click before
+  // React is ready. The first click after hydration must reach the server.
+  const scripts = /\/_next\/static\/.*\.js(?:\?|$)/u;
+  let releaseScripts!: () => void;
+  const pendingScripts = new Promise<void>((resolve) => {
+    releaseScripts = resolve;
+  });
+  await diner.route(scripts, async (route) => {
+    await pendingScripts;
+    await route.continue();
+  });
+  const help = panel.getByRole("button", { name: "Necesito ayuda" });
+  try {
+    await diner.reload({ waitUntil: "commit" });
+    await expect(help).toBeDisabled();
+    await expect(panel.getByRole("status")).toContainText("Preparando");
+  } finally {
+    releaseScripts();
+  }
+  await expect(help).toBeEnabled();
+  await diner.unroute(scripts);
+  const secondCall = callResponse(diner, "help");
+  await help.click();
+  const secondResponse = await secondCall;
+  expect(secondResponse.ok()).toBe(true);
+  const { data: second } = await secondResponse.json();
+  expect(second).toMatchObject({ created: true, reason: "help" });
+  expect(second.callId).not.toBe(first.callId);
   await expect(panel.getByRole("status")).toContainText("necesitás ayuda");
   await expect(
     ana.getByRole("article", { name: "Mesa 1 · Pide ayuda" })

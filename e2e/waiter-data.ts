@@ -125,6 +125,7 @@ async function cleanup(sql: postgres.Sql, owner: postgres.Sql) {
     await owner`delete from private.mp_connections where tenant_id = ${tenant}`;
     await owner`delete from private.waiter_calls where tenant_id = ${tenant}`;
     await owner`delete from private.order_intent_commands where tenant_id = ${tenant}`;
+    await owner`delete from private.catalog_product_availability where tenant_id = ${tenant}`;
     await owner`delete from private.published_catalogs where tenant_id = ${tenant}`;
     await sql`delete from private.location_publications where tenant_id = ${tenant}`;
     await sql`delete from private.audit_events where tenant_id = ${tenant}`;

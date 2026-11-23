@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(27);
+select plan(29);
 
 insert into auth.users (id) values ('2b100000-0000-4000-8000-000000000001'), ('2b100000-0000-4000-8000-000000000002');
 insert into public.tenants (id, slug, name, status) values
@@ -194,6 +194,8 @@ select pg_temp.claim(pg_temp.token('1'), 2, 'Beto', 'device-a');
 select pg_temp.claim(pg_temp.token('1'), 1, 'Beto', 'device-a');
 select is((pg_temp.pay_shares((select ana from staff), '2b900000-0000-4000-8000-000000000109', (select id from s1), (select id from sid), array[2]) ->> 'amountCents')::int, 6000, 'the waiter collects a claimed share');
 select is((select payer_label from private.account_split_shares where split_id = (select id from sid) and position = 2), 'Beto', 'and it keeps who paid it');
+select is((pg_temp.dview(pg_temp.token('1'), 'device-a') -> 'split' -> 'shares' -> 1 ->> 'mine')::boolean, true, 'the device still recognizes its paid share');
+select is((pg_temp.dview(pg_temp.token('1'), 'device-b') -> 'split' -> 'shares' -> 1 ->> 'mine')::boolean, false, 'another device does not own the confirmation');
 select throws_ok($$ select pg_temp.release(pg_temp.token('1'), 2, 'device-a') $$, 'PT260', null, 'a paid share cannot be released');
 
 select pg_temp.split((select ana from staff), '2b900000-0000-4000-8000-000000000110', (select id from s1), 2);

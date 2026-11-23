@@ -9,6 +9,15 @@ const statusLabel: Record<OnboardingStepStatus, string> = {
   pending: "Pendiente"
 };
 
+const publishedOrder = [
+  "carta",
+  "salon",
+  "pagos",
+  "equipo",
+  "negocio",
+  "publicar"
+] as const;
+
 /** Inicio del panel: dónde quedó la puesta en marcha y a qué paso seguir. */
 export function OnboardingOverview({
   progress
@@ -16,19 +25,46 @@ export function OnboardingOverview({
   progress: OnboardingProgress;
 }) {
   const next = progress.steps.find(({ key }) => key === progress.next);
-  const finished = progress.percent === 100;
+  if (
+    progress.steps.some(
+      ({ key, status }) => key === "publicar" && status === "done"
+    )
+  ) {
+    return (
+      <nav aria-labelledby="business-tools" className="business-tools">
+        <h2 id="business-tools">Administrar el local</h2>
+        <ul>
+          {publishedOrder.map((key) => {
+            const step = progress.steps.find(
+              (candidate) => candidate.key === key
+            );
+            if (!step) return null;
+            return (
+              <li key={key}>
+                <Link href={step.href}>
+                  <strong>
+                    {key === "publicar" ? "Modo prueba" : step.title}
+                  </strong>
+                  <span>
+                    {key === "publicar"
+                      ? "Simulá el servicio del local."
+                      : step.description}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    );
+  }
   return (
     <section aria-labelledby="onboarding-title" className="onboarding-overview">
       <p className="eyebrow">Puesta en marcha</p>
-      <h2 id="onboarding-title">
-        {finished
-          ? "Tu negocio está publicado"
-          : `Tu negocio está al ${progress.percent}%`}
-      </h2>
+      <h2 id="onboarding-title">Tu negocio está al {progress.percent}%</h2>
       <p className="panel-lead">
-        {finished
-          ? "Podés volver a cualquier paso para cambiar lo que necesites."
-          : "Completá los pasos para poder publicar. Podés dejar uno a medias y volver cuando quieras."}
+        Completá los pasos para poder publicar. Podés dejar uno a medias y
+        volver cuando quieras.
       </p>
       <div
         aria-label={`Avance ${progress.percent}%`}
@@ -58,7 +94,7 @@ export function OnboardingOverview({
           </li>
         ))}
       </ol>
-      {next && !finished ? (
+      {next ? (
         <Link className="button" href={next.href}>
           Continuar en el paso{" "}
           {progress.steps.findIndex(({ key }) => key === next.key) + 1}:{" "}

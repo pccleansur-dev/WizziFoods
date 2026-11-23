@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(85);
+select plan(88);
 
 insert into auth.users (id) values ('2e100000-0000-4000-8000-000000000001'), ('2e100000-0000-4000-8000-000000000002');
 insert into public.tenants (id, slug, name, status) values
@@ -244,6 +244,19 @@ select lives_ok($$ select private.save_floor_plan((select t1 from scope), (selec
   pg_temp.plan(jsonb_build_array(jsonb_build_object('id', (select r ->> 'groupId' from joined1), 'name', 'Cumple 2',
     'tableIds', jsonb_build_array('2e600000-0000-4000-8000-000000000001','2e600000-0000-4000-8000-000000000002','2e600000-0000-4000-8000-000000000003'))))) $$,
   'the editor may rename a group that keeps its tables');
+
+select throws_ok($$ select private.save_staff_floor_plan(
+  (select t1 from scope), (select l1 from scope), (select manager from staff),
+  '2e300000-0000-4000-8000-000000000010',
+  (select version from private.floor_plans where tenant_id = (select t1 from scope)),
+  (private.read_floor_plan((select t1 from scope), (select l1 from scope)) -> 'plan') #- '{tables,3}'
+) $$, 'PT281', null, 'the manager cannot remove an ungrouped table with an open account');
+select throws_ok($$ select * from private.get_staff_floor_plan(
+  (select t1 from scope), (select l1 from scope), (select ana from staff)
+) $$, 'PT200', null, 'a waiter cannot access the editor and its QR codes');
+select throws_ok($$ select * from private.get_staff_floor_plan(
+  (select t2 from scope), (select l2 from scope), (select manager from staff)
+) $$, 'PT200', null, 'a manager cannot read the floor plan of a different tenant');
 
 -- 28-40. Separating: the account stays with the anchor, nothing else moves.
 create temporary table before_sep as select pg_temp.ledger() ledger, pg_temp.orders() orders,

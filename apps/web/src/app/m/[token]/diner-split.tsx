@@ -131,18 +131,25 @@ export function DinerSplit({ token }: { token: string }) {
     );
   }
   const split = view.split;
+  const hasUnpaidShares = split.shares.some(
+    (share) => share.status === "open" || share.status === "claimed"
+  );
   return (
     <section aria-labelledby="split-title" className="diner-split">
       <h2 id="split-title">Tu parte de la cuenta</h2>
-      <p>Elegí tu parte y avisale al mozo: la cobra en la mesa.</p>
-      <label htmlFor="split-name">Tu nombre</label>
-      <input
-        autoComplete="given-name"
-        id="split-name"
-        maxLength={40}
-        onChange={(event) => setName(event.target.value)}
-        value={name}
-      />
+      {hasUnpaidShares ? (
+        <>
+          <p>Elegí tu parte y avisale al mozo: la cobra en la mesa.</p>
+          <label htmlFor="split-name">Tu nombre</label>
+          <input
+            autoComplete="given-name"
+            id="split-name"
+            maxLength={40}
+            onChange={(event) => setName(event.target.value)}
+            value={name}
+          />
+        </>
+      ) : null}
       {message ? <p role="alert">{message}</p> : null}
       <ul aria-label="Partes de la cuenta" className="diner-split-list">
         {split.shares.map((share) => (
@@ -156,6 +163,14 @@ export function DinerSplit({ token }: { token: string }) {
                 {share.items.length > 0 ? ` · ${share.items.join(", ")}` : ""}
               </small>
             </div>
+            {share.status === "paid" && share.mine ? (
+              <section className="diner-payment-status" role="status">
+                <h3>Parte pagada</h3>
+                <p>
+                  Parte {share.position} · {formatMoney(share.amountCents)}
+                </p>
+              </section>
+            ) : null}
             {share.status === "open" ? (
               <button
                 aria-label={`Tomar la parte ${share.position}`}
@@ -206,11 +221,13 @@ export function DinerSplit({ token }: { token: string }) {
           </li>
         ))}
       </ul>
-      <p className="diner-note">
-        Podés pagar tu parte acá con Mercado Pago, o avisarle al mozo para que
-        la cobre en la mesa. Nunca te pedimos datos de tarjeta fuera del
-        formulario seguro.
-      </p>
+      {hasUnpaidShares ? (
+        <p className="diner-note">
+          Podés pagar tu parte acá con Mercado Pago, o avisarle al mozo para que
+          la cobre en la mesa. Nunca te pedimos datos de tarjeta fuera del
+          formulario seguro.
+        </p>
+      ) : null}
     </section>
   );
 }

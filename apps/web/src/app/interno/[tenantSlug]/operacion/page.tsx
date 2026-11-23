@@ -64,16 +64,12 @@ export default async function StaffOperationPage({
                   {callsLabel}
                 </p>
               ) : null}
-              {module.path ? (
-                <a
-                  className="panel-module-link"
-                  href={`/interno/${tenantSlug}/operacion/${module.path}`}
-                >
-                  Abrir {module.title}
-                </a>
-              ) : (
-                <small>Próxima etapa operativa</small>
-              )}
+              <a
+                className="panel-module-link"
+                href={`/interno/${tenantSlug}/operacion/${module.path}`}
+              >
+                Abrir {module.title}
+              </a>
             </article>
           ))}
         </div>

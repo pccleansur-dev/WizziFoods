@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { PanelContent } from "./panel-content";
+import { onboardingProgress } from "./onboarding/steps";
 
 const identity = {
   assuranceLevel: "aal2" as const,
@@ -86,5 +87,42 @@ describe("PanelContent", () => {
     expect(markup).toContain('href="/panel/carta"');
     expect(markup).not.toContain("Crear y entregar negocios");
     expect(markup).not.toContain("Carta y productos");
+  });
+
+  it("opens the management panel for a published business even with pending changes", () => {
+    const onboarding = onboardingProgress(null);
+    const publication = onboarding.steps.find(({ key }) => key === "publicar");
+    if (!publication) throw new Error("Publication step missing");
+    publication.status = "done";
+
+    const markup = renderToStaticMarkup(
+      <PanelContent
+        administrativeAccess={{
+          access: {
+            tenantContexts: [
+              {
+                location: { id: "location-1", name: "Principal" },
+                role: "admin",
+                tenant: {
+                  id: "tenant-1",
+                  name: "Bodegón del Centro",
+                  slug: "bodegon-del-centro",
+                  status: "active"
+                }
+              }
+            ],
+            type: "tenant_admin"
+          },
+          identity
+        }}
+        onboarding={onboarding}
+      />
+    );
+
+    expect(markup).toContain("Administrar el local");
+    expect(markup).toContain('href="/panel/pagos"');
+    expect(markup).toContain("Modo prueba");
+    expect(markup).not.toContain("Puesta en marcha");
+    expect(markup).not.toContain("Continuar en el paso");
   });
 });

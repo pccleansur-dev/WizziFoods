@@ -4,10 +4,12 @@ import type {
   FloorPlanRecord,
   FloorPlanRepository,
   FloorPlanSaveRecord,
+  FloorTableQrCode,
   FloorTableQrResolution
 } from "@platform/database";
 import qrcode from "qrcode-generator";
 
+import type { StaffRequestContext } from "../staff-auth/staff-session.guard.js";
 import type { TenantAdminRequestContext } from "../tenants/tenant-admin-scope.service.js";
 
 export type FloorTableQrDownload = {
@@ -37,6 +39,13 @@ function renderSvg(url: string): string {
   return code.createSvgTag({ cellSize: 8, margin: 4, scalable: true });
 }
 
+function renderDownloads(codes: FloorTableQrCode[], hostname: string) {
+  return codes.map(({ label, tableId, token }) => {
+    const url = qrUrl(hostname, token);
+    return { label, svg: renderSvg(url), tableId, url };
+  });
+}
+
 @Injectable()
 export class FloorPlanService {
   constructor(private readonly floorPlanRepository: FloorPlanRepository) {}
@@ -59,6 +68,28 @@ export class FloorPlanService {
     });
   }
 
+  async getStaffPlan(context: StaffRequestContext) {
+    const { plan, version, hostname, codes } =
+      await this.floorPlanRepository.getStaffPlan(
+        context.scope,
+        context.staffId
+      );
+    return {
+      plan,
+      version,
+      qr: hostname ? renderDownloads(codes, hostname) : []
+    };
+  }
+
+  saveStaffPlan(context: StaffRequestContext, command: FloorPlanCommand) {
+    return this.floorPlanRepository.savePlan({
+      command,
+      requesterId: context.staffId,
+      scope: context.scope,
+      staff: true
+    });
+  }
+
   async listQrCodes(
     context: TenantAdminRequestContext
   ): Promise<FloorTableQrDownload[]> {
@@ -66,10 +97,7 @@ export class FloorPlanService {
       context.scope,
       context.identity.userId
     );
-    return codes.map(({ label, tableId, token }) => {
-      const url = qrUrl(context.domain.hostname, token);
-      return { label, svg: renderSvg(url), tableId, url };
-    });
+    return renderDownloads(codes, context.domain.hostname);
   }
 
   async verifyQr(

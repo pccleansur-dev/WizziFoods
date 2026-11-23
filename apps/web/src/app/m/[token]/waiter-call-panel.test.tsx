@@ -20,6 +20,17 @@ describe("WaiterCallPanel", () => {
     expect(markup).not.toContain(token);
   });
 
+  it("keeps all call actions disabled until the browser can send a call", () => {
+    const markup = renderToStaticMarkup(
+      <WaiterCallPanel
+        entry={{ canCallWaiter: true, mode: "join" }}
+        token={token}
+      />
+    );
+    expect(markup.match(/<button[^>]+disabled=""/gu)).toHaveLength(3);
+    expect(markup).toContain("Preparando los avisos…");
+  });
+
   it("does not offer the bill on a table nobody has opened", () => {
     const markup = renderToStaticMarkup(
       <WaiterCallPanel

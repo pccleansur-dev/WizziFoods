@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -16,6 +17,10 @@ import {
 } from "@nestjs/common";
 
 import { AdminAuthGuard } from "../auth/admin-auth.guard.js";
+import {
+  StaffSessionGuard,
+  type StaffSessionRequest
+} from "../staff-auth/staff-session.guard.js";
 import {
   TenantAdminScopeGuard,
   type TenantAdminScopedRequest
@@ -53,6 +58,15 @@ function mapSaveFailure(error: unknown): never {
         code: "FLOOR_PLAN_VERSION_CONFLICT",
         message:
           "El plano cambió desde la última lectura. Recargá para ver los cambios y volvé a intentar."
+      }
+    });
+  }
+  if (code === "PT281") {
+    throw new ConflictException({
+      error: {
+        code: "FLOOR_PLAN_TABLE_IN_USE",
+        message:
+          "Una mesa tiene una cuenta abierta. Cerrala antes de retirarla del plano."
       }
     });
   }
@@ -104,6 +118,23 @@ function mapSaveFailure(error: unknown): never {
   throw error;
 }
 
+function planCommand(body: unknown) {
+  try {
+    return parseFloorPlanRequest(body);
+  } catch (error) {
+    if (error instanceof FloorPlanInputError) {
+      throw new BadRequestException({
+        error: {
+          code: "INVALID_FLOOR_PLAN",
+          issues: error.issues,
+          message: "Revisá los datos marcados del plano."
+        }
+      });
+    }
+    throw error;
+  }
+}
+
 @Controller("v1/tenant/floor-plan")
 @UseGuards(AdminAuthGuard, TenantHostGuard, TenantAdminScopeGuard)
 export class FloorPlanAdminController {
@@ -118,21 +149,7 @@ export class FloorPlanAdminController {
 
   @Put()
   async save(@Req() request: FloorPlanRequest, @Body() body: unknown) {
-    let command;
-    try {
-      command = parseFloorPlanRequest(body);
-    } catch (error) {
-      if (error instanceof FloorPlanInputError) {
-        throw new BadRequestException({
-          error: {
-            code: "INVALID_FLOOR_PLAN",
-            issues: error.issues,
-            message: "Revisá los datos marcados del plano."
-          }
-        });
-      }
-      throw error;
-    }
+    const command = planCommand(body);
     try {
       return {
         data: await this.service.savePlan(request.tenantAdminContext, command)
@@ -183,5 +200,55 @@ export class FloorPlanAdminController {
       });
     }
     await this.service.rotateQr(request.tenantAdminContext, tableId);
+  }
+}
+
+function staffPlanContext(request: Pick<StaffSessionRequest, "staffContext">) {
+  if (!request.staffContext.capabilities.includes("salon.manage")) {
+    throw staffPlanForbidden();
+  }
+  return request.staffContext;
+}
+
+function staffPlanForbidden() {
+  return new ForbiddenException({
+    error: {
+      code: "STAFF_FORBIDDEN",
+      message: "Tu rol no puede administrar el plano."
+    }
+  });
+}
+
+@Controller("v1/staff/floor-plan")
+@UseGuards(StaffSessionGuard)
+export class FloorPlanStaffController {
+  constructor(
+    @Inject(FloorPlanService) private readonly service: FloorPlanService
+  ) {}
+
+  @Get()
+  async get(@Req() request: Pick<StaffSessionRequest, "staffContext">) {
+    const context = staffPlanContext(request);
+    try {
+      return { data: await this.service.getStaffPlan(context) };
+    } catch (error) {
+      if (databaseCode(error) === "PT200") throw staffPlanForbidden();
+      throw error;
+    }
+  }
+
+  @Put()
+  async save(
+    @Req() request: Pick<StaffSessionRequest, "staffContext">,
+    @Body() body: unknown
+  ) {
+    const context = staffPlanContext(request);
+    const command = planCommand(body);
+    try {
+      return { data: await this.service.saveStaffPlan(context, command) };
+    } catch (error) {
+      if (databaseCode(error) === "PT200") throw staffPlanForbidden();
+      return mapSaveFailure(error);
+    }
   }
 }

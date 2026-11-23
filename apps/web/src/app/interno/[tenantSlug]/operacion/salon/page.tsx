@@ -162,6 +162,14 @@ export default async function WaiterSalonPage({
           <strong>{session.identity.location.name}</strong>
         </div>
         <nav aria-label="Navegación" className="waiter-header-nav">
+          {capabilities.includes("salon.manage") ? (
+            <a
+              className="panel-module-link"
+              href={`/interno/${tenantSlug}/operacion/plano`}
+            >
+              Plano y QR
+            </a>
+          ) : null}
           <a
             className="panel-module-link"
             href={`/interno/${tenantSlug}/operacion`}

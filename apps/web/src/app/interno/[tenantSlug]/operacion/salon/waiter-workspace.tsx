@@ -16,6 +16,7 @@ import {
   type WaiterOrdersView,
   type WaiterSalonView
 } from "@platform/contracts";
+import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 
 import type { WaiterMenuProduct } from "../../../../../staff/waiter-view";
@@ -116,6 +117,7 @@ export function WaiterWorkspace({
   menu: WaiterMenuProduct[];
   tenantSlug: string;
 }) {
+  const router = useRouter();
   const [view, setView] = useState(initialView);
   const [orders, setOrders] = useState(initialOrders);
   const [accounts, setAccounts] = useState(initialAccounts);
@@ -780,7 +782,10 @@ export function WaiterWorkspace({
         {canCreateOrders ? (
           <button
             aria-pressed={tab === "comanda"}
-            onClick={() => setTab("comanda")}
+            onClick={() => {
+              setTab("comanda");
+              router.refresh();
+            }}
             type="button"
           >
             Cargar comanda
