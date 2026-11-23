@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import {
+  clampZoom,
   seatPositionsWithin,
   stepZoom,
   wheelZoom,
@@ -79,6 +80,8 @@ export function FloorPlanCanvas({
   const panRef = useRef<{ x: number; y: number; pointerId: number } | null>(
     null
   );
+  const touchesRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef(zoom);
   const onZoomRef = useRef(onZoom);
@@ -162,6 +165,21 @@ export function FloorPlanCanvas({
     return point.matrixTransform(matrix.inverse());
   }
 
+  function touchPair() {
+    const [first, second] = touchesRef.current.values();
+    if (touchesRef.current.size !== 2 || !first || !second) return null;
+    return {
+      distance: Math.hypot(first.x - second.x, first.y - second.y),
+      x: (first.x + second.x) / 2,
+      y: (first.y + second.y) / 2
+    };
+  }
+
+  function finishTouch(event: PointerEvent<HTMLDivElement>) {
+    if (!touchesRef.current.delete(event.pointerId)) return;
+    if (touchesRef.current.size === 0) pinchRef.current = null;
+  }
+
   function snap(value: number) {
     return Math.round(value / SNAP) * SNAP;
   }
@@ -206,13 +224,24 @@ export function FloorPlanCanvas({
             : "floor-plan-viewport floor-plan-viewport--editing"
         }
         onPointerDown={(event) => {
-          if (
-            disabled ||
-            event.pointerType !== "touch" ||
-            !event.isPrimary ||
-            dragRef.current
-          )
+          if (disabled || event.pointerType !== "touch") return;
+          touchesRef.current.set(event.pointerId, {
+            x: event.clientX,
+            y: event.clientY
+          });
+          if (touchesRef.current.size > 1) {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            dragRef.current = null;
+            panRef.current = null;
+            const pair = touchPair();
+            if (pair)
+              pinchRef.current = {
+                distance: pair.distance,
+                zoom: zoomRef.current
+              };
             return;
+          }
+          if (pinchRef.current || dragRef.current) return;
           event.currentTarget.setPointerCapture(event.pointerId);
           panRef.current = {
             x: event.clientX,
@@ -221,6 +250,24 @@ export function FloorPlanCanvas({
           };
         }}
         onPointerMove={(event) => {
+          if (touchesRef.current.has(event.pointerId)) {
+            touchesRef.current.set(event.pointerId, {
+              x: event.clientX,
+              y: event.clientY
+            });
+            const pinch = pinchRef.current;
+            if (pinch) {
+              const pair = touchPair();
+              if (pair && pinch.distance > 0) {
+                zoomTo(
+                  clampZoom((pinch.zoom * pair.distance) / pinch.distance),
+                  pair.x,
+                  pair.y
+                );
+              }
+              return;
+            }
+          }
           const pan = panRef.current;
           if (pan?.pointerId !== event.pointerId) return;
           event.currentTarget.scrollLeft += pan.x - event.clientX;
@@ -228,7 +275,10 @@ export function FloorPlanCanvas({
           pan.x = event.clientX;
           pan.y = event.clientY;
         }}
+        onPointerUp={finishTouch}
+        onPointerCancel={finishTouch}
         onLostPointerCapture={(event) => {
+          finishTouch(event);
           if (panRef.current?.pointerId === event.pointerId)
             panRef.current = null;
         }}
@@ -313,7 +363,12 @@ export function FloorPlanCanvas({
                 key={table.id}
                 onKeyDown={(event) => onKeyDown(event, table.id)}
                 onPointerDown={(event) => {
-                  if (disabled || !event.isPrimary || event.button !== 0)
+                  if (
+                    disabled ||
+                    pinchRef.current ||
+                    !event.isPrimary ||
+                    event.button !== 0
+                  )
                     return;
                   const point = toPlanPoint(event);
                   if (!point) return;
