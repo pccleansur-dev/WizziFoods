@@ -40,7 +40,9 @@ export function OrderHoursForm({ hours }: { hours: OrderServiceHours }) {
           {result.hours.paused
             ? "Pedidos pausados"
             : scheduledDays
-              ? scheduledDays + " días configurados"
+              ? scheduledDays === 1
+                ? "1 día configurado"
+                : scheduledDays + " días configurados"
               : "Sin horario configurado"}
         </p>
       </div>
