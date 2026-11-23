@@ -1,6 +1,9 @@
 "use server";
 
-import { parseOrderServiceHours } from "@platform/contracts";
+import {
+  parseOrderServiceHours,
+  type OrderServiceHours
+} from "@platform/contracts";
 import { adminApi, dataOf } from "../admin-api";
 
 const path = "/v1/tenant/business-profile/order-hours";
@@ -14,30 +17,29 @@ export async function loadOrderHours() {
   }
 }
 
-export async function saveOrderHours(_previous: string, form: FormData) {
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const time = (field: string) => String(form.get(field + index) ?? "");
-    const day = {
-      opens: time("opens"),
-      orders: time("orders"),
-      kitchen: time("kitchen") || null,
-      bar: time("bar") || null
+export async function saveOrderHours(
+  previous: { hours: OrderServiceHours; message: string },
+  draft: unknown
+) {
+  const settings = parseOrderServiceHours(draft);
+  if (!settings) {
+    return {
+      ...previous,
+      message:
+        "Revisá los días editados. Cada uno necesita una apertura y un cierre distintos."
     };
-    return Object.values(day).some(Boolean) ? day : null;
-  });
-  const settings = parseOrderServiceHours({
-    days,
-    paused: form.has("paused"),
-    warningMinutes: Number(form.get("warning"))
-  });
-  if (!settings)
-    return "Revisá los horarios. Cada día necesita una apertura y un cierre general distintos.";
+  }
   try {
     const result = await adminApi(path, { method: "PUT", body: settings });
-    return result.ok
-      ? "Horarios guardados."
-      : (result.message ?? "No se pudieron guardar los horarios.");
+    const saved = result.ok
+      ? parseOrderServiceHours(dataOf(result.body))
+      : null;
+    if (saved) return { hours: saved, message: "Horarios guardados." };
+    return { ...previous, message: "No se pudieron guardar los horarios." };
   } catch {
-    return "No se pudieron guardar los horarios. Volvé a intentar.";
+    return {
+      ...previous,
+      message: "No se pudieron guardar los horarios. Volvé a intentar."
+    };
   }
 }
