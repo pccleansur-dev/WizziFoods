@@ -77,7 +77,9 @@ export function ReadinessManager({
       aria-labelledby="readiness-title"
     >
       <p className="eyebrow">Publicación</p>
-      <h1 id="readiness-title">Publicar el negocio</h1>
+      <h1 id="readiness-title">
+        {readiness.published ? "Negocio publicado" : "Publicar el negocio"}
+      </h1>
       <p className="panel-lead">
         {readiness.published
           ? "El negocio está publicado. Los cambios siguientes se guardan como avances y la carta se publica por separado."
@@ -97,27 +99,35 @@ export function ReadinessManager({
         {feedback.message}
       </p>
 
-      <RequirementList
-        emptyText="Se cumplen todos los mínimos para publicar."
-        items={blockers}
-        title="Falta para publicar"
-      />
-      <RequirementList
-        emptyText="No hay recomendaciones pendientes."
-        items={warnings}
-        title="Recomendado"
-      />
+      {readiness.published ? (
+        <Link className="button" href="/panel">
+          Ir al panel de administración
+        </Link>
+      ) : (
+        <>
+          <RequirementList
+            emptyText="Se cumplen todos los mínimos para publicar."
+            items={blockers}
+            title="Falta para publicar"
+          />
+          <RequirementList
+            emptyText="No hay recomendaciones pendientes."
+            items={warnings}
+            title="Recomendado"
+          />
 
-      <div className="payment-card__summary">
-        <button
-          className="button"
-          disabled={pending || !readiness.ready || readiness.published !== null}
-          onClick={() => run("publish")}
-          type="button"
-        >
-          Publicar el negocio
-        </button>
-      </div>
+          <div className="payment-card__summary">
+            <button
+              className="button"
+              disabled={pending || !readiness.ready}
+              onClick={() => run("publish")}
+              type="button"
+            >
+              Publicar el negocio
+            </button>
+          </div>
+        </>
+      )}
 
       <div aria-label="Modo prueba" role="group">
         <h2>Modo prueba</h2>

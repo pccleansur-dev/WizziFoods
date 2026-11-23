@@ -18,21 +18,23 @@ export async function OnboardingShell({
   current: OnboardingStepKey;
 }) {
   const readiness = await loadReadiness();
-  const progress = onboardingProgress(
-    readiness.status === "ready" ? readiness.readiness : null
-  );
+  const report = readiness.status === "ready" ? readiness.readiness : null;
 
   return (
     <main className="panel-shell">
       <header className="panel-header">
         <span className="platform-wordmark">Wizzi Foods</span>
         <Link className="button button--secondary" href="/panel">
-          Volver al inicio
+          {report?.published ? "Volver al panel" : "Volver al inicio"}
         </Link>
       </header>
-      <OnboardingFrame current={current} progress={progress}>
-        {children}
-      </OnboardingFrame>
+      {report?.published ? (
+        children
+      ) : (
+        <OnboardingFrame current={current} progress={onboardingProgress(report)}>
+          {children}
+        </OnboardingFrame>
+      )}
     </main>
   );
 }

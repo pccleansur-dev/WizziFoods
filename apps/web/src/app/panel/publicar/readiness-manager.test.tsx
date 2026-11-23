@@ -57,7 +57,7 @@ describe("readiness manager", () => {
     );
   });
 
-  it("shows the published state", () => {
+  it("offers a way back to administration once published", () => {
     const markup = renderToStaticMarkup(
       <ReadinessManager
         initialReadiness={report({
@@ -71,5 +71,8 @@ describe("readiness manager", () => {
       />
     );
     expect(markup).toContain("El negocio está publicado");
+    expect(markup).toContain('href="/panel"');
+    expect(markup).toContain("Ir al panel de administración");
+    expect(markup).not.toContain("Falta para publicar");
   });
 });
