@@ -5085,3 +5085,127 @@ main:has(.diner-experience) .diner-waiter-call {
   width: auto;
   min-height: 2.75rem;
 }
+
+/* Carta: edición y vista previa comparten pantalla cuando hay ancho suficiente. */
+.panel-shell--module .catalog-section {
+  margin-top: 0;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.catalog-section > .catalog-toolbar {
+  align-items: center;
+  margin-block: 0.75rem 1rem;
+}
+
+.catalog-section > .catalog-toolbar .button,
+.catalog-dialog__bar .button {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+.catalog-workspace--editor {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.catalog-preview-pane {
+  display: none;
+  min-width: 0;
+}
+
+.catalog-editor__groups .catalog-editor-fold {
+  padding: 0;
+  overflow: hidden;
+}
+
+.catalog-editor-fold > summary {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.catalog-editor-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.catalog-editor-fold > summary::before {
+  content: "+";
+  font-weight: 700;
+}
+
+.catalog-editor-fold[open] > summary::before {
+  content: "−";
+}
+
+.catalog-editor-fold > summary > span {
+  margin-inline-start: auto;
+  color: #625b51;
+  font-size: 0.85rem;
+}
+
+.catalog-editor-fold > .catalog-helper {
+  margin-inline: 0.85rem;
+}
+
+.catalog-dialog {
+  width: min(100% - 1.25rem, 64rem);
+  max-height: calc(100dvh - 1.25rem);
+  padding: 0;
+  border: 1px solid #d8d2c7;
+  border-radius: 1rem;
+  background: #fffdf8;
+  color: inherit;
+}
+
+.catalog-dialog::backdrop {
+  background: rgb(34 31 26 / 55%);
+}
+
+.catalog-dialog--preview {
+  max-width: 33rem;
+}
+
+.catalog-dialog__bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: end;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e5dfd3;
+  background: #fffdf8;
+}
+
+.catalog-dialog .catalog-import,
+.catalog-dialog .catalog-preview {
+  position: static;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+@media (orientation: landscape) and (min-width: 48rem) {
+  .catalog-workspace--editor {
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 32%);
+    align-items: start;
+  }
+
+  .catalog-preview-pane {
+    position: sticky;
+    top: 0.75rem;
+    display: block;
+    max-height: calc(100svh - 1.5rem);
+    overflow: auto;
+  }
+
+  .catalog-preview-pane > .catalog-preview {
+    position: static;
+  }
+
+  .catalog-section > .catalog-toolbar .catalog-preview-trigger {
+    display: none;
+  }
+}

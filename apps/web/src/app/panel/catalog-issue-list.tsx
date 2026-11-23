@@ -15,7 +15,17 @@ export function CatalogIssueList({ issues }: { issues: CatalogIssueView[] }) {
             key={`${issue.id ?? "draft"}-${issue.field}-${issue.language ?? ""}-${index}`}
           >
             {issue.id ? (
-              <a href={`#catalog-row-${issue.id}`}>{issue.label}</a>
+              <a
+                href={`#catalog-row-${issue.id}`}
+                onClick={() => {
+                  const group = document
+                    .getElementById(`catalog-row-${issue.id}`)
+                    ?.closest("details");
+                  if (group) group.open = true;
+                }}
+              >
+                {issue.label}
+              </a>
             ) : (
               <span>{issue.label}</span>
             )}

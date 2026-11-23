@@ -1,7 +1,7 @@
 "use client";
 
 import type { CatalogDraft, CatalogSectorKind } from "@platform/contracts";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useRef, useState, type ReactNode } from "react";
 
 import { publishCatalogAction, saveCatalogAction } from "./actions";
 import type { CatalogActionState } from "./catalog-action-state";
@@ -47,11 +47,13 @@ const initialActionState = (
 export function CatalogEditor({
   catalog,
   hasBusinessProfile,
+  importControl,
   languages,
   publishedCatalog
 }: {
   catalog: SavedCatalogDraft | null;
   hasBusinessProfile: boolean;
+  importControl?: ReactNode;
   languages: string[];
   publishedCatalog: PublishedCatalog | null;
 }) {
@@ -60,6 +62,7 @@ export function CatalogEditor({
     languages
   );
   const [draft, setDraft] = useState(initialDraft);
+  const previewDialog = useRef<HTMLDialogElement>(null);
   const draftRef = useRef(initialDraft);
   const [previewLanguage, setPreviewLanguage] = useState(languages[0] ?? "es");
   const [dirty, setDirty] = useState(false);
@@ -119,12 +122,7 @@ export function CatalogEditor({
     <section className="catalog-section" aria-labelledby="catalog-title">
       <div className="catalog-section__heading">
         <div>
-          <p className="eyebrow">Carta</p>
           <h2 id="catalog-title">Carta y productos</h2>
-          <p>
-            Armá la carta como borrador, revisala a la derecha y publicala
-            cuando esté lista.
-          </p>
         </div>
         <span
           className={`catalog-status ${dirty ? "catalog-status--dirty" : "catalog-status--saved"}`}
@@ -132,41 +130,55 @@ export function CatalogEditor({
           {dirty ? "Cambios sin guardar" : "Borrador guardado"}
         </span>
       </div>
-      <div className="catalog-workspace">
-        <div className="catalog-editor">
-          <div className="catalog-toolbar" aria-label="Acciones de la carta">
-            <CatalogTranslateButton
-              change={change}
-              draft={draft}
-              languages={languages}
-              onTranslate={translateCatalogAction}
-            />
-            <label className="catalog-language-picker">
-              <span>Idioma de vista previa</span>
-              <select
-                onChange={(event) => setPreviewLanguage(event.target.value)}
-                value={previewLanguage}
-              >
-                {languages.map((language) => (
-                  <option key={language} value={language}>
-                    {catalogLanguageName(language)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+      <div className="catalog-toolbar" aria-label="Acciones de la carta">
+        {importControl}
+        <button
+          aria-haspopup="dialog"
+          className="button button--secondary catalog-preview-trigger"
+          onClick={() => previewDialog.current?.showModal()}
+          type="button"
+        >
+          Vista previa
+        </button>
+        <CatalogTranslateButton
+          change={change}
+          draft={draft}
+          languages={languages}
+          onTranslate={translateCatalogAction}
+        />
+        {languages.length > 1 ? (
+          <label className="catalog-language-picker">
+            <span>Idioma de vista previa</span>
+            <select
+              onChange={(event) => setPreviewLanguage(event.target.value)}
+              value={previewLanguage}
+            >
+              {languages.map((language) => (
+                <option key={language} value={language}>
+                  {catalogLanguageName(language)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
 
-          <p className="catalog-language-note">
-            <strong>Contenido por idioma.</strong> Nombre y descripción se
-            publican por separado; precio, imagen y disponibilidad se comparten.
-          </p>
+      <div className="catalog-workspace catalog-workspace--editor">
+        <div className="catalog-editor">
+          {languages.length > 1 ? (
+            <p className="catalog-language-note">
+              <strong>Contenido por idioma.</strong> Nombre y descripción se
+              publican por separado; precio, imagen y disponibilidad se
+              comparten.
+            </p>
+          ) : null}
 
           <div className="catalog-editor__groups">
-            <div className="catalog-card catalog-card--table">
-              <div className="catalog-card__heading">
-                <h3>Categorías</h3>
+            <details className="catalog-card catalog-card--table catalog-editor-fold">
+              <summary>
+                <strong>Categorías</strong>
                 <span>{draft.categories.length} de 50</span>
-              </div>
+              </summary>
               {draft.categories.length === 0 ? (
                 <p className="catalog-helper">
                   Ejemplo: Entradas, Principales, Postres.
@@ -237,13 +249,13 @@ export function CatalogEditor({
               >
                 <span aria-hidden="true">+</span> Agregar categoría
               </button>
-            </div>
+            </details>
 
-            <div className="catalog-card catalog-card--table">
-              <div className="catalog-card__heading">
-                <h3>Sectores de preparación</h3>
+            <details className="catalog-card catalog-card--table catalog-editor-fold">
+              <summary>
+                <strong>Sectores de preparación</strong>
                 <span>{draft.sectors.length} de 20</span>
-              </div>
+              </summary>
               {draft.sectors.length === 0 ? (
                 <p className="catalog-helper">
                   Cada producto debe ir a Cocina, Barra u otro sector.
@@ -325,7 +337,7 @@ export function CatalogEditor({
               >
                 <span aria-hidden="true">+</span> Agregar sector
               </button>
-            </div>
+            </details>
 
             <div className="catalog-card catalog-card--products">
               <div className="catalog-card__heading">
@@ -591,12 +603,35 @@ export function CatalogEditor({
             ) : null
           )}
         </div>
-        <CatalogPreview
-          draft={draft}
-          language={previewLanguage}
-          previews={previews}
-          publishedRevision={publishedRevision}
-        />
+        <div className="catalog-preview-pane">
+          <CatalogPreview
+            draft={draft}
+            language={previewLanguage}
+            previews={previews}
+            publishedRevision={publishedRevision}
+          />
+        </div>
+        <dialog
+          aria-label="Vista previa de la carta"
+          className="catalog-dialog catalog-dialog--preview"
+          ref={previewDialog}
+        >
+          <div className="catalog-dialog__bar">
+            <button
+              className="button button--secondary"
+              onClick={() => previewDialog.current?.close()}
+              type="button"
+            >
+              Cerrar vista previa
+            </button>
+          </div>
+          <CatalogPreview
+            draft={draft}
+            language={previewLanguage}
+            previews={previews}
+            publishedRevision={publishedRevision}
+          />
+        </dialog>
       </div>
       <div
         className="catalog-availability"

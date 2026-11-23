@@ -141,6 +141,13 @@ describe("onboarding step screens", () => {
     );
     expect(markup).toContain("Carta y productos");
     expect(markup).toContain("Vista previa de la carta");
+    expect(markup).toMatch(
+      /<dialog aria-labelledby="catalog-import-title"[^>]*>/u
+    );
+    expect(markup).toMatch(
+      /<dialog aria-label="Vista previa de la carta"[^>]*>/u
+    );
+    expect(markup).toContain('class="catalog-preview-pane"');
     expect(markup).toContain("Agregar categoría");
     expect(markup).toContain("Contenido por idioma");
     expect(markup).toContain("Agregar variante");

@@ -24,14 +24,16 @@ export function CartaStep({
   const profile = editableBusinessProfile(businessProfile, tenantName);
   return (
     <div className="panel-content onboarding-step-content">
-      <CatalogImportPanel
-        idempotencyKey={idempotencyKey}
-        imports={catalogImports}
-      />
       <CatalogEditor
         // Al cambiar la revisión del borrador (p. ej. tras aprobar una importación) se vuelve a montar.
         key={catalog?.revision ?? "sin-borrador"}
         catalog={catalog}
+        importControl={
+          <CatalogImportPanel
+            idempotencyKey={idempotencyKey}
+            imports={catalogImports}
+          />
+        }
         hasBusinessProfile={businessProfile !== null}
         languages={profile.languages}
         publishedCatalog={publishedCatalog}
