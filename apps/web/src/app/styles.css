@@ -4932,3 +4932,105 @@ main:has(.diner-experience) .diner-waiter-call {
 .waiter-alert-toggle {
   justify-self: start;
 }
+
+/* Portada y controles de cada módulo del panel administrativo. */
+.panel-shell--module {
+  display: block;
+  padding: clamp(0.875rem, 3vw, 2rem);
+}
+
+.panel-shell--module > .panel-header {
+  width: 100%;
+  padding-bottom: 0.75rem;
+}
+
+.panel-shell--module > .panel-content {
+  padding-block: clamp(1rem, 3vw, 2rem);
+}
+
+.panel-shell--module > section.panel-content {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.panel-shell--module > :is(.payments-workspace, .team-workspace) {
+  width: min(100%, 64rem);
+}
+
+.panel-shell--module .panel-content h1 {
+  max-width: none;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.1;
+}
+
+.panel-shell--module .panel-content > .panel-lead {
+  margin-block: 0 0.5rem;
+  font-size: 1rem;
+}
+
+.panel-shell--module :is(.team-card__actions, .payment-card__summary) .button {
+  width: auto;
+  min-height: 2.75rem;
+  flex: none;
+  padding: 0.45rem 0.8rem;
+}
+
+.payment-methods-workspace .payment-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+}
+
+.payment-methods-workspace .payment-card {
+  padding: 0.75rem;
+}
+
+.payment-methods-workspace .payment-card__summary {
+  align-items: center;
+}
+
+.payment-methods-workspace .payment-card__summary > div {
+  flex: 1 1 9rem;
+}
+
+.payment-methods-workspace .payment-card--provider {
+  grid-column: 1 / -1;
+}
+
+.payment-methods-workspace .payment-card__provider {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 0.75rem;
+}
+
+.payment-methods-workspace .payment-card__provider .profile-form {
+  min-width: 0;
+  align-content: start;
+  justify-items: start;
+  padding: 0.875rem;
+}
+
+.payment-methods-workspace .payment-card__provider .field-group {
+  width: 100%;
+  min-width: 0;
+}
+
+.payment-methods-workspace .payment-card__provider .button {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+.payment-methods-workspace .payment-card__connection {
+  grid-column: 1 / -1;
+}
+
+.payment-card__connection p {
+  margin: 0;
+}
+
+@media (min-width: 45rem) {
+  .payment-methods-workspace .payment-card__provider .payment-card__connection {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}

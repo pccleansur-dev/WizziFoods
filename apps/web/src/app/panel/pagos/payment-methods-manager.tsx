@@ -55,15 +55,13 @@ export function PaymentMethodsManager({
 
   return (
     <section
-      className="panel-content payments-workspace"
+      className="panel-content payments-workspace payment-methods-workspace"
       aria-labelledby="payments-title"
     >
-      <p className="eyebrow">Medios de pago</p>
-      <h1 id="payments-title">Cómo cobra el negocio</h1>
+      <h1 id="payments-title">Medios de pago</h1>
       <p className="panel-lead">
-        Efectivo empieza habilitado y solo se puede deshabilitar si hay otro
-        medio disponible. Las credenciales se guardan cifradas y nunca vuelven a
-        mostrarse. Medios disponibles: <strong>{availableCount}</strong>.
+        <strong>{availableCount}</strong> medios disponibles. Para deshabilitar
+        efectivo, activá primero otro medio de pago.
       </p>
       <p
         aria-live="polite"
@@ -137,7 +135,11 @@ function MethodCard({
   }
 
   return (
-    <li className="payment-card">
+    <li
+      className={
+        isProvider ? "payment-card payment-card--provider" : "payment-card"
+      }
+    >
       <div className="payment-card__summary">
         <div>
           <strong>{label}</strong>{" "}
@@ -173,7 +175,7 @@ function MethodCard({
       {isProvider ? (
         <div className="payment-card__provider">
           {method.method === "mercado_pago" ? (
-            <div className="profile-form">
+            <div className="profile-form payment-card__connection">
               <p>
                 Autorizá a este negocio en Mercado Pago. Las credenciales se
                 reciben y guardan únicamente en el servidor.

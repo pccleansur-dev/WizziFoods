@@ -21,7 +21,7 @@ export async function OnboardingShell({
   const report = readiness.status === "ready" ? readiness.readiness : null;
 
   return (
-    <main className="panel-shell">
+    <main className="panel-shell panel-shell--module">
       <header className="panel-header">
         <span className="platform-wordmark">Wizzi Foods</span>
         <Link className="button button--secondary" href="/panel">
