@@ -25,14 +25,17 @@ export default async function PanelPage() {
       : null;
 
   return (
-    <main className="panel-shell">
+    <main className="panel-shell panel-shell--home">
       <header className="panel-header">
-        <span className="platform-wordmark">Wizzi Foods</span>
         <form action={signOutAction}>
-          <button className="button button--secondary" type="submit">
+          <button
+            className="button button--secondary panel-sign-out"
+            type="submit"
+          >
             Cerrar sesión
           </button>
         </form>
+        <span className="platform-wordmark">Wizzi Foods</span>
       </header>
       {result.status === "ready" ? (
         <PanelContent
