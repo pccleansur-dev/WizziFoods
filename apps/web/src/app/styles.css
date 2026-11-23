@@ -2025,7 +2025,7 @@ dd {
 
 @media (orientation: landscape) and (min-width: 48rem) {
   .floor-plan {
-    width: min(100% - 1.5rem, 90rem);
+    width: min(100% - 3rem, 90rem);
   }
 
   .floor-plan-side,

@@ -8,7 +8,13 @@ import {
   type FloorSeatLayout,
   type FloorTableShape
 } from "@platform/contracts";
-import { useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type KeyboardEvent
+} from "react";
 
 import { FloorPlanCanvas, SECTOR_COLORS } from "./floor-plan-canvas";
 import {
@@ -39,6 +45,19 @@ import {
 } from "./floor-plan-editor-state";
 import type { FloorPlanActionState, FloorPlanQr } from "./floor-plan";
 import { newId } from "../../../lib/new-id";
+
+const tabletLandscape =
+  "(orientation: landscape) and (min-width: 48rem) and (max-width: 85.375rem)";
+
+function subscribeToLayout(change: () => void) {
+  const media = window.matchMedia(tabletLandscape);
+  media.addEventListener("change", change);
+  return () => media.removeEventListener("change", change);
+}
+
+function defaultZoom() {
+  return window.matchMedia(tabletLandscape).matches ? 0.75 : 1;
+}
 
 type PendingCommand = {
   commandId: string;
@@ -83,7 +102,13 @@ export function FloorPlanEditor({
   const [groupName, setGroupName] = useState("");
   const [newShape, setNewShape] = useState<FloorTableShape>("square");
   const [targetSector, setTargetSector] = useState("");
-  const [zoom, setZoom] = useState(1);
+  const [manualZoom, setZoom] = useState<number | null>(null);
+  const responsiveZoom = useSyncExternalStore(
+    subscribeToLayout,
+    defaultZoom,
+    () => 1
+  );
+  const zoom = manualZoom ?? responsiveZoom;
   const [view, setView] = useState<"plan" | "qr">(initialView);
   const [activeFloor, setActiveFloor] = useState("");
   const [newFloor, setNewFloor] = useState({ name: "", shortName: "" });
