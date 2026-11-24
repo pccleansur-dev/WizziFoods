@@ -5,11 +5,17 @@ import { saveGoogleReviewLink } from "./google-review-actions";
 
 export function GoogleReviewForm({ url }: { url: string | null }) {
   const [draft, setDraft] = useState(url ?? "");
-  const [message, save, pending] = useActionState(saveGoogleReviewLink, "");
+  const [{ url: publishedUrl, message }, save, pending] = useActionState(
+    saveGoogleReviewLink,
+    { url, message: "" }
+  );
   return (
     <details className="profile-form google-review-settings">
       <summary>
-        <strong>Reseñas de Google</strong>
+        <strong>Reseñas de Google</strong>{" "}
+        <span className="status-pill">
+          {publishedUrl ? "Publicado" : "Sin enlace publicado"}
+        </span>
       </summary>
       <form
         onSubmit={(event) => {

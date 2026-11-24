@@ -16,20 +16,39 @@ export async function loadGoogleReviewLink() {
   }
 }
 
-export async function saveGoogleReviewLink(_previous: string, input: unknown) {
+export async function saveGoogleReviewLink(
+  previous: { url: string | null; message: string },
+  input: unknown
+) {
   if (typeof input !== "string")
-    return "Pegá un enlace de reseñas de Google válido.";
+    return {
+      ...previous,
+      message: "Pegá un enlace de reseñas de Google válido."
+    };
   const value = input.trim();
   const url = parseGoogleReviewUrl(value);
-  if (value && !url) return "Pegá un enlace de reseñas de Google válido.";
+  if (value && !url)
+    return {
+      ...previous,
+      message: "Pegá un enlace de reseñas de Google válido."
+    };
   try {
     const result = await adminApi(path, { method: "PUT", body: { url } });
-    if (result.ok)
-      return url
-        ? "Enlace guardado. Ya aparece en la carta."
-        : "Enlace quitado de la carta.";
+    if (result.ok) {
+      const savedUrl = parseGoogleReviewUrl(dataOf(result.body));
+      if (savedUrl === url)
+        return {
+          url,
+          message: url
+            ? "Enlace publicado en la carta."
+            : "Enlace quitado de la carta."
+        };
+    }
   } catch {
     // Keep the field available for retry.
   }
-  return "No pudimos guardar el enlace. Volvé a intentar.";
+  return {
+    ...previous,
+    message: "No pudimos guardar el enlace. Volvé a intentar."
+  };
 }

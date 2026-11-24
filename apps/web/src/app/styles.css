@@ -5606,3 +5606,52 @@ main .diner-entry.diner-entry--compact {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+.diner-brand {
+  display: grid;
+  color: var(--brand-bg-text, #221f1a);
+}
+
+.diner-brand__bar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.diner-brand[data-heading="serif"] .diner-brand__name {
+  font-family: Georgia, serif;
+}
+
+.diner-brand[data-layout="visual"] .diner-brand__name {
+  font-size: clamp(1.3rem, 5vw, 2.3rem);
+}
+
+.diner-brand__cover {
+  display: block;
+  width: 100%;
+  height: clamp(7rem, 24vw, 15rem);
+  border-radius: 1rem;
+  object-fit: cover;
+}
+
+.diner-brand[data-layout="compact"] .diner-brand__cover {
+  height: clamp(5rem, 15vw, 9rem);
+}
+
+.diner-brand__description {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.diner-branded .diner-brand .diner-brand__review,
+.diner-branded .diner-nav button[aria-current="page"],
+.diner-branded .diner-primary {
+  border-color: transparent;
+  background: var(--brand-accent, var(--brand-primary));
+  color: var(--brand-accent-text, var(--brand-primary-text));
+}
+
+.diner-branded:has(.diner-brand[data-heading="serif"]) .diner-menu h2 {
+  font-family: Georgia, serif;
+}

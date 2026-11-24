@@ -33,6 +33,19 @@ export class BrandService {
     return brand ? toPublicBrandView(brand) : null;
   }
 
+  async cover(scope: TenantScope) {
+    const asset = (await this.repository.getBrand(scope))?.cover;
+    if (!asset) return null;
+    try {
+      return {
+        body: await this.storage.download(asset.objectPath),
+        contentType: asset.contentType
+      };
+    } catch {
+      return null;
+    }
+  }
+
   async icon(
     scope: TenantScope,
     size: BrandIconSize,

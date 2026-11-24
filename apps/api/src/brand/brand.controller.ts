@@ -42,6 +42,19 @@ export class BrandController {
     return { data: view };
   }
 
+  @Get("cover")
+  async cover(
+    @Req() request: TenantHostRequest,
+    @Res({ passthrough: true }) reply: FastifyReply
+  ) {
+    const cover = await this.service.cover(scopeOf(request));
+    if (!cover) throw new NotFoundException();
+    void reply
+      .header("content-type", cover.contentType)
+      .header("cache-control", "public, max-age=300");
+    return cover.body;
+  }
+
   @Get("icon")
   async icon(
     @Req() request: TenantHostRequest,

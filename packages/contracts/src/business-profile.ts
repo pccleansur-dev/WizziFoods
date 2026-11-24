@@ -226,7 +226,7 @@ export function parseGoogleReviewUrl(input: unknown): string | null {
       return null;
     const allowed =
       (url.hostname === "g.page" &&
-        /^\/r\/[\w-]+\/review\/?$/u.test(url.pathname)) ||
+        /^\/(?:r\/)?[\w-]+\/review\/?$/u.test(url.pathname)) ||
       (url.hostname === "search.google.com" &&
         url.pathname === "/local/writereview" &&
         Boolean(url.searchParams.get("placeid"))) ||
