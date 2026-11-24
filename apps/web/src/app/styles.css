@@ -5368,3 +5368,19 @@ main:has(.diner-experience) .diner-waiter-call {
   background: #fbf3e4;
   color: #493825;
 }
+
+.access-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.access-mode .button {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+.access-mode [aria-current="page"] {
+  background: #253b32;
+  color: #fff;
+}

@@ -1,18 +1,21 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-
+import { describe, expect, it, vi } from "vitest";
 import StaffAccessPage from "./page";
 
-describe("StaffAccessPage", () => {
-  it("shows the mobile internal access with individual credentials", async () => {
-    const page = await StaffAccessPage({
-      params: Promise.resolve({ tenantSlug: "restaurante-demo" })
-    });
-    const markup = renderToStaticMarkup(page);
+vi.mock("next/navigation", () => ({
+  redirect: (path: string) => {
+    throw new Error(path);
+  }
+}));
 
-    expect(markup).toContain("Comenzá tu turno");
-    expect(markup).toContain("Usuario");
-    expect(markup).toContain("PIN de 6 dígitos");
-    expect(markup).not.toContain("Google");
+describe("StaffAccessPage", () => {
+  it("moves existing employee links to the shared access with the same business", async () => {
+    await expect(
+      StaffAccessPage({
+        params: Promise.resolve({ tenantSlug: "restaurante-demo" }),
+        searchParams: Promise.resolve({ estado: "no-disponible" })
+      })
+    ).rejects.toThrow(
+      "/acceso?tipo=equipo&local=restaurante-demo&estado=no-disponible"
+    );
   });
 });

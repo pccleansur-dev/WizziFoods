@@ -1,6 +1,15 @@
 import Link from "next/link";
 
+import { StaffLoginForm } from "../interno/[tenantSlug]/staff-login-form";
 import { LoginForm } from "./login-form";
+
+type AccessParams = {
+  "clave-actualizada"?: string;
+  error?: string;
+  estado?: string;
+  local?: string;
+  tipo?: string;
+};
 
 const notices: Record<string, { status: "error" | "success"; text: string }> = {
   "clave-actualizada": {
@@ -17,17 +26,25 @@ const notices: Record<string, { status: "error" | "success"; text: string }> = {
   }
 };
 
-function pickNotice(params: { "clave-actualizada"?: string; error?: string }) {
-  if (params["clave-actualizada"] === "1") return notices["clave-actualizada"];
-  return params.error ? notices[params.error] : undefined;
-}
-
 export default async function AccessPage({
   searchParams
 }: {
-  searchParams: Promise<{ "clave-actualizada"?: string; error?: string }>;
+  searchParams: Promise<AccessParams>;
 }) {
-  const notice = pickNotice(await searchParams);
+  const params = await searchParams;
+  const staff = params.tipo === "equipo";
+  const notice =
+    params["clave-actualizada"] === "1"
+      ? notices["clave-actualizada"]
+      : typeof params.error === "string" && Object.hasOwn(notices, params.error)
+        ? notices[params.error]
+        : undefined;
+  const local =
+    typeof params.local === "string" &&
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(params.local) &&
+    params.local.length <= 80
+      ? params.local
+      : "";
 
   return (
     <main className="access-shell">
@@ -36,26 +53,42 @@ export default async function AccessPage({
           Wizzi Foods
         </Link>
         <div>
-          <p className="eyebrow">Administración del negocio</p>
           <h1 id="access-title">Ingresá a tu negocio</h1>
           <p className="access-lead">
-            Gestioná carta, salón, equipo y operación desde un único lugar. Cada
-            negocio mantiene sus datos y accesos separados.
+            Acceso para administradores y todo el equipo del local.
           </p>
         </div>
-        <p className="access-support">
-          El personal del salón ingresa desde el acceso interno con su usuario y
-          PIN.
-        </p>
       </section>
 
       <section className="access-card" aria-labelledby="form-title">
+        <nav aria-label="Tipo de acceso" className="access-mode">
+          <Link
+            aria-current={!staff ? "page" : undefined}
+            className="button button--secondary"
+            href={local ? "/acceso?local=" + local : "/acceso"}
+          >
+            Administrador
+          </Link>
+          <Link
+            aria-current={staff ? "page" : undefined}
+            className="button button--secondary"
+            href={
+              local
+                ? "/acceso?tipo=equipo&local=" + local
+                : "/acceso?tipo=equipo"
+            }
+          >
+            Equipo
+          </Link>
+        </nav>
         <div className="access-card__heading">
-          <p className="access-step">Acceso seguro</p>
-          <h2 id="form-title">Administrador</h2>
+          <h2 id="form-title">
+            {staff ? "Comenzá tu turno" : "Administrador"}
+          </h2>
           <p>
-            Después de validar tu cuenta te pediremos el código de tu
-            autenticador.
+            {staff
+              ? "Ingresá con el usuario y PIN que te asignaron en el local."
+              : "Después de validar tu cuenta te pediremos el código de tu autenticador."}
           </p>
         </div>
         {notice ? (
@@ -66,10 +99,17 @@ export default async function AccessPage({
             {notice.text}
           </p>
         ) : null}
-        <LoginForm />
+        {staff && params.estado === "no-disponible" ? (
+          <p className="form-message form-message--error" role="alert">
+            El acceso del equipo no está disponible en este momento. Volvé a
+            intentar.
+          </p>
+        ) : null}
+        {staff ? <StaffLoginForm tenantSlug={local} /> : <LoginForm />}
         <p className="access-help">
-          ¿Todavía no recibiste tu acceso? Contactá al responsable que dio de
-          alta el negocio.
+          {staff
+            ? "Si no recordás tu PIN, pedile ayuda al encargado."
+            : "¿Todavía no recibiste tu acceso? Contactá al responsable que dio de alta el negocio."}
         </p>
         <nav className="access-legal" aria-label="Información legal">
           <Link href="/Politicas-de-Privacidad">Política de privacidad</Link>

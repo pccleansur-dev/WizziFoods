@@ -13,7 +13,20 @@ export function StaffLoginForm({ tenantSlug }: { tenantSlug: string }) {
 
   return (
     <form action={action} className="field-stack staff-login-form">
-      <input name="tenantSlug" type="hidden" value={tenantSlug} />
+      <label className="field-group">
+        <span>Código del local</span>
+        <input
+          autoCapitalize="none"
+          autoComplete="off"
+          defaultValue={tenantSlug}
+          maxLength={80}
+          name="tenantSlug"
+          placeholder="ej. pcclean"
+          required
+          spellCheck={false}
+          type="text"
+        />
+      </label>
       <div className="field-group">
         <label htmlFor="staff-username">Usuario</label>
         <input

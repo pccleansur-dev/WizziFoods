@@ -26,6 +26,15 @@ describe("AccessPage", () => {
     expect(markup).not.toContain("form-message");
   });
 
+  it("offers staff sign-in from the same portal", async () => {
+    expect(await render()).toContain("/acceso?tipo=equipo");
+    const team = await render({ tipo: "equipo", local: "pcclean" });
+    expect(team).toContain("Código del local");
+    expect(team).toContain('value="pcclean"');
+    expect(team).toContain("PIN de 6 dígitos");
+    expect(team).not.toContain("Continuar con Google");
+  });
+
   it("explains an expired or unusable link instead of failing silently", async () => {
     const expired = await render({ error: "enlace-vencido" });
     const unknown = await render({ error: "no-se-pudo-validar" });
