@@ -5,6 +5,8 @@ const menu = [
   {
     id: "1",
     title: "Café con leche",
+    categoryId: "cafes",
+    categoryPosition: 0,
     categoryTitle: "Cafetería",
     priceCents: 100,
     variants: [{ id: "2", title: "Grande", priceDeltaCents: 20 }]
@@ -12,6 +14,8 @@ const menu = [
   {
     id: "3",
     title: "Milanesa",
+    categoryId: "platos",
+    categoryPosition: 1,
     categoryTitle: "Platos",
     priceCents: 200,
     variants: []

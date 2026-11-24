@@ -155,6 +155,8 @@ export function waiterErrorCode(body: unknown): string | null {
 }
 
 export type WaiterMenuProduct = {
+  categoryId: string;
+  categoryPosition: number;
   categoryTitle: string;
   id: string;
   priceCents: number;
@@ -178,7 +180,7 @@ export function buildWaiterMenu(
   const categories = new Map(
     catalog.categories.map((category) => [
       category.id,
-      localizedTitle(category.content)
+      { title: localizedTitle(category.content), position: category.position }
     ])
   );
   return [...catalog.products]
@@ -188,7 +190,9 @@ export function buildWaiterMenu(
     )
     .sort((left, right) => left.position - right.position)
     .map((product) => ({
-      categoryTitle: categories.get(product.categoryId) ?? "",
+      categoryId: product.categoryId,
+      categoryPosition: categories.get(product.categoryId)?.position ?? 0,
+      categoryTitle: categories.get(product.categoryId)?.title ?? "",
       id: product.id,
       priceCents: product.priceCents,
       title: localizedTitle(product.content),

@@ -5519,3 +5519,20 @@ main:has(.diner-experience) .diner-waiter-call {
   color: #764716;
   overflow-wrap: anywhere;
 }
+
+.manual-order-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.manual-order-categories .button {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+.manual-order-categories [aria-pressed="true"] {
+  border-color: #253b32;
+  background: #253b32;
+  color: #fff;
+}

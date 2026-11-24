@@ -16,6 +16,8 @@ type Line = {
   variantId: string | null;
 };
 
+const resultPageSize = 6;
+
 export type ManualOrderDraft = Omit<WaiterManualOrderRequest, "commandId">;
 
 export function ManualOrderForm({
@@ -36,13 +38,34 @@ export function ManualOrderForm({
   const [dinerName, setDinerName] = useState("");
   const [seatLabel, setSeatLabel] = useState("");
   const [query, setQuery] = useState("");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [resultPage, setResultPage] = useState(0);
   const [lines, setLines] = useState<Line[]>([]);
   const [variantByProduct, setVariantByProduct] = useState<
     Record<string, string>
   >({});
 
-  const matches = searchWaiterMenu(menu, query);
-  const visible = matches.slice(0, 6);
+  const categories = [
+    ...new Map(menu.map((product) => [product.categoryId, product])).values()
+  ].sort((left, right) => left.categoryPosition - right.categoryPosition);
+  const selectedCategory = categories.find(
+    (category) => category.categoryId === categoryId
+  );
+  const showingProducts = query.trim() !== "" || selectedCategory !== undefined;
+  const matches = showingProducts
+    ? searchWaiterMenu(
+        selectedCategory
+          ? menu.filter((product) => product.categoryId === categoryId)
+          : menu,
+        query
+      )
+    : [];
+  const pageCount = Math.ceil(matches.length / resultPageSize);
+  const page = Math.min(resultPage, Math.max(0, pageCount - 1));
+  const visible = matches.slice(
+    page * resultPageSize,
+    (page + 1) * resultPageSize
+  );
   const products = new Map(menu.map((product) => [product.id, product]));
   const estimate = lines.reduce((sum, line) => {
     const product = products.get(line.productId);
@@ -122,6 +145,8 @@ export function ManualOrderForm({
           if (accepted) {
             setLines([]);
             setQuery("");
+            setCategoryId(null);
+            setResultPage(0);
             setDinerName("");
             setSeatLabel("");
           }
@@ -197,56 +222,116 @@ export function ManualOrderForm({
             type="search"
             placeholder="Plato, bebida o categoría"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setCategoryId(null);
+              setResultPage(0);
+            }}
           />
         </label>
-        <ul className="waiter-menu manual-order-results">
-          {visible.map((product) => (
-            <li key={product.id}>
-              <div>
-                <strong>{product.title}</strong>
-                <small>
-                  {product.categoryTitle} · {formatMoney(product.priceCents)}
-                </small>
-              </div>
-              {product.variants.length > 0 ? (
-                <select
-                  aria-label={`Opción de ${product.title}`}
-                  onChange={(event) =>
-                    setVariantByProduct((current) => ({
-                      ...current,
-                      [product.id]: event.target.value
-                    }))
-                  }
-                  value={variantByProduct[product.id] ?? ""}
-                >
-                  <option value="">Sin opción</option>
-                  {product.variants.map((variant) => (
-                    <option key={variant.id} value={variant.id}>
-                      {variant.title} (+{formatMoney(variant.priceDeltaCents)})
-                    </option>
-                  ))}
-                </select>
-              ) : null}
+        {categories.length > 0 ? (
+          <div
+            aria-label="Categorías de la carta"
+            className="manual-order-categories"
+            role="group"
+          >
+            {categories.map((category) => (
               <button
+                key={category.categoryId}
+                aria-pressed={
+                  category.categoryId === selectedCategory?.categoryId
+                }
                 className="button button--secondary"
-                onClick={() => add(product)}
+                onClick={() => {
+                  setCategoryId(
+                    category.categoryId === categoryId
+                      ? null
+                      : category.categoryId
+                  );
+                  setQuery("");
+                  setResultPage(0);
+                }}
                 type="button"
               >
-                Agregar {product.title}
+                {category.categoryTitle || "Sin categoría"}
               </button>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+        ) : (
+          <p className="waiter-empty">No hay productos disponibles.</p>
+        )}
+        {visible.length > 0 ? (
+          <ul
+            aria-label={
+              selectedCategory?.categoryTitle || "Resultados de búsqueda"
+            }
+            className="waiter-menu manual-order-results"
+          >
+            {visible.map((product) => (
+              <li key={product.id}>
+                <div>
+                  <strong>{product.title}</strong>
+                  <small>
+                    {product.categoryTitle} · {formatMoney(product.priceCents)}
+                  </small>
+                </div>
+                {product.variants.length > 0 ? (
+                  <select
+                    aria-label={`Opción de ${product.title}`}
+                    onChange={(event) =>
+                      setVariantByProduct((current) => ({
+                        ...current,
+                        [product.id]: event.target.value
+                      }))
+                    }
+                    value={variantByProduct[product.id] ?? ""}
+                  >
+                    <option value="">Sin opción</option>
+                    {product.variants.map((variant) => (
+                      <option key={variant.id} value={variant.id}>
+                        {variant.title} (+{formatMoney(variant.priceDeltaCents)}
+                        )
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <button
+                  className="button button--secondary"
+                  onClick={() => add(product)}
+                  type="button"
+                >
+                  Agregar {product.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
-        {matches.length === 0 ? (
+        {showingProducts && matches.length === 0 ? (
           <p role="status">No encontramos productos.</p>
         ) : null}
-        {matches.length > visible.length ? (
-          <p className="waiter-note">
-            Mostrando {visible.length} de {matches.length}. Escribí un nombre o
-            categoría para acotar.
-          </p>
+        {pageCount > 1 ? (
+          <div className="staff-catalog-search__pages">
+            <button
+              className="button button--secondary"
+              type="button"
+              disabled={page === 0}
+              onClick={() => setResultPage(page - 1)}
+            >
+              Anterior
+            </button>
+            <span aria-live="polite">
+              {page + 1} de {pageCount}
+            </span>
+            <button
+              className="button button--secondary"
+              type="button"
+              disabled={page + 1 === pageCount}
+              onClick={() => setResultPage(page + 1)}
+            >
+              Siguiente
+            </button>
+          </div>
         ) : null}
         <h3>Comanda</h3>
         {lines.length === 0 ? (

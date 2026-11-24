@@ -159,6 +159,8 @@ describe("waiter salon view helpers", () => {
     );
     expect(menu.map((product) => product.title)).toEqual(["Milanesa", "Flan"]);
     expect(menu[0]).toMatchObject({
+      categoryId: expect.any(String),
+      categoryPosition: 0,
       categoryTitle: "Platos",
       priceCents: 12_500,
       variants: [{ id: "v1", priceDeltaCents: 2_500, title: "Napolitana" }]

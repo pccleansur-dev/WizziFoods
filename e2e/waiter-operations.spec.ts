@@ -214,6 +214,10 @@ test("a waiter loads a manual order for a table within their sectors", async ({
   await expect(tables.locator("option")).toHaveText(["Mesa 1", "Mesa 2"]);
   await ana.getByLabel("A una persona").check();
   const submit = ana.getByRole("button", { name: "Confirmar comanda" });
+  await expect(
+    ana.getByRole("button", { name: "Agregar Milanesa" })
+  ).toHaveCount(0);
+  await ana.getByLabel("Buscar producto").fill("milanesa");
   await ana.getByRole("button", { name: "Agregar Milanesa" }).click();
   await expect(submit).toBeDisabled();
   await ana.getByLabel(/^Nombre/u).fill("Marcos");
@@ -262,6 +266,7 @@ test("a manager changes availability for the diner and the waiter without overwr
   await expect(
     waiter.getByRole("heading", { name: "Cargar comanda" })
   ).toBeVisible();
+  await waiter.getByLabel("Buscar producto").fill("milanesa");
   const addMilanesa = waiter.getByRole("button", { name: "Agregar Milanesa" });
   await expect(addMilanesa).toHaveCount(0);
   const session = (await waiter.context().cookies(salonUrl)).find(
