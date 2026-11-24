@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { loadStaffSession } from "../../../../../staff/load-staff-session";
 import { callStaffApi } from "../../../../../staff/waiter-api";
 import { buildWaiterMenu } from "../../../../../staff/waiter-view";
-import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
-import { AvailabilityButton } from "./availability-button";
+import { StaffCatalogSearch } from "./catalog-search";
 
 async function loadPublishedMenu(tenantSlug: string) {
   const response = await callStaffApi(
@@ -75,25 +74,11 @@ export default async function StaffCatalogPage({
           <p>El negocio todavía no tiene una carta publicada.</p>
         )}
         {menu.status === "ready" && (
-          <ul className="staff-module-grid">
-            {menu.products.map((product) => (
-              <li key={product.id} className="payment-card">
-                <p>{product.categoryTitle}</p>
-                <h2>{product.title}</h2>
-                <p>{formatMoney(product.priceCents)}</p>
-                <p>{product.available ? "Disponible" : "Agotado"}</p>
-                {canChangeAvailability ? (
-                  <AvailabilityButton
-                    available={product.available}
-                    productId={product.id}
-                    tenantSlug={tenantSlug}
-                    title={product.title}
-                    version={product.version}
-                  />
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <StaffCatalogSearch
+            products={menu.products}
+            canChangeAvailability={canChangeAvailability}
+            tenantSlug={tenantSlug}
+          />
         )}
       </section>
     </main>

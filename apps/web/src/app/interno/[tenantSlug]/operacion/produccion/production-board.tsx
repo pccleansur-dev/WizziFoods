@@ -240,6 +240,11 @@ export function ProductionBoardView({
                       {item.quantity} × {item.title}
                       {item.variantTitle ? ` (${item.variantTitle})` : ""}
                       <small> · {productionStatusLabel(item.status)}</small>
+                      {item.note ? (
+                        <strong className="production-item-note">
+                          Nota: {item.note}
+                        </strong>
+                      ) : null}
                     </span>
                     {step ? (
                       <button

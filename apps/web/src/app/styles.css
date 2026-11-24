@@ -5473,3 +5473,49 @@ main:has(.diner-experience) .diner-waiter-call {
     grid-column: auto;
   }
 }
+
+.staff-catalog-search {
+  display: grid;
+  max-width: 42rem;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.staff-catalog-search__pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.manual-order-results li,
+.staff-catalog-search .waiter-menu li {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.manual-order-results .button,
+.staff-catalog-search .button {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+.manual-order-note {
+  flex-basis: 100%;
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.manual-order-note summary {
+  width: fit-content;
+  min-height: 2.75rem;
+  align-content: center;
+  cursor: pointer;
+}
+
+.production-item-note {
+  display: block;
+  margin-top: 0.25rem;
+  color: #764716;
+  overflow-wrap: anywhere;
+}

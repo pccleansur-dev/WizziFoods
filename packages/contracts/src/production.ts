@@ -38,6 +38,7 @@ export type ProductionAdvanceResult = {
 };
 
 export type ProductionTicketItem = {
+  note?: string;
   lineId: string;
   quantity: number;
   status: ProductionItemStatus;
@@ -198,7 +199,8 @@ function ticketItem(input: unknown): ProductionTicketItem | null {
       "quantity",
       "status",
       "title",
-      "variantTitle"
+      "variantTitle",
+      ...(Object.hasOwn(item, "note") ? ["note"] : [])
     ])
   ) {
     return null;
@@ -207,11 +209,15 @@ function ticketItem(input: unknown): ProductionTicketItem | null {
   const status = itemStatus(item.status);
   const title = bounded(item.title, 160);
   const variantTitle = nullableBounded(item.variantTitle, 160);
+  const note = Object.hasOwn(item, "note")
+    ? bounded(item.note, 160)
+    : undefined;
   if (
     !lineId ||
     !status ||
     !title ||
     variantTitle === undefined ||
+    (Object.hasOwn(item, "note") && !note) ||
     typeof item.quantity !== "number" ||
     !Number.isInteger(item.quantity) ||
     item.quantity < 1 ||
@@ -219,7 +225,14 @@ function ticketItem(input: unknown): ProductionTicketItem | null {
   ) {
     return null;
   }
-  return { lineId, quantity: item.quantity, status, title, variantTitle };
+  return {
+    lineId,
+    quantity: item.quantity,
+    status,
+    title,
+    variantTitle,
+    ...(note ? { note } : {})
+  };
 }
 
 function ticket(input: unknown): ProductionTicket | null {

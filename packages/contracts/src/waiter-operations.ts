@@ -9,6 +9,7 @@ export type WaiterIntentDecisionRequest =
   | { commandId: string; decision: "reject"; reason: string };
 
 export type WaiterManualOrderItem = {
+  note?: string;
   lineId: string;
   productId: string;
   quantity: number;
@@ -144,10 +145,18 @@ export function parseManualOrderRequest(
     const item = record(value);
     if (
       !item ||
-      !hasExactKeys(item, ["lineId", "productId", "quantity", "variantId"])
+      !hasExactKeys(item, [
+        "lineId",
+        "productId",
+        "quantity",
+        "variantId",
+        ...(Object.hasOwn(item, "note") ? ["note"] : [])
+      ])
     ) {
       return null;
     }
+    const note = Object.hasOwn(item, "note") ? text(item.note, 160) : undefined;
+    if (note === null || (note && /[\p{Cc}]/u.test(note))) return null;
     const lineId = uuid(item.lineId);
     const productId = uuid(item.productId);
     const variantId = item.variantId === null ? null : uuid(item.variantId);
@@ -164,7 +173,13 @@ export function parseManualOrderRequest(
       return null;
     }
     lineIds.add(lineId);
-    items.push({ lineId, productId, quantity: item.quantity, variantId });
+    items.push({
+      lineId,
+      productId,
+      quantity: item.quantity,
+      variantId,
+      ...(note ? { note } : {})
+    });
   }
 
   return {

@@ -3,12 +3,13 @@
 import type { WaiterManualOrderRequest } from "@platform/contracts";
 import { useState } from "react";
 
+import { searchWaiterMenu } from "../../../../../staff/menu-search";
 import type { WaiterMenuProduct } from "../../../../../staff/waiter-view";
 import { formatMoney } from "../../../../m/[token]/diner-catalog-format";
 import { newId } from "../../../../../lib/new-id";
 
 type Line = {
-  key: string;
+  note: string;
   lineId: string;
   productId: string;
   quantity: number;
@@ -34,11 +35,14 @@ export function ManualOrderForm({
   );
   const [dinerName, setDinerName] = useState("");
   const [seatLabel, setSeatLabel] = useState("");
+  const [query, setQuery] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [variantByProduct, setVariantByProduct] = useState<
     Record<string, string>
   >({});
 
+  const matches = searchWaiterMenu(menu, query);
+  const visible = matches.slice(0, 6);
   const products = new Map(menu.map((product) => [product.id, product]));
   const estimate = lines.reduce((sum, line) => {
     const product = products.get(line.productId);
@@ -56,12 +60,16 @@ export function ManualOrderForm({
 
   function add(product: WaiterMenuProduct) {
     const variantId = variantByProduct[product.id] || null;
-    const key = `${product.id}:${variantId ?? ""}`;
     setLines((current) => {
-      const existing = current.find((line) => line.key === key);
+      const existing = current.find(
+        (line) =>
+          line.productId === product.id &&
+          line.variantId === variantId &&
+          !line.note.trim()
+      );
       if (existing) {
         return current.map((line) =>
-          line.key === key
+          line.lineId === existing.lineId
             ? { ...line, quantity: Math.min(20, line.quantity + 1) }
             : line
         );
@@ -69,7 +77,7 @@ export function ManualOrderForm({
       return [
         ...current,
         {
-          key,
+          note: "",
           lineId: newId(),
           productId: product.id,
           quantity: 1,
@@ -103,6 +111,7 @@ export function ManualOrderForm({
             dinerName: dinerName.trim() === "" ? null : dinerName.trim(),
             items: lines.map((line) => ({
               lineId: line.lineId,
+              ...(line.note.trim() ? { note: line.note.trim() } : {}),
               productId: line.productId,
               quantity: line.quantity,
               variantId: line.variantId
@@ -112,6 +121,7 @@ export function ManualOrderForm({
           });
           if (accepted) {
             setLines([]);
+            setQuery("");
             setDinerName("");
             setSeatLabel("");
           }
@@ -181,9 +191,17 @@ export function ManualOrderForm({
           />
         </div>
 
-        <h3>Carta</h3>
-        <ul className="waiter-menu">
-          {menu.map((product) => (
+        <label className="waiter-field">
+          Buscar producto
+          <input
+            type="search"
+            placeholder="Plato, bebida o categoría"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <ul className="waiter-menu manual-order-results">
+          {visible.map((product) => (
             <li key={product.id}>
               <div>
                 <strong>{product.title}</strong>
@@ -221,6 +239,15 @@ export function ManualOrderForm({
           ))}
         </ul>
 
+        {matches.length === 0 ? (
+          <p role="status">No encontramos productos.</p>
+        ) : null}
+        {matches.length > visible.length ? (
+          <p className="waiter-note">
+            Mostrando {visible.length} de {matches.length}. Escribí un nombre o
+            categoría para acotar.
+          </p>
+        ) : null}
         <h3>Comanda</h3>
         {lines.length === 0 ? (
           <p className="waiter-empty">Todavía no agregaste productos.</p>
@@ -233,7 +260,7 @@ export function ManualOrderForm({
               );
               const label = `${product?.title ?? ""}${variant ? ` (${variant.title})` : ""}`;
               return (
-                <li key={line.key}>
+                <li key={line.lineId}>
                   <span>{label}</span>
                   <input
                     aria-label={`Cantidad de ${label}`}
@@ -246,7 +273,7 @@ export function ManualOrderForm({
                       );
                       setLines((current) =>
                         current.map((entry) =>
-                          entry.key === line.key
+                          entry.lineId === line.lineId
                             ? { ...entry, quantity }
                             : entry
                         )
@@ -260,13 +287,36 @@ export function ManualOrderForm({
                     className="button button--secondary"
                     onClick={() =>
                       setLines((current) =>
-                        current.filter((entry) => entry.key !== line.key)
+                        current.filter((entry) => entry.lineId !== line.lineId)
                       )
                     }
                     type="button"
                   >
                     Quitar
                   </button>
+                  <details className="manual-order-note">
+                    <summary>
+                      {line.note ? "Editar observación" : "+ Observación"}
+                    </summary>
+                    <label className="waiter-field">
+                      Observación para {label}
+                      <input
+                        maxLength={160}
+                        placeholder="Ej. sin cebolla"
+                        value={line.note}
+                        onChange={(event) => {
+                          const note = event.target.value;
+                          setLines((current) =>
+                            current.map((entry) =>
+                              entry.lineId === line.lineId
+                                ? { ...entry, note }
+                                : entry
+                            )
+                          );
+                        }}
+                      />
+                    </label>
+                  </details>
                 </li>
               );
             })}
