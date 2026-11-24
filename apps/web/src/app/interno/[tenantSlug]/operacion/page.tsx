@@ -55,7 +55,11 @@ export default async function StaffOperationPage({
 
         <div className="staff-module-grid">
           {modules.map((module) => (
-            <article className="staff-module-card" key={module.title}>
+            <a
+              className="staff-module-card"
+              href={`/interno/${tenantSlug}/operacion/${module.path}`}
+              key={module.title}
+            >
               <span aria-hidden="true">→</span>
               <h2>{module.title}</h2>
               <p>{module.description}</p>
@@ -64,13 +68,7 @@ export default async function StaffOperationPage({
                   {callsLabel}
                 </p>
               ) : null}
-              <a
-                className="panel-module-link"
-                href={`/interno/${tenantSlug}/operacion/${module.path}`}
-              >
-                Abrir {module.title}
-              </a>
-            </article>
+            </a>
           ))}
         </div>
       </section>

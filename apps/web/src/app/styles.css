@@ -1762,12 +1762,28 @@ dd {
 }
 
 .staff-module-card {
-  min-height: 12rem;
+  display: block;
+  min-height: 9rem;
   padding: 1.25rem;
   border: 1px solid #d8d2c7;
   border-radius: 0.875rem;
   background: #fffdf8;
   box-shadow: 0 0.75rem 2rem rgb(63 50 32 / 5%);
+}
+
+a.staff-module-card {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.staff-module-card:hover {
+  border-color: #355f3f;
+  background: #f1f6ef;
+}
+
+a.staff-module-card:focus-visible {
+  outline: 3px solid #90612a;
+  outline-offset: 2px;
 }
 
 .staff-module-card > span {
@@ -1777,12 +1793,12 @@ dd {
 }
 
 .staff-module-card h2 {
-  margin: 2.25rem 0 0;
+  margin: 0 0 0.25rem;
   font-size: 1.375rem;
 }
 
 .staff-module-card p {
-  margin: 0.5rem 0 1.5rem;
+  margin: 0.5rem 0 0;
   color: #625b51;
   font-size: 0.875rem;
 }
