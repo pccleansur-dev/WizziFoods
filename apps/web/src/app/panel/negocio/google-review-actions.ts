@@ -18,22 +18,31 @@ export async function loadGoogleReviewLink() {
 
 export async function saveGoogleReviewLink(
   previous: { url: string | null; message: string },
-  input: unknown
+  formData: FormData
 ) {
+  const input = formData.get("reviewUrl");
   if (typeof input !== "string")
     return {
       ...previous,
-      message: "Pegá un enlace de reseñas de Google válido."
+      message:
+        "Ese enlace no tiene un formato reconocido. Pegá el enlace completo de Google, incluido https://."
     };
   const value = input.trim();
   const url = parseGoogleReviewUrl(value);
   if (value && !url)
     return {
       ...previous,
-      message: "Pegá un enlace de reseñas de Google válido."
+      message:
+        "Ese enlace no tiene un formato reconocido. Pegá el enlace completo de Google, incluido https://."
     };
   try {
     const result = await adminApi(path, { method: "PUT", body: { url } });
+    if (!result.ok && (result.status === 401 || result.status === 403))
+      return {
+        ...previous,
+        message:
+          "Tu sesión no permite guardar. Volvé a ingresar como administrador."
+      };
     if (result.ok) {
       const savedUrl = parseGoogleReviewUrl(dataOf(result.body));
       if (savedUrl === url)

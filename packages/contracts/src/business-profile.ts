@@ -230,11 +230,19 @@ export function parseGoogleReviewUrl(input: unknown): string | null {
       (url.hostname === "search.google.com" &&
         url.pathname === "/local/writereview" &&
         Boolean(url.searchParams.get("placeid"))) ||
-      (url.hostname === "maps.app.goo.gl" &&
+      ((url.hostname === "maps.app.goo.gl" ||
+        url.hostname === "share.google") &&
         /^\/[\w-]+\/?$/u.test(url.pathname)) ||
-      (["www.google.com", "google.com", "maps.google.com"].includes(
-        url.hostname
-      ) &&
+      (url.hostname === "goo.gl" &&
+        /^\/maps\/[\w-]+\/?$/u.test(url.pathname)) ||
+      ([
+        "www.google.com",
+        "google.com",
+        "maps.google.com",
+        "www.google.com.ar",
+        "google.com.ar",
+        "maps.google.com.ar"
+      ].includes(url.hostname) &&
         /^\/maps(?:\/|$)/u.test(url.pathname));
     return allowed ? url.href : null;
   } catch {

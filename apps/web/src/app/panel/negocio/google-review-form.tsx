@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { useActionState, useState } from "react";
 import { saveGoogleReviewLink } from "./google-review-actions";
 
 export function GoogleReviewForm({ url }: { url: string | null }) {
@@ -17,15 +17,11 @@ export function GoogleReviewForm({ url }: { url: string | null }) {
           {publishedUrl ? "Publicado" : "Sin enlace publicado"}
         </span>
       </summary>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          startTransition(() => save(draft));
-        }}
-      >
+      <form action={save} noValidate>
         <label className="field-group">
           Enlace para dejar una reseña
           <input
+            name="reviewUrl"
             type="url"
             autoComplete="off"
             maxLength={1024}
@@ -34,6 +30,7 @@ export function GoogleReviewForm({ url }: { url: string | null }) {
             onChange={(event) => setDraft(event.target.value)}
           />
         </label>
+        {message ? <p role="status">{message}</p> : null}
         <p>Para quitar el botón de la carta, dejá el campo vacío y guardá.</p>
         <button
           type="submit"
@@ -42,7 +39,6 @@ export function GoogleReviewForm({ url }: { url: string | null }) {
         >
           {pending ? "Guardando…" : "Guardar enlace"}
         </button>
-        {message ? <p role="status">{message}</p> : null}
       </form>
     </details>
   );

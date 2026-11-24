@@ -6,7 +6,10 @@ describe("Google review links", () => {
     for (const link of [
       "https://g.page/r/abc/review",
       "https://search.google.com/local/writereview?placeid=abc",
-      "https://maps.app.goo.gl/abc"
+      "https://maps.app.goo.gl/abc",
+      "https://share.google/abc",
+      "https://goo.gl/maps/abc",
+      "https://www.google.com.ar/maps/place/Restaurante"
     ]) {
       expect(parseGoogleReviewUrl(link)).toBe(link);
     }
