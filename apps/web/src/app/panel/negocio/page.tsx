@@ -40,21 +40,23 @@ export default async function BusinessPage() {
   ]);
   return (
     <OnboardingShell current="negocio">
-      <div className="panel-content order-hours-panel">
-        {hours ? (
-          <OrderHoursForm hours={hours} />
-        ) : (
-          <p role="alert">No pudimos cargar los horarios de pedidos.</p>
-        )}
-        {review ? (
-          <GoogleReviewForm url={review.url} />
-        ) : (
-          <p role="alert">No pudimos cargar el enlace de reseñas.</p>
-        )}
-      </div>
       <BusinessStep
         businessProfile={profile.status === "ready" ? profile.data : null}
         tenantName={context.tenant.name}
+        hoursPanel={
+          hours ? (
+            <OrderHoursForm hours={hours} />
+          ) : (
+            <p role="alert">No pudimos cargar los horarios de pedidos.</p>
+          )
+        }
+        reviewPanel={
+          review ? (
+            <GoogleReviewForm url={review.url} />
+          ) : (
+            <p role="alert">No pudimos cargar el enlace de reseñas.</p>
+          )
+        }
       />
     </OnboardingShell>
   );

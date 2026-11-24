@@ -10,13 +10,16 @@ export function GoogleReviewForm({ url }: { url: string | null }) {
     { url, message: "" }
   );
   return (
-    <details className="profile-form google-review-settings">
-      <summary>
-        <strong>Reseñas de Google</strong>{" "}
+    <section
+      className="profile-form google-review-settings"
+      aria-labelledby="google-review-title"
+    >
+      <header>
+        <h2 id="google-review-title">Reseñas de Google</h2>{" "}
         <span className="status-pill">
           {publishedUrl ? "Publicado" : "Sin enlace publicado"}
         </span>
-      </summary>
+      </header>
       <form action={save} noValidate>
         <label className="field-group">
           Enlace para dejar una reseña
@@ -40,6 +43,6 @@ export function GoogleReviewForm({ url }: { url: string | null }) {
           {pending ? "Guardando…" : "Guardar enlace"}
         </button>
       </form>
-    </details>
+    </section>
   );
 }

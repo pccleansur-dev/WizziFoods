@@ -5655,3 +5655,57 @@ main .diner-entry.diner-entry--compact {
 .diner-branded:has(.diner-brand[data-heading="serif"]) .diner-menu h2 {
   font-family: Georgia, serif;
 }
+
+.business-settings {
+  width: min(100%, 74rem);
+  margin-inline: auto;
+}
+
+.business-settings__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 1rem;
+}
+
+.business-settings__tabs .button {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+.business-settings__tabs .button[aria-selected="true"] {
+  border-color: #253b32;
+  background: #253b32;
+  color: #fff;
+}
+
+.business-settings [hidden] {
+  display: none;
+}
+
+.business-settings .profile-workspace {
+  margin-top: 0;
+}
+
+.business-settings .profile-workspace:has(.profile-preview[hidden]) {
+  grid-template-columns: minmax(0, 38rem);
+}
+
+.business-settings__panel {
+  max-width: 38rem;
+}
+
+.business-settings .google-review-settings {
+  width: 100%;
+  margin: 0;
+  box-shadow: none;
+}
+
+.business-settings .google-review-settings h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.2rem;
+}
+
+.business-settings .google-review-settings > header {
+  margin-bottom: 0.75rem;
+}

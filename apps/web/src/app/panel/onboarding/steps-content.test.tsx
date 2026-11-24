@@ -124,7 +124,7 @@ describe("onboarding step screens", () => {
     expect(markup).toContain("Imagen de portada");
     expect(markup).toContain("Fotos de referencia");
     expect(markup).toContain("Vista previa");
-    expect(markup).toContain("no modifica lo publicado");
+    expect(markup).toContain("Guardar cambios");
     expect(markup).not.toContain("Carta y productos");
   });
 
