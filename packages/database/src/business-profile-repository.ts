@@ -20,6 +20,11 @@ export type SaveBusinessProfileDraftInput = {
 };
 
 export interface BusinessProfileRepository {
+  googleReviewLink(
+    scope: TenantScope,
+    requesterId: string,
+    url?: string | null
+  ): Promise<string | null>;
   orderHours(
     scope: TenantScope,
     requesterId: string,
@@ -109,6 +114,16 @@ export function createBusinessProfileRepository(
   client: Sql
 ): BusinessProfileRepository {
   return {
+    async googleReviewLink(inputScope, requesterId, url) {
+      const scope = assertScope(inputScope);
+      assertRequester(requesterId);
+      const [row] = await client<{ result: string | null }[]>`
+        select private.admin_google_review_link(${scope.tenantId}::uuid,
+          ${scope.locationId}::uuid, ${requesterId}::uuid,
+          ${url !== undefined}, ${url ?? null}) as result
+      `;
+      return row?.result ?? null;
+    },
     async orderHours(inputScope, requesterId, settings) {
       const scope = assertScope(inputScope);
       assertRequester(requesterId);

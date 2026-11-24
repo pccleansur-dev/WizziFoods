@@ -9,7 +9,10 @@ import {
   UseGuards
 } from "@nestjs/common";
 
-import { parseOrderServiceHours } from "@platform/contracts";
+import {
+  parseGoogleReviewUrl,
+  parseOrderServiceHours
+} from "@platform/contracts";
 
 import { AdminAuthGuard } from "../auth/admin-auth.guard.js";
 import {
@@ -36,6 +39,28 @@ export class BusinessProfileController {
   @Get()
   async get(@Req() request: BusinessProfileRequest) {
     return { data: await this.service.getDraft(request.tenantAdminContext) };
+  }
+
+  @Get("google-review")
+  async googleReview(@Req() request: BusinessProfileRequest) {
+    return {
+      data: await this.service.googleReviewLink(request.tenantAdminContext)
+    };
+  }
+
+  @Put("google-review")
+  async saveGoogleReview(
+    @Req() request: BusinessProfileRequest,
+    @Body() body: { url?: unknown } | null
+  ) {
+    const url = body?.url === null ? null : parseGoogleReviewUrl(body?.url);
+    if (!url && body?.url !== null)
+      throw new BadRequestException(
+        "Pegá un enlace de reseñas de Google válido."
+      );
+    return {
+      data: await this.service.googleReviewLink(request.tenantAdminContext, url)
+    };
   }
 
   @Get("order-hours")

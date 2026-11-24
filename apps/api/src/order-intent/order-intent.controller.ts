@@ -105,6 +105,13 @@ export class OrderIntentController {
     };
   }
 
+  @Get("google-review")
+  async googleReview(@Req() request: PublicRequest) {
+    return {
+      data: await this.service.googleReviewLink(request.tenantHostContext)
+    };
+  }
+
   @Get("service")
   async orderStatus(@Req() request: PublicRequest) {
     return { data: await this.service.orderStatus(request.tenantHostContext) };

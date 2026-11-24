@@ -23,6 +23,7 @@ export type CreateOrderIntentInput = {
 
 export interface OrderIntentRepository {
   create(input: CreateOrderIntentInput): Promise<OrderIntentResult>;
+  googleReviewLink(scope: TenantScope): Promise<string | null>;
   orderStatus(scope: TenantScope): Promise<OrderServiceStatus>;
   listPaymentMethods(scope: TenantScope): Promise<AvailablePaymentMethod[]>;
 }
@@ -100,6 +101,13 @@ export function createOrderIntentRepository(
   client: Sql
 ): OrderIntentRepository {
   return {
+    async googleReviewLink(inputScope) {
+      const scope = assertScope(inputScope);
+      const [row] = await client<{ result: string | null }[]>`
+        select private.read_google_review_link(${scope.tenantId}::uuid, ${scope.locationId}::uuid) as result
+      `;
+      return row?.result ?? null;
+    },
     async orderStatus(inputScope) {
       const scope = assertScope(inputScope);
       const [row] = await client<{ result: OrderServiceStatus }[]>`

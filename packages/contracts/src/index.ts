@@ -13,6 +13,7 @@ export {
   type BusinessProfileHeadingStyle,
   type BusinessProfileLayout
 } from "./business-profile.js";
+export { parseGoogleReviewUrl } from "./business-profile.js";
 export {
   parseOrderServiceHours,
   type OrderServiceHours,

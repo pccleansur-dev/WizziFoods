@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { loadAdministrativeAccess } from "../../../auth/load-admin-access";
 import { loadBusinessProfileDraft } from "../business-profile";
 import { BusinessStep } from "../onboarding/business-step";
+import { loadGoogleReviewLink } from "./google-review-actions";
+import { GoogleReviewForm } from "./google-review-form";
 import { loadOrderHours } from "./order-hours-actions";
 import { OrderHoursForm } from "./order-hours-form";
 import { OnboardingShell } from "../onboarding/onboarding-shell";
@@ -31,9 +33,10 @@ export default async function BusinessPage() {
   }
 
   const host = (await headers()).get("host") ?? "";
-  const [profile, hours] = await Promise.all([
+  const [profile, hours, review] = await Promise.all([
     loadBusinessProfileDraft(host),
-    loadOrderHours()
+    loadOrderHours(),
+    loadGoogleReviewLink()
   ]);
   return (
     <OnboardingShell current="negocio">
@@ -42,6 +45,11 @@ export default async function BusinessPage() {
           <OrderHoursForm hours={hours} />
         ) : (
           <p role="alert">No pudimos cargar los horarios de pedidos.</p>
+        )}
+        {review ? (
+          <GoogleReviewForm url={review.url} />
+        ) : (
+          <p role="alert">No pudimos cargar el enlace de reseñas.</p>
         )}
       </div>
       <BusinessStep

@@ -17,6 +17,13 @@ export class OrderIntentService {
     });
   }
 
+  googleReviewLink(context: TenantHostContext) {
+    return this.repository.googleReviewLink({
+      tenantId: context.tenant.id,
+      locationId: context.location.id
+    });
+  }
+
   orderStatus(context: TenantHostContext) {
     return this.repository.orderStatus({
       locationId: context.location.id,

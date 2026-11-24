@@ -5536,3 +5536,32 @@ main:has(.diner-experience) .diner-waiter-call {
   background: #253b32;
   color: #fff;
 }
+
+.google-review-settings {
+  margin-block-start: 0.75rem;
+  padding: 0.9rem 1rem;
+}
+
+.google-review-settings summary {
+  min-height: 2.75rem;
+  align-content: center;
+  cursor: pointer;
+}
+
+.google-review-settings form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.google-review-settings p {
+  margin: 0;
+  color: #625b51;
+  font-size: 0.875rem;
+}
+
+.google-review-settings .button,
+.diner-google-review .button {
+  width: auto;
+  min-height: 2.75rem;
+  justify-self: start;
+}

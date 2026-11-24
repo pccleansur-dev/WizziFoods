@@ -39,11 +39,13 @@ import { OnlinePaymentCheckout } from "./online-payment-checkout";
 
 export function DinerExperience({
   catalog,
+  googleReviewUrl,
   orderService,
   paymentMethods,
   token
 }: {
   catalog: PublicCatalog | null;
+  googleReviewUrl?: string | null;
   orderService?: OrderServiceStatus | null;
   paymentMethods: OrderIntentPaymentMethod[];
   token: string;
@@ -382,7 +384,21 @@ export function DinerExperience({
         </p>
       ) : null}
       {view === "menu" ? (
-        <DinerMenu catalog={menuCatalog} language={language} onAdd={add} />
+        <>
+          <DinerMenu catalog={menuCatalog} language={language} onAdd={add} />
+          {googleReviewUrl ? (
+            <aside className="diner-google-review">
+              <a
+                className="button button--secondary"
+                href={googleReviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Dejanos tu opinión en Google
+              </a>
+            </aside>
+          ) : null}
+        </>
       ) : view === "split" ? (
         <DinerSplit token={token} />
       ) : view === "order" ||

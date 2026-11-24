@@ -217,3 +217,27 @@ export function parseOrderServiceHours(
     warningMinutes: settings.warningMinutes
   };
 }
+
+export function parseGoogleReviewUrl(input: unknown): string | null {
+  if (typeof input !== "string" || input.length > 1024) return null;
+  try {
+    const url = new URL(input.trim());
+    if (url.protocol !== "https:" || url.username || url.password || url.port)
+      return null;
+    const allowed =
+      (url.hostname === "g.page" &&
+        /^\/r\/[\w-]+\/review\/?$/u.test(url.pathname)) ||
+      (url.hostname === "search.google.com" &&
+        url.pathname === "/local/writereview" &&
+        Boolean(url.searchParams.get("placeid"))) ||
+      (url.hostname === "maps.app.goo.gl" &&
+        /^\/[\w-]+\/?$/u.test(url.pathname)) ||
+      (["www.google.com", "google.com", "maps.google.com"].includes(
+        url.hostname
+      ) &&
+        /^\/maps(?:\/|$)/u.test(url.pathname));
+    return allowed ? url.href : null;
+  } catch {
+    return null;
+  }
+}

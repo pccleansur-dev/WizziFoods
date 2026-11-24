@@ -10,6 +10,7 @@ import { WaiterCallPanel } from "./waiter-call-panel";
 import { DinerExperience } from "./diner-experience";
 import { loadPublicCatalog } from "./public-catalog";
 import { loadOrderIntentOptions } from "./order-intent-options";
+import { loadGoogleReview } from "./google-review";
 import { loadOrderService } from "./order-service";
 import { loadTableEntry } from "./table-entry";
 
@@ -31,14 +32,21 @@ export default async function TableEntryPage({
 }) {
   const { token } = await params;
   const host = (await headers()).get("host") ?? "";
-  const [result, catalog, paymentMethods, brand, orderService] =
-    await Promise.all([
-      loadTableEntry(host, token),
-      loadPublicCatalog(host),
-      loadOrderIntentOptions(host),
-      loadBrand(host),
-      loadOrderService(host)
-    ]);
+  const [
+    result,
+    catalog,
+    paymentMethods,
+    brand,
+    orderService,
+    googleReviewUrl
+  ] = await Promise.all([
+    loadTableEntry(host, token),
+    loadPublicCatalog(host),
+    loadOrderIntentOptions(host),
+    loadBrand(host),
+    loadOrderService(host),
+    loadGoogleReview(host)
+  ]);
   return (
     <main
       className={brand ? "diner-branded" : undefined}
@@ -56,6 +64,7 @@ export default async function TableEntryPage({
             catalog={catalog}
             paymentMethods={paymentMethods}
             orderService={orderService}
+            googleReviewUrl={googleReviewUrl}
             token={token}
           />
           <EntryRefresh token={token} />

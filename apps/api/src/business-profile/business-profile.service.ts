@@ -16,6 +16,14 @@ export class BusinessProfileService {
     private readonly businessProfileRepository: BusinessProfileRepository
   ) {}
 
+  googleReviewLink(context: TenantAdminRequestContext, url?: string | null) {
+    return this.businessProfileRepository.googleReviewLink(
+      context.scope,
+      context.identity.userId,
+      url
+    );
+  }
+
   orderHours(context: TenantAdminRequestContext, settings?: OrderServiceHours) {
     return this.businessProfileRepository.orderHours(
       context.scope,
