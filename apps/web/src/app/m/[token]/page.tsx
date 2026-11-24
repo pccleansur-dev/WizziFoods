@@ -52,19 +52,26 @@ export default async function TableEntryPage({
       className={brand ? "diner-branded" : undefined}
       style={dinerBrandStyle(brand)}
     >
-      <DinerBrandHeader brand={brand} />
-      <EntryView result={result} />
+      <DinerBrandHeader
+        brand={brand}
+        googleReviewUrl={
+          result.status === "ok" && catalog ? googleReviewUrl : null
+        }
+      />
+      <EntryView result={result} hasCatalog={catalog !== null} />
       {result.status === "ok" ? (
         <WaiterCallPanel entry={result.entry} token={token} />
       ) : null}
-      {result.status === "ok" ? <DinerAccountBar token={token} /> : null}
+      {result.status === "ok" && result.entry.canConfirmOrder ? (
+        <DinerAccountBar token={token} />
+      ) : null}
       {result.status === "ok" ? (
         <>
           <DinerExperience
             catalog={catalog}
             paymentMethods={paymentMethods}
             orderService={orderService}
-            googleReviewUrl={googleReviewUrl}
+            canOrder={result.entry.canConfirmOrder}
             token={token}
           />
           <EntryRefresh token={token} />

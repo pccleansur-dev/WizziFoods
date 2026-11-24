@@ -1,4 +1,4 @@
-import type { TableEntry, TableEntryResult } from "./table-entry";
+import type { TableEntryResult } from "./table-entry";
 
 type Content = { lead: string; title: string };
 
@@ -21,31 +21,18 @@ const closed: Record<string, Content> = {
   }
 };
 
-function viewOnlyLead(
-  reason: NonNullable<TableEntry["reason"]>,
-  canCallWaiter: boolean
-): string {
-  if (reason === "needs_cleaning") {
-    return canCallWaiter
-      ? "Estamos preparando esta mesa. Mientras tanto podés mirar la carta y llamar al mozo; todavía no podés hacer el pedido."
-      : "Estamos preparando esta mesa. Mientras tanto podés mirar la carta; todavía no podés hacer el pedido.";
-  }
-  if (reason === "not_accepting") {
-    return canCallWaiter
-      ? "Por hoy el local no abre mesas nuevas. Podés mirar la carta y llamar al mozo."
-      : "Por hoy el local no abre mesas nuevas. Podés mirar la carta.";
-  }
-  return canCallWaiter
-    ? "Esta mesa no está disponible. Podés mirar la carta y llamar al mozo, que te va a ayudar a sentarte en otra."
-    : "Esta mesa no está disponible. Podés mirar la carta; pedile ayuda al personal para sentarte en otra.";
-}
-
 function tablesPhrase(labels: string[]): string {
   if (labels.length < 2) return `mesa ${labels[0] ?? ""}`.trim();
   return `mesas ${labels.slice(0, -1).join(", ")} y ${labels[labels.length - 1]}`;
 }
 
-export function EntryView({ result }: { result: TableEntryResult }) {
+export function EntryView({
+  result,
+  hasCatalog = false
+}: {
+  result: TableEntryResult;
+  hasCatalog?: boolean;
+}) {
   if (result.status !== "ok") {
     const content = closed[result.status] ?? closed.error!;
     return (
@@ -62,36 +49,40 @@ export function EntryView({ result }: { result: TableEntryResult }) {
   }
 
   const { entry } = result;
-  const lead =
-    entry.mode === "view_only" && entry.reason
-      ? viewOnlyLead(entry.reason, entry.canCallWaiter)
-      : entry.mode === "join"
-        ? "Tu mesa ya está abierta: te sumás al pedido de la mesa."
-        : "La mesa está lista. Ya podés ver la carta y armar tu pedido.";
+  const unavailable = !entry.canConfirmOrder;
+  const message =
+    entry.reason === "needs_cleaning"
+      ? "Estamos preparando esta mesa"
+      : entry.reason === "not_accepting"
+        ? "Por hoy el local no abre mesas nuevas"
+        : "Esta mesa no está disponible";
   return (
-    <section aria-labelledby="entry-title" className="diner-entry">
-      <p className="eyebrow">{entry.table.floorName}</p>
+    <section
+      aria-labelledby="entry-title"
+      className="diner-entry diner-entry--compact"
+    >
       <h1 id="entry-title">Mesa {entry.table.label}</h1>
+      <p className="eyebrow">{entry.table.floorName}</p>
       {entry.group ? (
         <p className="diner-group">
           Estás en {entry.group.name} ({tablesPhrase(entry.group.tableLabels)})
         </p>
       ) : null}
-      <p className="diner-lead">{lead}</p>
-      <p className="diner-abilities-title">En esta mesa:</p>
-      <ul className="diner-abilities">
-        <li>Ver la carta</li>
-        <li>
-          {entry.canCallWaiter
-            ? "Llamar al mozo"
-            : "Llamar al mozo no disponible"}
-        </li>
-        <li>
-          {entry.canConfirmOrder
-            ? "Hacer el pedido"
-            : "El pedido lo toma el mozo"}
-        </li>
-      </ul>
+      {unavailable ? (
+        <div className="diner-entry__status">
+          <p className="diner-lead">
+            {message}.{" "}
+            {entry.canCallWaiter
+              ? "Llamá al mozo si necesitás que te atienda."
+              : "Consultá al personal del local."}
+          </p>
+          {hasCatalog ? (
+            <a className="button button--secondary" href="#carta">
+              Ver la carta
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -14,10 +14,12 @@ import type { PublicCatalog } from "./public-catalog";
 
 export function DinerMenu({
   catalog,
+  canOrder = true,
   language,
   onAdd
 }: {
   catalog: PublicCatalog;
+  canOrder?: boolean;
   language: string | null;
   onAdd(
     product: CatalogProduct,
@@ -101,6 +103,7 @@ export function DinerMenu({
       </div>
       {selected ? (
         <DinerProductDetail
+          canOrder={canOrder}
           isAvailable={catalog.availability[selected.id]?.isAvailable ?? true}
           onAdd={(variantId, quantity) => onAdd(selected, variantId, quantity)}
           onClose={() => {

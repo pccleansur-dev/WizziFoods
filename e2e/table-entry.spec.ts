@@ -28,9 +28,7 @@ test("a free table lets the diner start", async ({ page }) => {
   await scan(page, "5");
   await expect(page.getByRole("heading", { name: "Mesa 5" })).toBeVisible();
   await expect(page.getByText("Terraza", { exact: true })).toBeVisible();
-  await expect(
-    page.getByText("Hacer el pedido", { exact: true })
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Mi pedido/u })).toBeVisible();
 });
 
 test("every table of a group joins the open party and names the group", async ({
@@ -41,7 +39,9 @@ test("every table of a group joins the open party and names the group", async ({
     await expect(
       page.getByText("Estás en Cumpleaños (mesas 17 y 18)")
     ).toBeVisible();
-    await expect(page.getByText("te sumás al pedido")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Mi pedido/u })
+    ).toBeVisible();
   }
 });
 
@@ -54,10 +54,15 @@ for (const [label, text] of [
   }) => {
     await scan(page, label);
     await expect(page.getByText(text)).toBeVisible();
-    await expect(page.getByText("El pedido lo toma el mozo")).toBeVisible();
     await expect(
-      page.getByText("Hacer el pedido", { exact: true })
-    ).toHaveCount(0);
+      page.getByRole("link", { name: "Ver la carta" })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Llamar al mozo" })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Mi pedido/u })).toHaveCount(
+      0
+    );
   });
 }
 
@@ -110,16 +115,14 @@ test("the page does not expose the token, is not indexed and fits the screen", a
 test("an open page follows a table that changes state", async ({ page }) => {
   await page.clock.install();
   await scan(page, "5");
-  await expect(
-    page.getByText("Hacer el pedido", { exact: true })
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Mi pedido/u })).toBeVisible();
   await business.setState(tables.free, "out_of_service");
   try {
     await page.clock.fastForward(16_000);
     await expect(page.getByText("Esta mesa no está disponible")).toBeVisible();
-    await expect(
-      page.getByText("Hacer el pedido", { exact: true })
-    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Mi pedido/u })).toHaveCount(
+      0
+    );
   } finally {
     await business.setState(tables.free, null);
   }

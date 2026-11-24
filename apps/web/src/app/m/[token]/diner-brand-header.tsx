@@ -14,11 +14,17 @@ export function dinerBrandStyle(brand: PublicBrandView | null): CSSProperties {
   } as CSSProperties;
 }
 
-export function DinerBrandHeader({ brand }: { brand: PublicBrandView | null }) {
-  if (!brand) return null;
+export function DinerBrandHeader({
+  brand,
+  googleReviewUrl
+}: {
+  brand: PublicBrandView | null;
+  googleReviewUrl?: string | null;
+}) {
+  if (!brand && !googleReviewUrl) return null;
   return (
     <header className="diner-brand">
-      {brand.logoVersion ? (
+      {brand?.logoVersion ? (
         // eslint-disable-next-line @next/next/no-img-element -- ícono generado por la API
         <img
           alt=""
@@ -28,7 +34,18 @@ export function DinerBrandHeader({ brand }: { brand: PublicBrandView | null }) {
           width={48}
         />
       ) : null}
-      <span className="diner-brand__name">{brand.name}</span>
+      {brand ? <span className="diner-brand__name">{brand.name}</span> : null}
+      {googleReviewUrl ? (
+        <a
+          className="button button--secondary diner-brand__review"
+          href={googleReviewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Dejar reseña en Google"
+        >
+          Dejar reseña
+        </a>
+      ) : null}
     </header>
   );
 }

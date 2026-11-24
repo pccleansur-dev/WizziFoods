@@ -11,12 +11,14 @@ import {
 import { DinerProductImage } from "./diner-product-image";
 
 export function DinerProductDetail({
+  canOrder = true,
   isAvailable,
   language,
   onAdd,
   onClose,
   product
 }: {
+  canOrder?: boolean;
   isAvailable: boolean;
   language: string | null;
   onAdd(variantId: string | null, quantity: number): void;
@@ -73,11 +75,12 @@ export function DinerProductDetail({
       ) : null}
       {product.variants.length > 0 ? (
         <fieldset className="diner-variants">
-          <legend>Elegí una opción</legend>
+          <legend>{canOrder ? "Elegí una opción" : "Opciones"}</legend>
           {variants.map((variant) => (
             <label key={variant?.id ?? "base"}>
               <input
-                checked={variantId === (variant?.id ?? null)}
+                disabled={!canOrder}
+                checked={canOrder && variantId === (variant?.id ?? null)}
                 name="variant"
                 onChange={() => setVariantId(variant?.id ?? null)}
                 type="radio"
@@ -104,39 +107,43 @@ export function DinerProductDetail({
       ) : (
         <p className="diner-product-price">{formatMoney(product.priceCents)}</p>
       )}
-      <label className="diner-quantity">
-        Cantidad
-        <input
-          max={20}
-          min={1}
-          onChange={(event) => {
-            const nextQuantity = Number(event.target.value);
-            setQuantity(
-              Number.isSafeInteger(nextQuantity)
-                ? Math.min(20, Math.max(1, nextQuantity))
-                : 1
-            );
-          }}
-          type="number"
-          value={quantity}
-        />
-      </label>
-      {!isAvailable ? (
-        <p className="diner-warning" role="status">
-          Este producto no está disponible ahora.
-        </p>
+      {canOrder ? (
+        <>
+          <label className="diner-quantity">
+            Cantidad
+            <input
+              max={20}
+              min={1}
+              onChange={(event) => {
+                const nextQuantity = Number(event.target.value);
+                setQuantity(
+                  Number.isSafeInteger(nextQuantity)
+                    ? Math.min(20, Math.max(1, nextQuantity))
+                    : 1
+                );
+              }}
+              type="number"
+              value={quantity}
+            />
+          </label>
+          {!isAvailable ? (
+            <p className="diner-warning" role="status">
+              Este producto no está disponible ahora.
+            </p>
+          ) : null}
+          <button
+            className="button diner-primary"
+            disabled={!isAvailable}
+            onClick={() => {
+              onAdd(variantId, quantity);
+              onClose();
+            }}
+            type="button"
+          >
+            Agregar a Mi pedido
+          </button>
+        </>
       ) : null}
-      <button
-        className="button diner-primary"
-        disabled={!isAvailable}
-        onClick={() => {
-          onAdd(variantId, quantity);
-          onClose();
-        }}
-        type="button"
-      >
-        Agregar a Mi pedido
-      </button>
     </dialog>
   );
 }

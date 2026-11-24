@@ -39,13 +39,13 @@ import { OnlinePaymentCheckout } from "./online-payment-checkout";
 
 export function DinerExperience({
   catalog,
-  googleReviewUrl,
+  canOrder = true,
   orderService,
   paymentMethods,
   token
 }: {
   catalog: PublicCatalog | null;
-  googleReviewUrl?: string | null;
+  canOrder?: boolean;
   orderService?: OrderServiceStatus | null;
   paymentMethods: OrderIntentPaymentMethod[];
   token: string;
@@ -220,7 +220,7 @@ export function DinerExperience({
     variantId: string | null,
     quantity: number
   ) => {
-    if (blockedProducts.has(product.id)) return;
+    if (!canOrder || blockedProducts.has(product.id)) return;
     setItems((current) =>
       addDraftItem(current, {
         lineId: newId(),
@@ -237,6 +237,7 @@ export function DinerExperience({
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const submitIntent = (value: DinerCheckoutValue) => {
     if (
+      !canOrder ||
       !quote?.canConfirm ||
       submitting ||
       orderService?.ordersClosed ||
@@ -307,7 +308,7 @@ export function DinerExperience({
   }
   if (accepted) return <DinerIntentAccepted status={accepted.status} />;
   return (
-    <div className="diner-experience">
+    <div className="diner-experience" id="carta">
       <DinerConnection />
       {serviceMessages.length > 0 ? (
         <p className="diner-order-hours" role="status">
@@ -352,53 +353,46 @@ export function DinerExperience({
         choose={chooseLanguage}
         language={language}
       />
-      <nav aria-label="Carta y pedido" className="diner-nav">
-        <button
-          aria-current={view === "menu" ? "page" : undefined}
-          onClick={() => setView("menu")}
-          type="button"
-        >
-          Carta
-        </button>
-        <button
-          aria-current={
-            view === "order" || view === "checkout" ? "page" : undefined
-          }
-          onClick={() => setView("order")}
-          type="button"
-        >
-          Mi pedido{" "}
-          <span aria-label={`${itemCount} unidades`}>{itemCount}</span>
-        </button>
-        <button
-          aria-current={view === "split" ? "page" : undefined}
-          onClick={() => setView("split")}
-          type="button"
-        >
-          Dividir la cuenta
-        </button>
-      </nav>
+      {canOrder ? (
+        <nav aria-label="Carta y pedido" className="diner-nav">
+          <button
+            aria-current={view === "menu" ? "page" : undefined}
+            onClick={() => setView("menu")}
+            type="button"
+          >
+            Carta
+          </button>
+          <button
+            aria-current={
+              view === "order" || view === "checkout" ? "page" : undefined
+            }
+            onClick={() => setView("order")}
+            type="button"
+          >
+            Mi pedido{" "}
+            <span aria-label={`${itemCount} unidades`}>{itemCount}</span>
+          </button>
+          <button
+            aria-current={view === "split" ? "page" : undefined}
+            onClick={() => setView("split")}
+            type="button"
+          >
+            Dividir la cuenta
+          </button>
+        </nav>
+      ) : null}
       {added ? (
         <p className="diner-toast" role="status">
           Agregaste {added}
         </p>
       ) : null}
-      {view === "menu" ? (
-        <>
-          <DinerMenu catalog={menuCatalog} language={language} onAdd={add} />
-          {googleReviewUrl ? (
-            <aside className="diner-google-review">
-              <a
-                className="button button--secondary"
-                href={googleReviewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Dejanos tu opinión en Google
-              </a>
-            </aside>
-          ) : null}
-        </>
+      {!canOrder || view === "menu" ? (
+        <DinerMenu
+          canOrder={canOrder}
+          catalog={menuCatalog}
+          language={language}
+          onAdd={add}
+        />
       ) : view === "split" ? (
         <DinerSplit token={token} />
       ) : view === "order" ||

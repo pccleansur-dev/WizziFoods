@@ -23,13 +23,11 @@ describe("waiterCallReasons", () => {
   it("offers the bill only on an open table", () => {
     expect(waiterCallReasons({ canCallWaiter: true, mode: "join" })).toEqual([
       "call_waiter",
-      "request_bill",
-      "help"
+      "request_bill"
     ]);
     for (const mode of ["start", "view_only"] as const) {
       expect(waiterCallReasons({ canCallWaiter: true, mode })).toEqual([
-        "call_waiter",
-        "help"
+        "call_waiter"
       ]);
     }
   });

@@ -6,7 +6,7 @@ import { WaiterCallPanel } from "./waiter-call-panel";
 const token = "e".repeat(64);
 
 describe("WaiterCallPanel", () => {
-  it("shows the three reasons on an open table", () => {
+  it("shows the two useful actions on an open table", () => {
     const markup = renderToStaticMarkup(
       <WaiterCallPanel
         entry={{ canCallWaiter: true, mode: "join" }}
@@ -15,7 +15,7 @@ describe("WaiterCallPanel", () => {
     );
     expect(markup).toContain("Llamar al mozo");
     expect(markup).toContain("Pedir la cuenta");
-    expect(markup).toContain("Necesito ayuda");
+    expect(markup).not.toContain("Necesito ayuda");
     expect(markup).toContain('role="status"');
     expect(markup).not.toContain(token);
   });
@@ -27,7 +27,7 @@ describe("WaiterCallPanel", () => {
         token={token}
       />
     );
-    expect(markup.match(/<button[^>]+disabled=""/gu)).toHaveLength(3);
+    expect(markup.match(/<button[^>]+disabled=""/gu)).toHaveLength(2);
     expect(markup).toContain("Preparando los avisos…");
   });
 

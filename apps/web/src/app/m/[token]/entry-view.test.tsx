@@ -15,20 +15,23 @@ const base: TableEntry = {
 
 function html(entry: Partial<TableEntry>) {
   return renderToStaticMarkup(
-    <EntryView result={{ entry: { ...base, ...entry }, status: "ok" }} />
+    <EntryView
+      hasCatalog
+      result={{ entry: { ...base, ...entry }, status: "ok" }}
+    />
   );
 }
 
 describe("EntryView", () => {
-  it("invites to order on an available table", () => {
+  it("identifies an available table without a checklist", () => {
     const markup = html({});
     expect(markup).toContain("Mesa 5");
     expect(markup).toContain("Terraza");
-    expect(markup).toContain("Hacer el pedido");
+    expect(markup).not.toContain("En esta mesa");
   });
 
-  it("says the diner joins an open table", () => {
-    expect(html({ mode: "join" })).toContain("te sumás al pedido");
+  it("keeps the entry compact on an open table", () => {
+    expect(html({ mode: "join" })).not.toContain("diner-entry__status");
   });
 
   it("names the group and its tables", () => {
@@ -48,8 +51,8 @@ describe("EntryView", () => {
         mode: "view_only",
         reason
       });
-      expect(markup).toContain("llamar al mozo");
-      expect(markup).toContain("El pedido lo toma el mozo");
+      expect(markup).toContain("Llamá al mozo");
+      expect(markup).toContain('href="#carta"');
       expect(markup).not.toContain("Hacer el pedido");
     }
   );
@@ -63,8 +66,8 @@ describe("EntryView", () => {
         mode: "view_only",
         reason
       });
-      expect(markup).not.toContain("llamar al mozo");
-      expect(markup).toContain("Llamar al mozo no disponible");
+      expect(markup).not.toContain("Llamá al mozo");
+      expect(markup).toContain("Consultá al personal del local.");
     }
   );
 

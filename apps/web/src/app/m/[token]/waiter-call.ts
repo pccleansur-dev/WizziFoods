@@ -41,8 +41,8 @@ export function waiterCallReasons(
 ): DinerWaiterCallReason[] {
   if (!entry.canCallWaiter) return [];
   return entry.mode === "join"
-    ? ["call_waiter", "request_bill", "help"]
-    : ["call_waiter", "help"];
+    ? ["call_waiter", "request_bill"]
+    : ["call_waiter"];
 }
 
 const failureMessages: Record<string, string> = {

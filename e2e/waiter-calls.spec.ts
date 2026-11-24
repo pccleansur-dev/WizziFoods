@@ -128,26 +128,26 @@ test("the diner calls the waiter, the staff is told and resolves it", async ({
     await pendingScripts;
     await route.continue();
   });
-  const help = panel.getByRole("button", { name: "Necesito ayuda" });
+  const callWaiter = panel.getByRole("button", { name: "Llamar al mozo" });
   try {
     await diner.reload({ waitUntil: "commit" });
-    await expect(help).toBeDisabled();
+    await expect(callWaiter).toBeDisabled();
     await expect(panel.getByRole("status")).toContainText("Preparando");
   } finally {
     releaseScripts();
   }
-  await expect(help).toBeEnabled();
+  await expect(callWaiter).toBeEnabled();
   await diner.unroute(scripts);
-  const secondCall = callResponse(diner, "help");
-  await help.click();
+  const secondCall = callResponse(diner, "call_waiter");
+  await callWaiter.click();
   const secondResponse = await secondCall;
   expect(secondResponse.ok()).toBe(true);
   const { data: second } = await secondResponse.json();
-  expect(second).toMatchObject({ created: true, reason: "help" });
+  expect(second).toMatchObject({ created: true, reason: "call_waiter" });
   expect(second.callId).not.toBe(first.callId);
-  await expect(panel.getByRole("status")).toContainText("necesitás ayuda");
+  await expect(panel.getByRole("status")).toContainText("Avisamos al mozo");
   await expect(
-    ana.getByRole("article", { name: "Mesa 1 · Pide ayuda" })
+    ana.getByRole("article", { name: "Mesa 1 · Llama al mozo" })
   ).toBeVisible({ timeout: 15_000 });
 });
 
