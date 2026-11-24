@@ -269,7 +269,10 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
         </p>
       ) : null}
 
-      <section aria-label="Conexión de WhatsApp" className="waiter-reject">
+      <section
+        aria-label="Conexión de WhatsApp"
+        className="waiter-reject messaging-card messaging-card--channel"
+      >
         <h2>Conexión de WhatsApp</h2>
         {connection ? (
           <>
@@ -406,65 +409,11 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
         )}
       </section>
 
-      {connection ? (
-        <>
-          <section aria-label="Plantillas" className="waiter-reject">
-            <h2>Plantillas</h2>
-            <p>
-              Uso del mes: {overview.usage.sentThisMonth} mensajes, costo
-              estimado {costLabel(overview.usage.estimatedCostCents)}.
-            </p>
-            <ul>
-              {whatsappTemplates.map((template) => (
-                <li key={template.id}>
-                  <strong>{template.name}</strong> ·{" "}
-                  {categoryLabels[template.category]} ·{" "}
-                  {approvalLabels[template.approvalStatus]}
-                  <br />
-                  <small>{template.body}</small>
-                  <br />
-                  <label htmlFor={`cost-${template.id}`}>
-                    Costo estimado por mensaje (centavos)
-                  </label>{" "}
-                  <input
-                    id={`cost-${template.id}`}
-                    inputMode="decimal"
-                    onChange={(event) =>
-                      setCosts({ ...costs, [template.id]: event.target.value })
-                    }
-                    value={
-                      costs[template.id] ?? String(template.estimatedCostCents)
-                    }
-                  />{" "}
-                  <button
-                    className="button button--secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      void apply(
-                        () =>
-                          setTemplateCostAction(
-                            tenantSlug,
-                            template.id,
-                            Number(
-                              costs[template.id] ?? template.estimatedCostCents
-                            )
-                          ),
-                        "Guardamos el costo."
-                      )
-                    }
-                    type="button"
-                  >
-                    Guardar costo de {template.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </>
-      ) : null}
-
-      <section aria-label="Avisos en la app" className="waiter-reject">
-        <h2>Avisos en la app (PWA)</h2>
+      <section
+        aria-label="Avisos en la app"
+        className="waiter-reject messaging-card messaging-card--channel"
+      >
+        <h2>Avisos en la app</h2>
         <p>
           Notificaciones del navegador o de la app instalada: sin costo por
           mensaje y sin cuenta de Meta. Hoy las tienen activadas{" "}
@@ -556,9 +505,72 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
         </button>
       </section>
 
+      {connection ? (
+        <>
+          <section
+            aria-label="Plantillas"
+            className="waiter-reject messaging-card"
+          >
+            <h2>Plantillas</h2>
+            <p>
+              Uso del mes: {overview.usage.sentThisMonth} mensajes, costo
+              estimado {costLabel(overview.usage.estimatedCostCents)}.
+            </p>
+            <ul>
+              {whatsappTemplates.map((template) => (
+                <li key={template.id}>
+                  <strong>{template.name}</strong> ·{" "}
+                  {categoryLabels[template.category]} ·{" "}
+                  {approvalLabels[template.approvalStatus]}
+                  <br />
+                  <small>{template.body}</small>
+                  <br />
+                  <label htmlFor={`cost-${template.id}`}>
+                    Costo estimado por mensaje (centavos)
+                  </label>{" "}
+                  <input
+                    id={`cost-${template.id}`}
+                    inputMode="decimal"
+                    onChange={(event) =>
+                      setCosts({ ...costs, [template.id]: event.target.value })
+                    }
+                    value={
+                      costs[template.id] ?? String(template.estimatedCostCents)
+                    }
+                  />{" "}
+                  <button
+                    className="button button--secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      void apply(
+                        () =>
+                          setTemplateCostAction(
+                            tenantSlug,
+                            template.id,
+                            Number(
+                              costs[template.id] ?? template.estimatedCostCents
+                            )
+                          ),
+                        "Guardamos el costo."
+                      )
+                    }
+                    type="button"
+                  >
+                    Guardar costo de {template.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : null}
+
       {
         <>
-          <section aria-label="Automatizaciones" className="waiter-reject">
+          <section
+            aria-label="Automatizaciones"
+            className="waiter-reject messaging-card"
+          >
             <h2>Automatizaciones</h2>
             <p>
               Cada una se aprueba una sola vez y después corre sola. Si cambiás
@@ -636,7 +648,10 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
             </ul>
           </section>
 
-          <section aria-label="Evento puntual" className="waiter-reject">
+          <section
+            aria-label="Evento puntual"
+            className="waiter-reject messaging-card"
+          >
             <h2>Evento puntual</h2>
             <p>
               Una promoción, un show o un aviso único. Se prepara acá y no sale
@@ -732,7 +747,10 @@ export function MessagingPanel({ tenantSlug }: { tenantSlug: string }) {
         </>
       }
 
-      <section aria-label="Registro de envíos" className="waiter-reject">
+      <section
+        aria-label="Registro de envíos"
+        className="waiter-reject messaging-card"
+      >
         <h2>Registro de envíos</h2>
         <button
           className="button button--secondary"

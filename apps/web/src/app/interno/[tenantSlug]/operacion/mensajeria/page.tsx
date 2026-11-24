@@ -37,7 +37,7 @@ export default async function MessagingPage({
           </form>
         </nav>
       </header>
-      <div className="waiter-page">
+      <div className="waiter-page messaging-page">
         <h1>Mensajería</h1>
         <MessagingPanel tenantSlug={tenantSlug} />
       </div>
